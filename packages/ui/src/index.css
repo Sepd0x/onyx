@@ -71,6 +71,20 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(var(--border2));
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--muted));
+  }
   .animate-blob {
     animation: blob 8s infinite;
   }
@@ -92,6 +106,22 @@
 .disable-animations *, .disable-animations *::before, .disable-animations *::after {
   animation: none !important;
   transition: none !important;
+}
+
+/* Respect the OS-level reduced-motion preference, independent of the in-app toggle. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Visible keyboard-focus indicator on every interactive element. */
+*:focus-visible {
+  outline: 2px solid rgb(var(--primary)) !important;
+  outline-offset: 2px;
 }
 
 body {

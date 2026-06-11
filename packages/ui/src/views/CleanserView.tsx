@@ -104,7 +104,7 @@ export default function CleanserView() {
                    </div>
                    <div className="flex items-center gap-4 flex-shrink-0">
                      <span className="text-xs font-mono font-bold text-red-400">{d.size}</span>
-                     <button onClick={() => clean(d.path)} disabled={cleaning} className="p-1.5 hover:bg-red-500/20 text-muted hover:text-red-500 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100">
+                     <button onClick={() => clean(d.path)} disabled={cleaning} aria-label={`Delete ${d.path}`} title="Delete this node_modules folder" className="p-1.5 hover:bg-red-500/20 text-muted hover:text-red-500 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100">
                        <Trash2 className="w-4 h-4" />
                      </button>
                    </div>

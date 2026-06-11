@@ -113,10 +113,10 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={minimizeWindow} className="p-1.5 hover:bg-surface3 rounded-md text-muted transition-all">
+            <button onClick={minimizeWindow} aria-label="Minimize window" className="p-1.5 hover:bg-surface3 rounded-md text-muted transition-all">
               <Minus className="w-3.5 h-3.5" />
             </button>
-            <button onClick={closeWindow} className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-md text-muted transition-all">
+            <button onClick={closeWindow} aria-label="Close window" className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-md text-muted transition-all">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
