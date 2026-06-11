@@ -12,6 +12,7 @@ import TrayView from './views/TrayView';
 import AIAuditorView from './views/AIAuditorView';
 
 import PowerOSView from './views/PowerOSView';
+import Logo from './components/Logo';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
@@ -93,14 +94,7 @@ export default function App() {
         style={{ WebkitAppRegion: 'drag' } as any}
       >
         <div className="flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="16" height="16" className="drop-shadow-[0_0_8px_rgba(147,51,234,0.8)]">
-            <path d="M 64 8 L 112 36 L 64 64 L 16 36 Z" fill="#9333EA" fillOpacity="0.8"/>
-            <path d="M 16 36 L 64 64 L 64 120 L 16 92 Z" fill="#7E22CE"/>
-            <path d="M 112 36 L 112 92 L 64 120 L 64 64 Z" fill="#6B21A8"/>
-            <path d="M 64 8 L 112 36 L 64 64 L 16 36 Z" fill="none" stroke="#D8B4FE" strokeWidth="3" strokeLinejoin="round"/>
-            <path d="M 16 36 L 64 64 L 64 120 L 16 92 Z" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinejoin="round"/>
-            <path d="M 112 36 L 112 92 L 64 120 L 64 64 Z" fill="none" stroke="#a855f7" strokeWidth="3" strokeLinejoin="round"/>
-          </svg>
+          <Logo className="w-4 h-4 drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]" />
           <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted2">ONYX</span>
         </div>
         <div className="flex items-center gap-4" style={{ WebkitAppRegion: 'no-drag' } as any}>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
+import Switch from '../components/Switch';
 
 function formatBatteryTime(b: any) {
   const secs = b.charging ? b.chargingTime : b.dischargingTime;
@@ -116,12 +117,7 @@ export default function PowerOSView() {
                   Automatically switches the Windows power plan based on AC/battery state. Sends a native notification on each switch.
                 </p>
               </div>
-              <button
-                onClick={toggleAI}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${aiEnabled ? 'bg-primary' : 'bg-surface3 border border-border2'}`}
-              >
-                <div className={`w-4 h-4 bg-background rounded-full transition-transform duration-300 shadow-sm ${aiEnabled ? 'translate-x-6' : 'translate-x-0'}`}></div>
-              </button>
+              <Switch active={aiEnabled} onClick={toggleAI} label="Toggle AI power planner" />
             </div>
             {aiEnabled && (
               <div className="mt-2 text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-md flex items-center gap-2">

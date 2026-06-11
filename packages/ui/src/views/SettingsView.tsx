@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Settings, ShieldCheck, Zap, Power, Palette } from 'lucide-react';
+import Switch from '../components/Switch';
 
 export default function SettingsView() {
   const [config, setConfig] = useState<any>({ launchOnStartup: false, startMinimized: false, autoScanGit: false, autoHideCursorOnStart: false, theme: 'midnight' });
@@ -223,16 +224,5 @@ export default function SettingsView() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Switch({ active, onClick }: { active: boolean, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${active ? 'bg-primary' : 'bg-surface3 border border-border2'}`}
-    >
-      <div className={`w-4 h-4 bg-background rounded-full transition-transform duration-300 shadow-sm ${active ? 'translate-x-5' : 'translate-x-0'}`}></div>
-    </button>
   );
 }

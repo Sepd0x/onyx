@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Trash2, ChevronDown, ChevronRight, Search, Activity, Network, BoxSelect } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function PortsView() {
   const [ports, setPorts] = useState<any[]>([]);
@@ -8,17 +9,24 @@ export default function PortsView() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('ALL');
   const initialLoadDone = useRef(false);
+  const [error, setError] = useState(false);
+  const [confirmPid, setConfirmPid] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
     if (window.api) {
-      const data = await window.api.invoke('ports:get');
-      setPorts(data || []);
-      if (!initialLoadDone.current && data?.length) {
-        const initialExp:any = {};
-        data.forEach((p:any) => initialExp[p.process || 'system'] = true);
-        setExpanded(initialExp);
-        initialLoadDone.current = true;
+      try {
+        const data = await window.api.invoke('ports:get');
+        setPorts(data || []);
+        setError(false);
+        if (!initialLoadDone.current && data?.length) {
+          const initialExp:any = {};
+          data.forEach((p:any) => initialExp[p.process || 'system'] = true);
+          setExpanded(initialExp);
+          initialLoadDone.current = true;
+        }
+      } catch (e) {
+        setError(true);
       }
     } else {
       setPorts([
@@ -39,9 +47,10 @@ export default function PortsView() {
   const expandAll = () => { const next: any = {}; Object.keys(grouped).forEach(k => next[k] = true); setExpanded(next); };
   const collapseAll = () => setExpanded({});
 
-  const kill = async (pid: string) => {
+  const doKill = async (pid: string) => {
+    setConfirmPid(null);
     if (window.api) {
-      await window.api.invoke('ports:kill', pid);
+      try { await window.api.invoke('ports:kill', pid); } catch (e) {}
       refresh();
     }
   };
@@ -85,7 +94,7 @@ export default function PortsView() {
   return (
     <div className="flex flex-col h-full bg-transparent relative overflow-hidden">
       <div className="p-8 border-b border-border/50 flex flex-col gap-6 relative z-10 bg-background/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-lg"><Network className="w-5 h-5"/></div>
             <div>
@@ -93,7 +102,7 @@ export default function PortsView() {
               <p className="text-[10px] font-mono text-muted tracking-wide mt-1.5">{ports.length} TOTAL PORTS ACTIVE</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={expandAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">EXPAND ALL</button>
             <button onClick={collapseAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">COLLAPSE ALL</button>
             <button onClick={refresh} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-primary bg-primary/10 border border-primary/20 rounded-lg transition-all hover:bg-primary/20 flex items-center gap-2">
@@ -124,6 +133,12 @@ export default function PortsView() {
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-8 relative z-10 pb-24">
+        {error && (
+          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[11px] font-mono text-red-300 flex items-center justify-between gap-3">
+            <span>Failed to read ports — the native backend may be unavailable.</span>
+            <button onClick={refresh} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-md tracking-widest">RETRY</button>
+          </div>
+        )}
         {Object.entries(grouped).map(([proc, prts]: any) => (
           <div key={proc} className="mb-4 border border-border/80 rounded-xl overflow-hidden bg-surface/40 backdrop-blur-sm shadow-sm hover:border-border transition-colors">
             <div 
@@ -163,7 +178,7 @@ export default function PortsView() {
                            <span className="text-[10px] font-mono text-muted">PID: {p.pid}</span>
                            <span className="text-[9px] font-mono text-muted/60 mt-0.5">Mem: {p.ram || '~'} | CPU: {p.cpu || '~'}</span>
                         </div>
-                        <button onClick={() => kill(p.pid)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[10px] font-mono font-bold tracking-widest text-[#000000] bg-red-400 hover:bg-red-500 px-4 py-2 rounded shadow-[0_0_10px_rgba(248,113,113,0.3)] transition-all whitespace-nowrap flex-shrink-0 flex items-center justify-center">
+                        <button onClick={() => setConfirmPid(p.pid)} aria-label={`Free port ${p.port} by killing PID ${p.pid}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[10px] font-mono font-bold tracking-widest text-[#000000] bg-red-400 hover:bg-red-500 px-4 py-2 rounded shadow-[0_0_10px_rgba(248,113,113,0.3)] transition-all whitespace-nowrap flex-shrink-0 flex items-center justify-center">
                           FREE PORT
                         </button>
                       </div>
@@ -181,6 +196,15 @@ export default function PortsView() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!confirmPid}
+        title="Kill process?"
+        message={`This will force-terminate PID ${confirmPid} and free its port.`}
+        confirmLabel="FREE PORT"
+        onConfirm={() => confirmPid && doKill(confirmPid)}
+        onCancel={() => setConfirmPid(null)}
+      />
     </div>
   );
 }

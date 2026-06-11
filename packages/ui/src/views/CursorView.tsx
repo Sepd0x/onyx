@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown } from 'lucide-react';
+import Switch from '../components/Switch';
 
 export default function CursorView() {
   const [config, setConfig] = useState<any>({ seconds: 5, deadzone: 4, active: false, dnd: false, dim: false });
@@ -119,16 +120,16 @@ export default function CursorView() {
                     <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[200px]">Prevents OS and monitor from sleeping while coding.</p>
                   </div>
                 </div>
-                <button 
+                <Switch
+                  active={!!config.keepAwake}
+                  activeColor="bg-amber-500"
+                  label="Keep awake (prevent sleep)"
                   onClick={async () => {
                      const ns = !config.keepAwake;
                      setConfig({...config, keepAwake: ns});
                      if (window.api) await window.api.invoke('env:keepAwake', ns);
                   }}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${config.keepAwake ? 'bg-amber-500' : 'bg-surface3 border border-border2'}`}
-                >
-                  <div className={`w-4 h-4 bg-background rounded-full transition-transform duration-300 shadow-sm ${config.keepAwake ? 'translate-x-[20px]' : 'translate-x-0'}`}></div>
-                </button>
+                />
               </div>
 
               <div className="p-5 flex items-center justify-between hover:bg-surface/60 transition-colors rounded-b-xl group">
@@ -139,16 +140,16 @@ export default function CursorView() {
                     <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[230px]">Triggers Do-Not-Disturb and overlays workspace universally.</p>
                   </div>
                 </div>
-                <button 
+                <Switch
+                  active={!!config.focusMode}
+                  activeColor="bg-red-500"
+                  label="Deep focus OS rules"
                   onClick={async () => {
                      const ns = !config.focusMode;
                      setConfig({...config, focusMode: ns});
                      if (window.api) await window.api.invoke('env:focusMode', ns);
                   }}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${config.focusMode ? 'bg-red-500' : 'bg-surface3 border border-border2'}`}
-                >
-                  <div className={`w-4 h-4 bg-background rounded-full transition-transform duration-300 shadow-sm ${config.focusMode ? 'translate-x-[20px]' : 'translate-x-0'}`}></div>
-                </button>
+                />
               </div>
 
            </div>
