@@ -19,6 +19,7 @@
     "onyx": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run start-desktop\"",
     "build:ui": "npm run build --workspace=packages/ui",
     "build": "npm run build:ui && electron-builder",
+    "generate:icon": "node scripts/generate-icon.js",
     "test": "vitest run"
   },
   "build": {
@@ -31,6 +32,7 @@
       "output": "dist"
     },
     "win": {
+      "icon": "assets/icon.ico",
       "target": [
         "nsis",
         "portable"
@@ -57,7 +59,9 @@
     "electron": "^42.4.0",
     "electron-builder": "^26.15.2",
     "esbuild": "^0.28.0",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.4.35",
+    "sharp": "^0.35.0",
     "tailwindcss": "^3.4.1",
     "vite": "^8.0.16",
     "vitest": "^4.1.8",

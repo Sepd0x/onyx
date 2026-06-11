@@ -23,7 +23,8 @@ let tray = null;
 let trayWindow = null;
 let appConfig = {};
 
-const iconPath = path.join(__dirname, '../../../assets/icon.svg');
+const iconPath = path.join(__dirname, '../../../assets/icon.png');
+const trayIconPath = path.join(__dirname, '../../../assets/tray.png');
 
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
@@ -92,7 +93,7 @@ const getTrayPosition = (windowBounds) => {
 };
 
 function createTray() {
-  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+  const icon = nativeImage.createFromPath(trayIconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
   tray.setToolTip('Onyx');
   
