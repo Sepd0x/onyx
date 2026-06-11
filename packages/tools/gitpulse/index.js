@@ -1,4 +1,4 @@
-const { ipcMain, dialog, app } = require('electron');
+const { ipcMain, dialog, app, safeStorage } = require('electron');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -14,6 +14,27 @@ module.exports = function initGitPulse() {
   }
   function saveCfg(cfg) { fs.writeFileSync(CFG_PATH, JSON.stringify(cfg, null, 2)) }
 
+  // Encrypt the PAT at rest with the OS keychain (DPAPI/Keychain) via Electron safeStorage.
+  // If encryption is unavailable we refuse to persist the token rather than store it recoverably.
+  function encryptToken(token) {
+    if (!token) return '';
+    try {
+      if (safeStorage && safeStorage.isEncryptionAvailable()) {
+        return 'v1:' + safeStorage.encryptString(token).toString('base64');
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function decryptToken(stored) {
+    if (!stored || typeof stored !== 'string') return '';
+    if (stored.startsWith('v1:')) {
+      try { return safeStorage.decryptString(Buffer.from(stored.slice(3), 'base64')); }
+      catch (e) { return ''; }
+    }
+    return ''; // legacy/plaintext tokens are intentionally ignored
+  }
+
   function git(args, cwd) {
     try {
       return execSync(`git ${args.join(' ')}`, { cwd, ...NO_WIN, stdio:['ignore','pipe','ignore'] }).toString().trim()
@@ -25,7 +46,7 @@ module.exports = function initGitPulse() {
     let branch = 'main';
     try {
       const hdrs = { 'User-Agent': 'Onyx' };
-      if (r.token) hdrs['Authorization'] = `token ${Buffer.from(r.token, 'base64').toString('ascii')}`;
+      if (r.token) { const tok = decryptToken(r.token); if (tok) hdrs['Authorization'] = `token ${tok}`; }
       
       const now = Date.now();
       if (!r._lastCheck || (now - r._lastCheck) > 60000) {
@@ -44,6 +65,7 @@ module.exports = function initGitPulse() {
             }
          }
          r._cachedData = { branch, dirty, lastCommit };
+         r.lastCommit = lastCommit;
          r._lastCheck = now;
          
          // Non-blocking save to config
@@ -173,7 +195,7 @@ module.exports = function initGitPulse() {
     try {
       if (!url.startsWith('https://github.com/')) return { error: 'Must be a valid GitHub URL' };
       const cfg = loadCfg();
-      const safeToken = token ? Buffer.from(token).toString('base64') : '';
+      const safeToken = encryptToken(token);
 
       const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
       if (!match) return { error: 'Invalid repository format' };
@@ -183,6 +205,7 @@ module.exports = function initGitPulse() {
       if (!cfg.repos.find(r => r.type === 'remote' && r.url === repoUrl)) {
         cfg.repos.push({ type: 'remote', url: repoUrl, match: `${match[1]}/${match[2].replace('.git','')}`, token: safeToken });
         saveCfg(cfg);
+        if (token && !safeToken) return { ok: true, warning: 'Token not stored: secure storage is unavailable on this system.' };
         return { ok: true };
       }
       return { error: 'Repository already added' };

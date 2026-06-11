@@ -38,6 +38,8 @@ function createTrayWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -121,6 +123,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -133,7 +137,13 @@ function createWindow() {
 
   ipcMain.handle('window:minimize', () => win.minimize());
   ipcMain.handle('window:close', () => win.hide());
-  ipcMain.handle('window:openExternal', (_, url) => shell.openExternal(url));
+  ipcMain.handle('window:openExternal', (_, url) => {
+    try {
+      const u = new URL(String(url));
+      if (u.protocol === 'http:' || u.protocol === 'https:') return shell.openExternal(u.href);
+    } catch (e) {}
+    return false;
+  });
 
   let sleepId = null;
   ipcMain.handle('env:keepAwake', (_, state) => {

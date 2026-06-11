@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 const { ipcMain } = require('electron');
 
 module.exports = function initPortMapper() {
@@ -53,7 +53,10 @@ module.exports = function initPortMapper() {
   }));
 
   ipcMain.handle('ports:kill', (_, pid) => new Promise(resolve => {
-    const cmd = process.platform === 'win32' ? `taskkill /F /PID ${pid}` : `kill -9 ${pid}`;
-    exec(cmd, { ...NO_WIN }, err => resolve(!err));
+    const pidStr = String(pid);
+    if (!/^[0-9]+$/.test(pidStr)) return resolve(false); // reject non-numeric PIDs (no shell, no injection)
+    const file = process.platform === 'win32' ? 'taskkill' : 'kill';
+    const args = process.platform === 'win32' ? ['/F', '/PID', pidStr] : ['-9', pidStr];
+    execFile(file, args, { ...NO_WIN }, err => resolve(!err));
   }));
 };

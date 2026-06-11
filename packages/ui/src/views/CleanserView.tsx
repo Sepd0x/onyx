@@ -36,29 +36,25 @@ export default function CleanserView() {
   const clean = async (path?: string) => {
     setCleaning(true);
     if (window.api) {
-      if (path) {
-        await window.api.invoke('cleaner:delete', [path]);
-        setDirs(dirs.filter(d => d.path !== path));
-      } else {
-        await window.api.invoke('cleaner:delete', dirs.map(d => d.path));
-        setDirs([]);
+      const targets = path ? [path] : dirs.map(d => d.path);
+      const res: any = await window.api.invoke('cleaner:delete', targets);
+      // The main process shows a confirmation dialog; if cancelled, leave the list as-is.
+      if (!res?.cancelled) {
+        await scan(); // authoritative refresh from disk
       }
-    } else {
-      // Mock for web preview
-      setTimeout(() => {
-        if (path) {
-          setDirs(dirs.filter(d => d.path !== path));
-        } else {
-          setDirs([]);
-          setScannedSize('0 MB');
-        }
-        setCleaning(false);
-      }, 800);
+      setCleaning(false);
       return;
     }
-    // Update total size heuristically if needed, or rescan
-    scan();
-    setCleaning(false);
+    // Mock for web preview
+    setTimeout(() => {
+      if (path) {
+        setDirs(dirs.filter(d => d.path !== path));
+      } else {
+        setDirs([]);
+        setScannedSize('0 MB');
+      }
+      setCleaning(false);
+    }, 800);
   };
 
   return (
@@ -103,7 +99,7 @@ export default function CleanserView() {
              {dirs.map((d, i) => (
                 <div key={i} className="flex justify-between items-center p-3.5 bg-background/40 hover:bg-surface2 border border-border rounded-lg transition-colors group">
                    <div className="flex flex-col min-w-0 pr-4">
-                     <span className="text-xs font-medium text-text truncate" title={d.path}>{d.path.split('/').pop()}</span>
+                     <span className="text-xs font-medium text-text truncate" title={d.path}>{d.name || d.path.split(/[\\/]/).pop()}</span>
                      <span className="text-[10px] font-mono text-muted/70 truncate" title={d.path}>{d.path}</span>
                    </div>
                    <div className="flex items-center gap-4 flex-shrink-0">

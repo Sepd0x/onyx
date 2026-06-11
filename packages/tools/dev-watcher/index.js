@@ -1,19 +1,22 @@
 const { ipcMain, powerSaveBlocker, Notification } = require('electron');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 
 module.exports = function initDevWatcher() {
   const activeWatches = new Map();
 
   const isProcessRunning = (pid) => {
     return new Promise(resolve => {
+      const pidStr = String(pid);
+      if (!/^[0-9]+$/.test(pidStr)) return resolve(false); // numeric PIDs only — argv array, no shell
       const NO_WIN = process.platform === 'win32' ? { windowsHide: true } : {};
-      const cmd = process.platform === 'win32' 
-        ? `tasklist /FI "PID eq ${pid}" /NH` 
-        : `ps -p ${pid} -o pid=`;
-      
-      exec(cmd, NO_WIN, (err, stdout) => {
+      const file = process.platform === 'win32' ? 'tasklist' : 'ps';
+      const args = process.platform === 'win32'
+        ? ['/FI', `PID eq ${pidStr}`, '/NH']
+        : ['-p', pidStr, '-o', 'pid='];
+
+      execFile(file, args, NO_WIN, (err, stdout) => {
         if (err || !stdout) resolve(false);
-        else resolve(stdout.includes(pid.toString()));
+        else resolve(stdout.includes(pidStr));
       });
     });
   };
@@ -95,9 +98,10 @@ module.exports = function initDevWatcher() {
   });
 
   ipcMain.handle('dev:startWatch', async (event, req) => {
-    if (req.type !== 'pid') return;
+    if (req.type !== 'pid') return false;
     const pid = req.target;
-    
+    if (!/^[0-9]+$/.test(String(pid))) return false; // reject non-numeric targets
+
     const blockerId = powerSaveBlocker.start('prevent-display-sleep');
     const id = generateId();
     

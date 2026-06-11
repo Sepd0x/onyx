@@ -112,12 +112,13 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
         <div className="bg-surface/80 border border-border p-6 rounded-xl shadow-sm">
           <h3 className="text-[13px] font-semibold text-text flex items-center gap-2.5 mb-5"><Cpu className="w-4 h-4 text-primary"/> Manual PID Entry & Smart Tracker</h3>
           <div className="flex flex-col gap-3">
-             <label className="text-[11px] text-muted">Enter process ID or Binary name:</label>
-             <input 
-              type="text" 
-              placeholder="e.g. 14420 or myapp.exe" 
+             <label className="text-[11px] text-muted">Enter a numeric Process ID (PID):</label>
+             <input
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 14420"
               value={pid}
-              onChange={e => setPid(e.target.value)}
+              onChange={e => setPid(e.target.value.replace(/[^0-9]/g, ''))}
               className="bg-background border border-border rounded-lg px-4 py-3.5 text-sm font-mono text-text focus:outline-none focus:border-primary/50 transition-colors shadow-inner"
             />
             <button 
@@ -125,7 +126,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
               disabled={!pid}
               className="mt-3 px-4 py-3.5 bg-primary hover:bg-accent disabled:opacity-50 disabled:bg-surface3 disabled:text-muted disabled:border-border text-background border border-transparent rounded-lg text-[11px] font-bold tracking-widest font-mono transition-all shadow-[0_4px_15px_rgba(139,92,246,0.25)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.4)] disabled:shadow-none"
             >
-              TRACK EXECUTABLE
+              TRACK PID
             </button>
           </div>
         </div>
