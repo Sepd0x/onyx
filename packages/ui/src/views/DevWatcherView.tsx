@@ -145,41 +145,20 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
             <div key={task.id} className="relative flex justify-between items-center p-5 border border-primary/30 bg-primary/5 rounded-xl shadow-sm">
               <div className="flex items-center gap-5">
                 <div className="relative mr-2 flex-shrink-0">
-                  <div className={`p-2.5 bg-background border border-border rounded-xl z-10 relative ${task.crash ? 'border-red-500' : ''}`}>
-                    <Activity className={`w-5 h-5 ${task.crash ? 'text-red-500' : 'text-primary'}`} />
+                  <div className="p-2.5 bg-background border border-border rounded-xl z-10 relative">
+                    <Activity className="w-5 h-5 text-primary" />
                   </div>
-                  {!task.crash && <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full animate-ping z-20"></span>}
-                  <span className={`absolute -top-1 -right-0.5 w-2.5 h-2.5 rounded-full z-20 ${task.crash ? 'bg-red-500' : 'bg-green-400'}`}></span>
+                  <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full animate-ping z-20"></span>
+                  <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 rounded-full z-20 bg-green-400"></span>
                 </div>
                 <div className="min-w-0 flex-1 pr-6">
                   <div className="text-sm font-semibold text-text">{task.name || 'External Process'}</div>
                   <div className="text-[10px] font-mono text-muted mt-1 tracking-wide">PID: <span className="text-text2">{task.target}</span> • WAKE LOCK ACQUIRED</div>
-                  {task.aiError && isAIEnabled && (
-                    <div className="mt-3 text-[11px] font-mono bg-red-500/5 border border-red-500/20 p-3 rounded-lg text-red-300 leading-relaxed">
-                      {task.aiError}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="flex flex-col gap-2 items-end min-w-[120px]">
-                 {task.aiError && isAIEnabled && (
-                    <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-md text-[9px] font-mono font-bold text-red-500 w-full mb-1">
-                      <Activity className="w-3 h-3 animate-pulse text-red-500"/> FAULT DETECTED
-                    </div>
-                 )}
-                 {task.crash && isAIEnabled && (
-                   <button 
-                     onClick={async () => {
-                        await window.api?.invoke('dev:heal', task.id);
-                        fetchStatus();
-                     }}
-                     className="w-full px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest text-[#8b5cf6] bg-[#8b5cf6]/10 hover:bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 rounded-lg transition-all"
-                   >
-                     AUTO HEAL
-                   </button>
-                 )}
-                 <button 
-                   onClick={() => stop(task.id)} 
+                 <button
+                   onClick={() => stop(task.id)}
                    className="w-full px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest text-text2 bg-surface hover:text-red-400 hover:bg-red-400/10 border border-border hover:border-red-400/30 rounded-lg transition-all flex items-center justify-center"
                  >
                    ABORT

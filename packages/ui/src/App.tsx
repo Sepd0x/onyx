@@ -130,7 +130,7 @@ export default function App() {
             <div className="text-[10px] font-mono font-bold tracking-widest text-muted uppercase mb-2 pl-2">Tools</div>
             <Tab icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
             {(appConfig.enableAIFeatures ?? true) && (
-              <Tab icon={<BrainCircuit className="w-4 h-4 text-purple-400" />} label="AI Auditor" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
+              <Tab icon={<BrainCircuit className="w-4 h-4 text-purple-400" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
             )}
             <Tab icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
             <Tab icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />

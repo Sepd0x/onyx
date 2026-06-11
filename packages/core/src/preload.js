@@ -12,8 +12,8 @@ contextBridge.exposeInMainWorld('api', {
       'env:keepAwake', 'env:focusMode',
       'cleaner:scan', 'cleaner:delete',
       'snippets:get', 'snippets:save',
-      'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop',
-      'tray:openMain', 'git:addGithubRepo', 'dev:heal', 'power:get', 'power:setProfile', 'power:setAI',
+      'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
+      'tray:openMain', 'git:addGithubRepo', 'power:get', 'power:setProfile', 'power:setAI',
       'app:checkForUpdates', 'app:installUpdate', 'app:notify'
     ];
     if (validChannels.includes(channel)) {

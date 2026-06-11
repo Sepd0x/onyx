@@ -145,17 +145,12 @@ class MockApi {
         localStorage.setItem('onyx-launchers', JSON.stringify(args[0]));
         return true;
       case 'launchers:start':
+        return { ok: true, started: 1 };
       case 'launchers:stop':
-        return true;
-      case 'dev:status': 
-        // Mock random AI error detection logic on watched processes 
-        this.watchedProcesses = this.watchedProcesses.map(p => {
-           if (Math.random() < 0.1 && !p.aiError) {
-              p.aiError = "Detected memory leak pattern in STDOUT. Suspect recursive rendering loop in React Router logic.";
-              p.crash = true;
-           }
-           return p;
-        });
+        return { ok: true };
+      case 'launchers:status':
+        return [];
+      case 'dev:status':
         return this.watchedProcesses;
       case 'dev:startWatch':
         this.watchedProcesses.push({ id: Math.random().toString(), type: args[0].type, target: args[0].target, name: args[0].name || 'Process', aiError: null, crash: false });

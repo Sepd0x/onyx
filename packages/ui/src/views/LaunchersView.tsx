@@ -5,12 +5,16 @@ export default function LaunchersView() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
+  const [launchError, setLaunchError] = useState('');
 
   useEffect(() => {
-    if (window.api) {
-      window.api.invoke('launchers:get').then(setProfiles);
-      // For mock state, load running status
-    }
+    if (!window.api) return;
+    window.api.invoke('launchers:get').then(setProfiles);
+    // Poll real running status so a self-exited/crashed process clears its RUNNING badge.
+    const syncStatus = () => { window.api?.invoke('launchers:status').then((ids: any) => { if (Array.isArray(ids)) setActiveProfiles(ids); }); };
+    syncStatus();
+    const iv = setInterval(syncStatus, 3000);
+    return () => clearInterval(iv);
   }, []);
 
   const addProfile = async () => {
@@ -57,13 +61,20 @@ export default function LaunchersView() {
   };
 
   const launchProfile = async (id: string) => {
-    setActiveProfiles([...activeProfiles, id]);
-    if (window.api) await window.api.invoke('launchers:start', id);
+    setLaunchError('');
+    if (!window.api) { setActiveProfiles([...activeProfiles, id]); return; }
+    const res: any = await window.api.invoke('launchers:start', id);
+    if (res?.ok) {
+      setActiveProfiles(prev => [...prev, id]);
+      if (res.errors && res.errors.length) setLaunchError(res.errors.join(' · '));
+    } else {
+      setLaunchError(res?.error || 'Failed to start profile');
+    }
   };
 
   const stopProfile = async (id: string) => {
-    setActiveProfiles(activeProfiles.filter(p => p !== id));
     if (window.api) await window.api.invoke('launchers:stop', id);
+    setActiveProfiles(activeProfiles.filter(p => p !== id));
   };
 
   return (
@@ -99,6 +110,13 @@ export default function LaunchersView() {
             <Plus className="w-4 h-4"/> CREATE
           </button>
         </div>
+
+        {launchError && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono px-4 py-3 rounded-lg flex items-center justify-between gap-3">
+            <span className="min-w-0 break-words">{launchError}</span>
+            <button onClick={() => setLaunchError('')} className="text-red-300 hover:text-red-200 flex-shrink-0">✕</button>
+          </div>
+        )}
 
         {/* Profiles List */}
         <div className="flex flex-col gap-5">

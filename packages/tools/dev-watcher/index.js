@@ -23,11 +23,7 @@ module.exports = function initDevWatcher() {
 
   const generateId = () => Math.random().toString(36).substring(7);
 
-    ipcMain.handle('dev:heal', (event, id) => {
-      // In a real advanced setup, this would restart the process or clear its logs
-      // Here we just notify that we attempted to heal it.
-      return true;
-    });
+    // dev:heal removed — it was a no-op stub (see AUDIT.md COR-05 / ARCH-07).
 
   ipcMain.handle('dev:getDevProcesses', () => {
     return new Promise(resolve => {
