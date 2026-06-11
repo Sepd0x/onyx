@@ -1,4 +1,4 @@
 {
-  "name": "@devtools/core",
+  "name": "@onyx/core",
   "main": "src/main.js"
 }

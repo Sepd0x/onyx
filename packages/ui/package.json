@@ -1,5 +1,5 @@
 {
-  "name": "@devtools/ui",
+  "name": "@onyx/ui",
   "private": true,
   "type": "module",
   "scripts": {
