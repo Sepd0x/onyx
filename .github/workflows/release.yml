@@ -1,0 +1,27 @@
+name: Release
+
+# Cut a release by pushing a tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Build UI
+        run: npm run build:ui
+      - name: Build & publish installer
+        run: npx electron-builder --win nsis portable --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

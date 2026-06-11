@@ -1,50 +1,54 @@
 import { describe, it, expect, vi } from 'vitest';
+import setupSecurity from '../src/security.js';
 
-const fakeApp = {
-    on: (event, handler) => {
-        if (event === 'web-contents-created') {
-            handler(null, fakeContents);
-        }
-    }
-};
+function fakeContents() {
+  const handlers = {};
+  return {
+    on: (event, h) => { handlers[event] = h; },
+    setWindowOpenHandler: (h) => { handlers.windowOpen = h; },
+    handlers,
+  };
+}
 
-let openHandler = null;
-let navHandler = null;
-let preventDefaultCalled = false;
+describe('setupSecurity', () => {
+  it('denies new windows and blocks in-page navigation', () => {
+    let contents;
+    const app = {
+      isPackaged: false,
+      on: (event, h) => { if (event === 'web-contents-created') h(null, (contents = fakeContents())); },
+    };
 
-const fakeEvent = { preventDefault: () => { preventDefaultCalled = true; } };
+    setupSecurity({ app, session: undefined });
 
-const fakeContents = {
-    on: (event, handler) => {
-        if (event === 'will-navigate') navHandler = handler;
-    },
-    setWindowOpenHandler: (handler) => {
-        openHandler = handler;
-    }
-};
+    expect(contents.handlers.windowOpen()).toEqual({ action: 'deny' });
 
-vi.mock('electron', () => ({
-    app: {
-        on: (event, handler) => {
-            if (event === 'web-contents-created') {
-                // simulate immediately
-                handler(null, fakeContents);
-            }
-        }
-    }
-}));
+    const event = { preventDefault: vi.fn() };
+    contents.handlers['will-navigate'](event);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+  });
 
-describe('Security Setup', () => {
-    it('should set up window open handler to deny new windows', () => {
-        const setup = require('../src/security');
-        setup();
-        
-        expect(openHandler).not.toBeNull();
-        const action = openHandler();
-        expect(action).toEqual({ action: 'deny' });
-        
-        expect(navHandler).not.toBeNull();
-        navHandler(fakeEvent, 'http://external.com');
-        expect(preventDefaultCalled).toBe(true);
-    });
+  it('sets a strict CSP header when packaged', () => {
+    let onHeaders;
+    const app = { isPackaged: true, on: () => {} };
+    const session = { defaultSession: { webRequest: { onHeadersReceived: (fn) => { onHeaders = fn; } } } };
+
+    setupSecurity({ app, session });
+
+    let result;
+    onHeaders({ responseHeaders: { 'X-Test': ['1'] } }, (r) => { result = r; });
+    const csp = result.responseHeaders['Content-Security-Policy'][0];
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).not.toContain("unsafe-eval");
+    // existing headers are preserved
+    expect(result.responseHeaders['X-Test']).toEqual(['1']);
+  });
+
+  it('does not set CSP in development (not packaged)', () => {
+    let called = false;
+    const app = { isPackaged: false, on: () => {} };
+    const session = { defaultSession: { webRequest: { onHeadersReceived: () => { called = true; } } } };
+    setupSecurity({ app, session });
+    expect(called).toBe(false);
+  });
 });

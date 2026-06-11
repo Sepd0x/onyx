@@ -1,18 +1,15 @@
-const { app, session } = require('electron');
+// Hardens web contents and (in production) enforces a strict Content-Security-Policy.
+// `deps` is injectable so the module can be unit-tested without a real Electron runtime;
+// it defaults to the real electron module in production.
+module.exports = function setupSecurity(deps) {
+  const { app, session } = deps || require('electron');
 
-module.exports = function setupSecurity() {
-  // Block in-page navigations and new-window/popups from any web contents.
   app.on('web-contents-created', (event, contents) => {
-    contents.on('will-navigate', (e) => {
-      e.preventDefault();
-    });
-    contents.setWindowOpenHandler(() => {
-      return { action: 'deny' };
-    });
+    contents.on('will-navigate', (e) => { e.preventDefault(); });
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }));
   });
 
-  // Enforce a strict Content-Security-Policy on the packaged app.
-  // (Skipped in dev: the Vite dev server needs a relaxed policy for HMR.)
+  // CSP only in the packaged app — the Vite dev server needs a relaxed policy for HMR.
   if (app.isPackaged && session && session.defaultSession) {
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({

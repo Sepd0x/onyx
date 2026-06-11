@@ -3,6 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { parseGithubUrl, classifyCommitMessage } = require('./parse');
 
 module.exports = function initGitPulse() {
   const NO_WIN = process.platform === 'win32' ? { windowsHide: true, timeout: 10000 } : { timeout: 10000 };
@@ -117,11 +118,7 @@ module.exports = function initGitPulse() {
 
     // Try to get last commit msg
     const lastCommit = git(['log', '-1', '--pretty=%B'], repoPath) || 'No commits';
-    let commitWarning = null;
-    const lC = lastCommit.toLowerCase();
-    if (lC === 'update' || lC === 'fix' || lC === 'stuff' || lC === 'test' || lC.length < 5) {
-      commitWarning = `Bad commit message detected: "${lastCommit.replace(/\n/g, '')}"`;
-    }
+    const commitWarning = classifyCommitMessage(lastCommit).warning;
 
     const activity = [Math.floor(Math.random()*2),Math.floor(Math.random()*5),0,0,Math.floor(Math.random()*10),dirty,pull];
 
@@ -193,17 +190,13 @@ module.exports = function initGitPulse() {
 
   ipcMain.handle('git:addGithubRepo', async (event, url, token) => {
     try {
-      if (!url.startsWith('https://github.com/')) return { error: 'Must be a valid GitHub URL' };
+      const parsed = parseGithubUrl(url);
+      if (!parsed) return { error: 'Must be a valid GitHub URL' };
       const cfg = loadCfg();
       const safeToken = encryptToken(token);
 
-      const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-      if (!match) return { error: 'Invalid repository format' };
-
-      const repoUrl = `https://github.com/${match[1]}/${match[2].replace('.git','')}`;
-
-      if (!cfg.repos.find(r => r.type === 'remote' && r.url === repoUrl)) {
-        cfg.repos.push({ type: 'remote', url: repoUrl, match: `${match[1]}/${match[2].replace('.git','')}`, token: safeToken });
+      if (!cfg.repos.find(r => r.type === 'remote' && r.url === parsed.url)) {
+        cfg.repos.push({ type: 'remote', url: parsed.url, match: parsed.slug, token: safeToken });
         saveCfg(cfg);
         if (token && !safeToken) return { ok: true, warning: 'Token not stored: secure storage is unavailable on this system.' };
         return { ok: true };
