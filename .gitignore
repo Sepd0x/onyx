@@ -34,3 +34,6 @@ Thumbs.db
 # Electron-builder / cache
 .cache/
 *.tsbuildinfo
+
+# Local-only Obsidian "brain" vault — private project context, NEVER published.
+vault/
