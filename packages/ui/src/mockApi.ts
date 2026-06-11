@@ -31,6 +31,9 @@ class MockApi {
     localStorage.setItem('onyx-repos', JSON.stringify(this.repos));
   }
 
+  // The browser mock has no backend push events; provided so window.api.on is safe.
+  on(_channel: string, _listener: (...args: any[]) => void) {}
+
   async invoke(channel: string, ...args: any[]) {
     await delay(100); // simulate IPC latency
 

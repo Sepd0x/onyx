@@ -39,3 +39,5 @@ Thumbs.db
 vault/
 # Obsidian local config (created when opening a folder as a vault).
 .obsidian/
+# local agent local project config (launch.json, local settings).
+.claude/

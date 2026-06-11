@@ -55,9 +55,16 @@ describe('IPC channel contract', () => {
     expect([...ev].sort()).toEqual([...EVENT_CHANNELS].sort());
   });
 
-  it('preload derives its allowlist from channels.js', () => {
+  it('the preload allowlists match channels.js exactly', () => {
     const preload = read('packages/core/src/preload.js');
-    expect(preload).toContain("require('./channels')");
-    expect(preload).toContain('INVOKE_CHANNELS');
+    const block = (name) => {
+      const start = preload.indexOf(`${name} = [`);
+      const end = preload.indexOf('];', start);
+      return start >= 0 ? preload.slice(start, end) : '';
+    };
+    const pInvoke = extract(block('INVOKE_CHANNELS'), /'([^']+)'/g);
+    const pEvent = extract(block('EVENT_CHANNELS'), /'([^']+)'/g);
+    expect([...pInvoke].sort()).toEqual([...INVOKE_CHANNELS].sort());
+    expect([...pEvent].sort()).toEqual([...EVENT_CHANNELS].sort());
   });
 });
