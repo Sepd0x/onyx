@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Rocket, Plus, Play, Square, Settings2, Trash2 } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function LaunchersView() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -9,9 +10,9 @@ export default function LaunchersView() {
 
   useEffect(() => {
     if (!window.api) return;
-    window.api.invoke('launchers:get').then(setProfiles);
+    window.api.invoke(CH.launchersGet).then(setProfiles);
     // Poll real running status so a self-exited/crashed process clears its RUNNING badge.
-    const syncStatus = () => { window.api?.invoke('launchers:status').then((ids: any) => { if (Array.isArray(ids)) setActiveProfiles(ids); }); };
+    const syncStatus = () => { window.api?.invoke(CH.launchersStatus).then((ids: any) => { if (Array.isArray(ids)) setActiveProfiles(ids); }); };
     syncStatus();
     const iv = setInterval(syncStatus, 3000);
     return () => clearInterval(iv);
@@ -27,13 +28,13 @@ export default function LaunchersView() {
     const updated = [...profiles, item];
     setProfiles(updated);
     setNewTitle('');
-    if (window.api) await window.api.invoke('launchers:save', updated);
+    if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
   const removeProfile = async (id: string) => {
     const updated = profiles.filter(p => p.id !== id);
     setProfiles(updated);
-    if (window.api) await window.api.invoke('launchers:save', updated);
+    if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
   const addCommandToProfile = async (pid: string) => {
@@ -44,7 +45,7 @@ export default function LaunchersView() {
       return p;
     });
     setProfiles(updated);
-    if (window.api) await window.api.invoke('launchers:save', updated);
+    if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
   const updateCommand = async (pid: string, idx: number, key: string, value: string) => {
@@ -57,13 +58,13 @@ export default function LaunchersView() {
       return p;
     });
     setProfiles(updated);
-    if (window.api) await window.api.invoke('launchers:save', updated);
+    if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
   const launchProfile = async (id: string) => {
     setLaunchError('');
     if (!window.api) { setActiveProfiles([...activeProfiles, id]); return; }
-    const res: any = await window.api.invoke('launchers:start', id);
+    const res: any = await window.api.invoke(CH.launchersStart, id);
     if (res?.ok) {
       setActiveProfiles(prev => [...prev, id]);
       if (res.errors && res.errors.length) setLaunchError(res.errors.join(' · '));
@@ -73,7 +74,7 @@ export default function LaunchersView() {
   };
 
   const stopProfile = async (id: string) => {
-    if (window.api) await window.api.invoke('launchers:stop', id);
+    if (window.api) await window.api.invoke(CH.launchersStop, id);
     setActiveProfiles(activeProfiles.filter(p => p !== id));
   };
 

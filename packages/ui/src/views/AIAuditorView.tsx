@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function AIAuditorView() {
   const [trackedRepos, setTrackedRepos] = useState<any[]>([]);
@@ -13,8 +14,8 @@ export default function AIAuditorView() {
       try {
         if (!window.api) return;
         const [repos, procs] = await Promise.all([
-          window.api.invoke('git:getRepos'),
-          window.api.invoke('dev:getDevProcesses')
+          window.api.invoke(CH.gitGetRepos),
+          window.api.invoke(CH.devGetDevProcesses)
         ]);
         if (!active) return;
 

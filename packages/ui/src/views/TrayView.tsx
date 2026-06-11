@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Network, Cpu, MemoryStick, Rocket } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function TrayView() {
   const [stats, setStats] = useState({ cpu: '0%', ram: '0GB' });
@@ -9,9 +10,9 @@ export default function TrayView() {
     const fetchTrayData = async () => {
       if (window.api) {
         try {
-          const s = await window.api.invoke('app:getStats');
+          const s = await window.api.invoke(CH.appGetStats);
           if (s) setStats(s);
-          const p = await window.api.invoke('ports:get');
+          const p = await window.api.invoke(CH.portsGet);
           if (p) setActivePorts(p.length);
         } catch (e) {}
       }
@@ -22,13 +23,13 @@ export default function TrayView() {
   }, []);
 
   const openApp = () => {
-    window.api?.invoke('tray:openMain');
+    window.api?.invoke(CH.trayOpenMain);
   };
 
   return (
     <div className="h-screen w-screen bg-[#040405] text-white flex flex-col p-4 border border-border overflow-hidden select-none">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xs font-bold tracking-widest text-text">DEVBOX</h1>
+        <h1 className="text-xs font-bold tracking-widest text-text">ONYX</h1>
         <button onClick={openApp} className="text-[10px] bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-2 py-1 rounded">
           OPEN APP
         </button>

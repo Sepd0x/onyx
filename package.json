@@ -20,6 +20,7 @@
     "build:ui": "npm run build --workspace=packages/ui",
     "build": "npm run build:ui && electron-builder",
     "generate:icon": "node scripts/generate-icon.js",
+    "typecheck": "npm run typecheck --workspace=packages/ui",
     "test": "vitest run"
   },
   "build": {

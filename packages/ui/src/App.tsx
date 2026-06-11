@@ -13,6 +13,7 @@ import AIAuditorView from './views/AIAuditorView';
 
 import PowerOSView from './views/PowerOSView';
 import Logo from './components/Logo';
+import { CH } from './ipc';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
@@ -28,7 +29,7 @@ export default function App() {
     const getConfig = async () => {
       if (window.api) {
          try {
-            const c = await window.api.invoke('app:getConfig');
+            const c = await window.api.invoke(CH.appGetConfig);
             if (c) setAppConfig(c);
          } catch(e) {}
       }
@@ -53,15 +54,15 @@ export default function App() {
     }
   }, []);
 
-  const closeWindow = () => window.api?.invoke('window:close');
-  const minimizeWindow = () => window.api?.invoke('window:minimize');
+  const closeWindow = () => window.api?.invoke(CH.windowClose);
+  const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
 
   useEffect(() => {
     if (isTrayMode) return;
     const getStats = async () => {
       if (window.api) {
         try {
-          const s = await window.api.invoke('app:getStats');
+          const s = await window.api.invoke(CH.appGetStats);
           if (s) setStats(s);
         } catch (e) {}
       }

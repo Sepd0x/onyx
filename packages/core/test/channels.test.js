@@ -17,20 +17,20 @@ function mainProcessSources() {
   return files.map(read);
 }
 
-function rendererSources() {
-  const files = ['packages/ui/src/App.tsx'];
-  const viewsDir = join(ROOT, 'packages/ui/src/views');
-  for (const name of readdirSync(viewsDir)) {
-    if (name.endsWith('.tsx')) files.push(`packages/ui/src/views/${name}`);
-  }
-  return files.map(read);
-}
-
 function extract(text, re) {
   const out = [];
   let m;
   while ((m = re.exec(text)) !== null) out.push(m[1]);
   return out;
+}
+
+// Pull the string-literal values out of the CH / EV objects in the UI's ipc.ts.
+function ipcConstants() {
+  const ipc = read('packages/ui/src/ipc.ts');
+  const slice = (from, to) => ipc.slice(ipc.indexOf(from), to ? ipc.indexOf(to) : undefined);
+  const ch = extract(slice('export const CH', 'export const EV'), /'([^']+)'/g);
+  const ev = extract(slice('export const EV', 'export type'), /'([^']+)'/g);
+  return { ch, ev };
 }
 
 describe('IPC channel contract', () => {
@@ -44,14 +44,15 @@ describe('IPC channel contract', () => {
     for (const ch of handlers) expect(INVOKE_CHANNELS).toContain(ch);
   });
 
-  it('every renderer invoke() call targets a declared channel', () => {
-    const calls = rendererSources().flatMap((t) => extract(t, /\.invoke\(\s*['"]([^'"]+)['"]/g));
-    for (const ch of calls) expect(INVOKE_CHANNELS).toContain(ch);
+  it('the renderer CH constants mirror channels.js exactly', () => {
+    const { ch } = ipcConstants();
+    expect(ch.length).toBeGreaterThan(0);
+    expect([...ch].sort()).toEqual([...INVOKE_CHANNELS].sort());
   });
 
-  it('every renderer on() subscription targets a declared event channel', () => {
-    const subs = rendererSources().flatMap((t) => extract(t, /api\.on\(\s*['"]([^'"]+)['"]/g));
-    for (const ch of subs) expect(EVENT_CHANNELS).toContain(ch);
+  it('the renderer EV constants mirror the event channels exactly', () => {
+    const { ev } = ipcConstants();
+    expect([...ev].sort()).toEqual([...EVENT_CHANNELS].sort());
   });
 
   it('preload derives its allowlist from channels.js', () => {

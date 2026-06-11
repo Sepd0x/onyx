@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Settings, ShieldCheck, Zap, Power, Palette } from 'lucide-react';
 import Switch from '../components/Switch';
+import { CH, EV } from '../ipc';
 
 export default function SettingsView() {
   const [config, setConfig] = useState<any>({ launchOnStartup: false, startMinimized: false, autoScanGit: false, autoHideCursorOnStart: false, theme: 'midnight' });
@@ -8,16 +9,16 @@ export default function SettingsView() {
 
   useEffect(() => {
     if (window.api) {
-      window.api.invoke('app:getConfig').then((c: any) => {
+      window.api.invoke(CH.appGetConfig).then((c: any) => {
         setConfig(c || {});
         if(c?.theme) {
           document.documentElement.setAttribute('data-theme', c.theme);
         }
       });
-      window.api.on('app:update-available', (version: string) => {
+      window.api.on(EV.appUpdateAvailable, (version: string) => {
         setUpdateStatus(`Downloading update ${version}...`);
       });
-      window.api.on('app:update-downloaded', () => {
+      window.api.on(EV.appUpdateDownloaded, () => {
         setUpdateStatus('Update ready to install');
       });
     }
@@ -25,7 +26,7 @@ export default function SettingsView() {
 
   const checkForUpdates = async () => {
     setUpdateStatus('Checking for updates...');
-    const res = await window.api?.invoke('app:checkForUpdates');
+    const res = await window.api?.invoke(CH.appCheckForUpdates);
     if (res && res !== 'Error checking' && !res.includes('Dev Mode')) {
        if (updateStatus === 'Checking for updates...') setUpdateStatus(`Latest or found: ${res}`);
     } else {
@@ -35,7 +36,7 @@ export default function SettingsView() {
   };
 
   const installUpdate = () => {
-    window.api?.invoke('app:installUpdate');
+    window.api?.invoke(CH.appInstallUpdate);
   };
 
   const toggle = async (key: string) => {
@@ -43,7 +44,7 @@ export default function SettingsView() {
     const newConfig = { ...config, [key]: val };
     setConfig(newConfig);
     if (window.api) {
-      await window.api.invoke('app:setConfig', newConfig);
+      await window.api.invoke(CH.appSetConfig, newConfig);
     }
   };
 
@@ -52,7 +53,7 @@ export default function SettingsView() {
     setConfig(newConfig);
     document.documentElement.setAttribute('data-theme', theme);
     if (window.api) {
-      await window.api.invoke('app:setConfig', newConfig);
+      await window.api.invoke(CH.appSetConfig, newConfig);
     }
   }
 
@@ -202,7 +203,7 @@ export default function SettingsView() {
            </div>
            <div className="flex justify-end">
              <button 
-               onClick={() => window.api?.invoke('window:openExternal', 'https://github.com/Sepd0x/onyx')}
+               onClick={() => window.api?.invoke(CH.windowOpenExternal, 'https://github.com/Sepd0x/onyx')}
                className="flex items-center gap-2 px-4 py-2 bg-surface2 hover:bg-primary/20 text-text hover:text-primary border border-border hover:border-primary/50 text-xs font-mono font-bold tracking-widest rounded-lg transition-all cursor-pointer"
              >
                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.5-1.4 6.5-7a4.6 4.6 0 0 0-1.39-3.2 4.6 4.6 0 0 0-.08-3.2s-1.1-.35-3.5 1.25a11.39 11.39 0 0 0-6.2 0C6.5 2.8 5.4 3.15 5.4 3.15a4.6 4.6 0 0 0-.08 3.2A4.6 4.6 0 0 0 3.93 9.5c0 5.6 3.35 6.65 6.5 7a4.8 4.8 0 0 0-1 3.03V22"/><path d="M9 20c-5 1.5-5-2.5-7-3"/></svg>

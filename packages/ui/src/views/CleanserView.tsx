@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Trash2, Search, Skull } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function CleanserView() {
   const [dirs, setDirs] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function CleanserView() {
     setDirs([]);
     setScannedSize('0 MB');
     if (window.api) {
-      const data = await window.api.invoke('cleaner:scan');
+      const data = await window.api.invoke(CH.cleanerScan);
       if (data) {
          setDirs(data.dirs || []);
          setScannedSize(data.totalSize || '0 MB');
@@ -37,7 +38,7 @@ export default function CleanserView() {
     setCleaning(true);
     if (window.api) {
       const targets = path ? [path] : dirs.map(d => d.path);
-      const res: any = await window.api.invoke('cleaner:delete', targets);
+      const res: any = await window.api.invoke(CH.cleanerDelete, targets);
       // The main process shows a confirmation dialog; if cancelled, leave the list as-is.
       if (!res?.cancelled) {
         await scan(); // authoritative refresh from disk

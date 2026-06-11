@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, HardDrive, Cpu, X, GitCommit } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function GitView() {
   const [repos, setRepos] = useState<any[]>([]);
@@ -19,17 +20,17 @@ export default function GitView() {
 
   const load = async () => {
     if (window.api) {
-      const r = await window.api.invoke('git:getRepos');
+      const r = await window.api.invoke(CH.gitGetRepos);
       setRepos(r || []);
     }
   };
 
-  const add = async () => { if (window.api) { await window.api.invoke('git:addRepo'); load(); } };
+  const add = async () => { if (window.api) { await window.api.invoke(CH.gitAddRepo); load(); } };
   
   const addRemote = async () => {
     setGhModal({ ...ghModal, loading: true, error: '' });
     if (window.api) {
-        const res = await window.api.invoke('git:addGithubRepo', ghModal.url, ghModal.token);
+        const res = await window.api.invoke(CH.gitAddGithubRepo, ghModal.url, ghModal.token);
         if (res.error) setGhModal({ ...ghModal, loading: false, error: res.error });
         else { setGhModal(null); load(); }
     }
@@ -38,18 +39,18 @@ export default function GitView() {
   const autoScan = async () => {
     if (window.api) {
       setScanning(true);
-      await window.api.invoke('git:autoScan');
+      await window.api.invoke(CH.gitAutoScan);
       await load();
       setScanning(false);
     }
   };
 
-  const removeRepo = async (path: string) => { if (window.api) { await window.api.invoke('git:removeRepo', path); load(); } };
+  const removeRepo = async (path: string) => { if (window.api) { await window.api.invoke(CH.gitRemoveRepo, path); load(); } };
 
   const openAi = async (path: string) => {
     setAiModal({ path, msg: '', loading: true });
     if (window.api) {
-       const msg = await window.api.invoke('git:generateCommit', path);
+       const msg = await window.api.invoke(CH.gitGenerateCommit, path);
        setAiModal({ path, msg, loading: false });
     }
   };

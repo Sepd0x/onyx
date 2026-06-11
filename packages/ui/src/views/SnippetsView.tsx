@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TerminalSquare, Plus, Copy, Trash2, CheckSquare } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function SnippetsView() {
   const [snippets, setSnippets] = useState<any[]>([]);
@@ -9,7 +10,7 @@ export default function SnippetsView() {
 
   useEffect(() => {
     if (window.api) {
-      window.api.invoke('snippets:get').then(setSnippets);
+      window.api.invoke(CH.snippetsGet).then(setSnippets);
     }
   }, []);
 
@@ -21,7 +22,7 @@ export default function SnippetsView() {
     setNewTitle('');
     setNewCmd('');
     if (window.api) {
-      await window.api.invoke('snippets:save', updated);
+      await window.api.invoke(CH.snippetsSave, updated);
     }
   };
 
@@ -29,7 +30,7 @@ export default function SnippetsView() {
     const updated = snippets.filter(s => s.id !== id);
     setSnippets(updated);
     if (window.api) {
-      await window.api.invoke('snippets:save', updated);
+      await window.api.invoke(CH.snippetsSave, updated);
     }
   };
 

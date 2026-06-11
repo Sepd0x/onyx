@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
 import Switch from '../components/Switch';
+import { CH } from '../ipc';
 
 function formatBatteryTime(b: any) {
   const secs = b.charging ? b.chargingTime : b.dischargingTime;
@@ -21,7 +22,7 @@ export default function PowerOSView() {
 
   const load = async () => {
     if (window.api) {
-      const d = await window.api.invoke('power:get');
+      const d = await window.api.invoke(CH.powerGet);
       if (d) {
         setActiveProfile(d.activeProfile);
         setAiEnabled(d.aiEnabled);
@@ -72,16 +73,16 @@ export default function PowerOSView() {
 
   const setProfile = async (p: string) => {
     if (window.api) {
-      await window.api.invoke('power:setProfile', p);
+      await window.api.invoke(CH.powerSetProfile, p);
       load();
     }
   };
 
   const toggleAI = async () => {
     if (window.api) {
-      await window.api.invoke('power:setAI', !aiEnabled);
+      await window.api.invoke(CH.powerSetAI, !aiEnabled);
       load();
-      window.api.invoke('app:notify', { title: 'Onyx OS Manager', body: !aiEnabled ? 'AI Power Planner Activated.' : 'AI Power Planner Deactivated. Manual control.' });
+      window.api.invoke(CH.appNotify, { title: 'Onyx OS Manager', body: !aiEnabled ? 'AI Power Planner Activated.' : 'AI Power Planner Deactivated. Manual control.' });
     }
   };
 

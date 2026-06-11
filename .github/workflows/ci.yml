@@ -17,5 +17,7 @@ jobs:
       - run: npm ci
       - name: Build UI
         run: npm run build:ui
+      - name: Typecheck
+        run: npm run typecheck
       - name: Run tests
         run: npm test

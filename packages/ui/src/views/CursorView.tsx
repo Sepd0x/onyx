@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown } from 'lucide-react';
 import Switch from '../components/Switch';
+import { CH } from '../ipc';
 
 export default function CursorView() {
   const [config, setConfig] = useState<any>({ seconds: 5, deadzone: 4, active: false, dnd: false, dim: false });
 
   useEffect(() => {
     if (window.api) {
-      window.api.invoke('cursor:getConfig').then((c: any) => setConfig(c));
+      window.api.invoke(CH.cursorGetConfig).then((c: any) => setConfig(c));
     }
   }, []);
 
@@ -16,8 +17,8 @@ export default function CursorView() {
     const newConfig = { ...config, [key]: val };
     setConfig(newConfig);
     if (window.api) {
-      if (key === 'active') await window.api.invoke('cursor:toggle');
-      else await window.api.invoke('cursor:setConfig', { [key]: val });
+      if (key === 'active') await window.api.invoke(CH.cursorToggle);
+      else await window.api.invoke(CH.cursorSetConfig, { [key]: val });
     }
   };
 
@@ -25,7 +26,7 @@ export default function CursorView() {
     if (value < 1) value = 1;
     const newConfig = { ...config, [key]: value };
     setConfig(newConfig);
-    if (window.api) await window.api.invoke('cursor:setConfig', { [key]: value });
+    if (window.api) await window.api.invoke(CH.cursorSetConfig, { [key]: value });
   };
 
   const NumInput = ({ val, onChange }: { val: number, onChange: (v: number) => void }) => (
@@ -127,7 +128,7 @@ export default function CursorView() {
                   onClick={async () => {
                      const ns = !config.keepAwake;
                      setConfig({...config, keepAwake: ns});
-                     if (window.api) await window.api.invoke('env:keepAwake', ns);
+                     if (window.api) await window.api.invoke(CH.envKeepAwake, ns);
                   }}
                 />
               </div>
@@ -147,7 +148,7 @@ export default function CursorView() {
                   onClick={async () => {
                      const ns = !config.focusMode;
                      setConfig({...config, focusMode: ns});
-                     if (window.api) await window.api.invoke('env:focusMode', ns);
+                     if (window.api) await window.api.invoke(CH.envFocusMode, ns);
                   }}
                 />
               </div>

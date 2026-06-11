@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Trash2, ChevronDown, ChevronRight, Search, Activity, Network, BoxSelect } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import { CH } from '../ipc';
 
 export default function PortsView() {
   const [ports, setPorts] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export default function PortsView() {
     setLoading(true);
     if (window.api) {
       try {
-        const data = await window.api.invoke('ports:get');
+        const data = await window.api.invoke(CH.portsGet);
         setPorts(data || []);
         setError(false);
         if (!initialLoadDone.current && data?.length) {
@@ -50,7 +51,7 @@ export default function PortsView() {
   const doKill = async (pid: string) => {
     setConfirmPid(null);
     if (window.api) {
-      try { await window.api.invoke('ports:kill', pid); } catch (e) {}
+      try { await window.api.invoke(CH.portsKill, pid); } catch (e) {}
       refresh();
     }
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert, Activity, Coffee, Cpu, Zap, Search } from 'lucide-react';
+import { CH } from '../ipc';
 
 export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: boolean }) {
   const [pid, setPid] = useState('');
@@ -9,7 +10,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
 
   const fetchStatus = async () => {
     if (window.api) {
-      const list = await window.api.invoke('dev:status');
+      const list = await window.api.invoke(CH.devStatus);
       setActive(list || []);
     }
   };
@@ -17,7 +18,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
   const fetchSuggested = async () => {
     if (window.api) {
       setLoadingProcs(true);
-      const procs = await window.api.invoke('dev:getDevProcesses');
+      const procs = await window.api.invoke(CH.devGetDevProcesses);
       setSuggested(procs || []);
       setLoadingProcs(false);
     }
@@ -33,14 +34,14 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
   const watch = async (targetPid: string, name?: string) => {
     if (!targetPid) return;
     if (window.api) {
-      await window.api.invoke('dev:startWatch', { type: 'pid', target: targetPid, name: name || 'Process' });
+      await window.api.invoke(CH.devStartWatch, { type: 'pid', target: targetPid, name: name || 'Process' });
     }
     setPid('');
     fetchStatus();
   };
 
   const stop = async (id: string) => {
-    if (window.api) await window.api.invoke('dev:stopWatch', id);
+    if (window.api) await window.api.invoke(CH.devStopWatch, id);
     fetchStatus();
   };
 
@@ -94,7 +95,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                           <button onClick={() => watch(p.pid, p.name)} className="px-4 py-2 bg-surface3 hover:bg-primary/20 hover:text-primary hover:border-primary/30 border border-border text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
                             GUARD
                           </button>
-                          <button onClick={() => window.api?.invoke('ports:kill', p.pid).then(fetchSuggested)} className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 hover:border-red-500/40 text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
+                          <button onClick={() => window.api?.invoke(CH.portsKill, p.pid).then(fetchSuggested)} className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 hover:border-red-500/40 text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
                             KILL
                           </button>
                         </div>
