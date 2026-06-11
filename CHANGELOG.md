@@ -6,9 +6,11 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
-Onyx is being hardened from a prototype toward its first stable release
-(**v1.0.0**). Work is organized as themed, peer-reviewed pull requests; the full
-findings and plan live in [`AUDIT.md`](AUDIT.md).
+## [1.0.0] - 2026-06-11
+
+The first stable release. Onyx was hardened from a Google-AI-Studio prototype into a
+real product through themed, peer-reviewed pull requests; the audit that drove the
+work lives in [`AUDIT.md`](AUDIT.md).
 
 ### Security
 - Store the GitHub Personal Access Token with Electron `safeStorage` (OS keychain)

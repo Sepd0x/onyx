@@ -11,23 +11,42 @@ const SCAN_ROOTS = [
 ];
 
 // A path is only deletable if it is an actual `node_modules` folder that lives
-// under one of the known scan roots. This defeats `..` traversal and prevents
-// the renderer from asking the main process to delete arbitrary paths.
+// under one of the known scan roots. realpath collapses symlinks/junctions so the
+// containment check reflects what fs.rmSync will actually touch.
 function isSafeDeletePath(target) {
   if (typeof target !== 'string' || !target) return false;
   let resolved;
-  // realpath collapses symlinks/junctions so the containment check reflects
-  // what fs.rmSync will actually touch (throws if the path does not exist).
   try { resolved = fs.realpathSync.native(target); } catch { return false; }
   if (path.basename(resolved).toLowerCase() !== 'node_modules') return false;
-  // Windows paths are case-insensitive; normalize case there so valid folders
-  // are not falsely rejected.
   const norm = (s) => process.platform === 'win32' ? path.resolve(s).toLowerCase() : path.resolve(s);
   const t = norm(resolved);
   return SCAN_ROOTS.some(root => {
     const r = norm(root);
     return t === r || t.startsWith(r + path.sep);
   });
+}
+
+// Real recursive size of a directory in bytes (iterative to avoid deep recursion).
+function dirSizeBytes(dir) {
+  let total = 0;
+  const stack = [dir];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { continue; }
+    for (const e of entries) {
+      const full = path.join(d, e.name);
+      if (e.isSymbolicLink()) continue;
+      if (e.isDirectory()) stack.push(full);
+      else { try { total += fs.statSync(full).size; } catch (err) {} }
+    }
+  }
+  return total;
+}
+
+function fmtSize(bytes) {
+  if (bytes >= 1024 * 1024 * 1024) return (bytes / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+  return Math.max(0, Math.round(bytes / 1024 / 1024)) + ' MB';
 }
 
 module.exports = function initCleaner() {
@@ -42,10 +61,8 @@ module.exports = function initCleaner() {
           for (let item of items) {
             if (item.isDirectory()) {
               if (item.name === 'node_modules') {
-                // Fixed size per path to avoid random shifting after a delete failure.
-                let hash = dirStr.length;
-                for (let i = 0; i < dirStr.length; i++) hash += dirStr.charCodeAt(i);
-                found.push({ path: path.join(dirStr, item.name), name: 'node_modules', size: (100 + (hash % 300)) + ' MB' });
+                const full = path.join(dirStr, item.name);
+                found.push({ path: full, name: 'node_modules', bytes: dirSizeBytes(full) });
               } else if (item.name !== '.git' && item.name !== '.vscode' && item.name !== 'AppData') {
                 scanDir(path.join(dirStr, item.name), depth + 1);
               }
@@ -58,8 +75,9 @@ module.exports = function initCleaner() {
         if (fs.existsSync(p)) scanDir(p, 0);
       }
 
-      const sum = found.reduce((acc, curr) => acc + parseInt(curr.size.replace(' MB', '')), 0);
-      resolve({ dirs: found, totalSize: sum + ' MB' });
+      const totalBytes = found.reduce((acc, f) => acc + f.bytes, 0);
+      const dirs = found.map((f) => ({ path: f.path, name: f.name, size: fmtSize(f.bytes) }));
+      resolve({ dirs, totalSize: fmtSize(totalBytes) });
     });
   });
 

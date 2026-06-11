@@ -178,7 +178,7 @@ export default function GitView() {
                  </div>
                  <button 
                   onClick={() => openAi(r.path)}
-                  className="flex-shrink-0 w-10 h-10 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary rounded-xl flex items-center justify-center transition-all hover:scale-105 shadow-sm" title="AI Commit Assist">
+                  className="flex-shrink-0 w-10 h-10 bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary rounded-xl flex items-center justify-center transition-all hover:scale-105 shadow-sm" title="Suggest commit message">
                    <Wand2 className="w-4 h-4"/>
                  </button>
               </div>
@@ -206,7 +206,7 @@ export default function GitView() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 md:p-8">
           <div className="bg-surface border border-border2 p-6 md:p-8 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 no-scrollbar flex flex-col">
             <div className="flex justify-between items-center mb-6 flex-shrink-0">
-              <h3 className="text-lg font-semibold flex items-center gap-3"><Cpu className="w-5 h-5 text-primary"/> AI Commit Assist</h3>
+              <h3 className="text-lg font-semibold flex items-center gap-3"><Cpu className="w-5 h-5 text-primary"/> Commit Message Helper</h3>
               <button onClick={() => setAiModal(null)} className="p-2 text-muted hover:text-text rounded-md hover:bg-surface2 transition-colors"><X className="w-5 h-5"/></button>
             </div>
             

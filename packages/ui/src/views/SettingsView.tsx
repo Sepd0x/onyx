@@ -134,8 +134,8 @@ export default function SettingsView() {
             </div>
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
-                <h3 className="font-medium text-[13px] text-text">Enable AI Features</h3>
-                <p className="text-[11px] text-muted mt-1 leading-relaxed">Activates AI log auditing, auto-healing, and desync predictions.</p>
+                <h3 className="font-medium text-[13px] text-text">Enable Inspector</h3>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">Shows the Inspector tab with real repo-sync and dev-process telemetry (local only).</p>
               </div>
               <Switch active={config.enableAIFeatures ?? true} onClick={() => toggle('enableAIFeatures')} />
             </div>

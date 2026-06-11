@@ -1,5 +1,7 @@
 # Onyx — Production Readiness Audit
 
+> ✅ **Status (2026-06-11):** this was the *pre-remediation* baseline. The prioritized phases below are now **complete and shipped** — see [`CHANGELOG.md`](CHANGELOG.md). Kept as a historical record of the v1.0.0 hardening.
+
 **Date:** 2026-06-10
 **Scope:** First-party code only (`packages/**`, `scripts/**`, root config & docs). `node_modules` and build output excluded.
 **Method:** Six parallel reviewers (security, correctness, architecture, UX/design, testing/build, documentation), each reading the actual source. **Every critical/high finding was re-verified by an independent adversarial agent** that re-read the cited code. Of the findings sent to verification: **0 were refuted**, a few had their severity corrected. This document supersedes the previous `AUDITORIA.md`, which contained multiple "already fixed" claims that do not match the code.

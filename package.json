@@ -32,6 +32,9 @@
     "directories": {
       "output": "dist"
     },
+    "asarUnpack": [
+      "packages/tools/cursor-autohide/backend.ps1"
+    ],
     "win": {
       "icon": "assets/icon.ico",
       "target": [

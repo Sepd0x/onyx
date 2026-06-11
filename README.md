@@ -31,10 +31,10 @@ Built with Electron + React. Everything runs locally; there is no telemetry and 
 | **OS Power Manager** | Switches Windows power plans, optionally on AC/battery events | ✅ Stable |
 | **Focus Mode** | Cursor auto-hide + distraction-free window rules | ✅ Stable |
 | **System Tray** | Quick-glance dashboard next to the clock | ✅ Stable |
-| **Launchers** | One-click multi-service local environments | 🚧 In progress |
-| **AI Auditor** | Heuristic repo-desync & process analysis | 🧪 Experimental |
+| **Launchers** | One-click multi-service local environments | ✅ Stable |
+| **Inspector** | Real repo-sync & dev-process telemetry (heuristic, local) | ✅ Stable |
 
-> Onyx is being actively hardened toward a production release. See [`AUDIT.md`](AUDIT.md) for the current quality baseline and the prioritized roadmap, and [`ROADMAP.md`](ROADMAP.md) for what's next.
+> Onyx reached its first stable release (**v1.0.0**). [`AUDIT.md`](AUDIT.md) is the audit that drove the hardening; [`CHANGELOG.md`](CHANGELOG.md) lists what shipped, and [`ROADMAP.md`](ROADMAP.md) covers what's next.
 
 ## Requirements
 

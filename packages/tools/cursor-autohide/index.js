@@ -14,15 +14,21 @@ module.exports = function initCursorAutoHide() {
   const startWorker = () => {
     if (psProcess) return;
     if (fs.existsSync(stopFile)) fs.unlinkSync(stopFile);
-    const script = path.join(__dirname, 'backend.ps1');
+    // The .ps1 is asarUnpack'd (see electron-builder config); powershell.exe -File
+    // cannot read inside app.asar, so resolve to the unpacked path. No-op in dev.
+    const script = path.join(__dirname, 'backend.ps1').replace('app.asar', 'app.asar.unpacked');
+    const seconds = Math.max(1, parseInt(config.seconds, 10) || 5);
+    const deadzone = Math.max(0, parseInt(config.deadzone, 10) || 4);
     psProcess = spawn('powershell.exe', [
       '-ExecutionPolicy', 'Bypass',
       '-WindowStyle', 'Hidden',
       '-File', script,
-      '-Seconds', config.seconds.toString(),
-      '-DeadZone', config.deadzone.toString(),
+      '-Seconds', String(seconds),
+      '-DeadZone', String(deadzone),
       '-StopFile', stopFile
     ], { windowsHide: true });
+    psProcess.on('error', () => { psProcess = null; });
+    psProcess.on('exit', () => { psProcess = null; });
   };
 
   const stopWorker = () => {

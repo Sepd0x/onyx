@@ -7,12 +7,12 @@ Esta é a integração máxima (The Big Idea) que cruza o *Git Pulse* e o sistem
 - [x] **Deteção Repo Remoto -> Local:** Se um repositório do GitHub for adicionado, a app deve conseguir procurar no disco local (`~/Documents/GitHub`, `~/Desktop`, etc.) se o projeto já está guardado fisicamente, e ligar automaticamente o contexto.
 - [x] **Análise de Sincronização:** O AI cruza os *commits* e avisa se o diretório local está desatualizado face ao remoto.
 - [x] **Smart App Tracker:** Para aplicações construídas (seja Windows Build ou portátil) que nasçam desses repositórios, o Onyx vai conseguir "anexar" esse binário e controlá-lo.
-- [x] **AI Auditor (Dashboard Central):** Uma aba dedicada que reporta proativamente as sincronizações do Repositório (Desyncs), controla sub-binários e vasculha os STDOUT (*logs*) e injeta deteção de fugas de memórias em tempo real.
+- [x] **Inspector (Dashboard Central):** Uma aba dedicada que mostra o estado **real** de sincronização dos repositórios (à frente/atrás do remoto) e os processos de desenvolvimento detetados no sistema. *(A "deteção de fugas de memória por IA" do protótipo era simulada — foi removida por honestidade.)*
 
 ## 🔍 Fase 2: DevWatcher & Port Auditor 2.0 (Inteligência Tática)
 Expandir a auditoria e os processos em tempo real.
-- [x] **AI Error Detection em tempo real:** O DevWatcher passará a "escutar" o terminal das sub-apps e o AI avisa-nos logo que detete "Pode haver aqui um Memory Leak" ou "Exceção fatal na linha 45".
-- [x] **Auto-Restart & Healing:** Se uma app der *crash*, o AI tenta analisar a porta e o log, liberta a porta "presa" (Network Auditing avançado) e reinicia o *dev server*.
+- [ ] **Deteção de erros em tempo real:** *(Não entregue — a versão do protótipo era simulada e foi removida. Futuro possível: leitura real de STDOUT.)*
+- [ ] **Auto-Restart & Healing:** *(Não entregue — era um stub no protótipo, removido. O Session Guard real mantém o wake-lock até o processo terminar.)*
 - [ ] **Port Auditor Profiling:** Estudar que portas estão abertas não só na máquina virtual/local mas como elas pingam para fora e medir latências.
 
 ## 🛠 Fase 3: Quality of Life & Non-AI Power Tools
