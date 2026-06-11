@@ -1,0 +1,69 @@
+{
+  "name": "onyx",
+  "version": "1.0.0",
+  "description": "A centralized power toolkit and system guard for developers",
+  "author": "Sepd0x",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sepd0x/onyx.git"
+  },
+  "main": "packages/core/src/main.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "cd packages/ui && vite --host 0.0.0.0 --port 3000",
+    "start": "electron packages/core",
+    "start-desktop": "cross-env NODE_ENV=development electron packages/core",
+    "onyx": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && npm run start-desktop\"",
+    "build:ui": "npm run build --workspace=packages/ui",
+    "build": "npm run build:ui && electron-builder",
+    "test": "vitest run"
+  },
+  "build": {
+    "appId": "com.onyx.app",
+    "productName": "Onyx",
+    "publish": [
+      "github"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": true
+    },
+    "files": [
+      "packages/core/**/*",
+      "!packages/**/test/**",
+      "!packages/**/*.test.js",
+      "packages/ui/dist/**/*",
+      "packages/tools/**/*",
+      "assets/**/*"
+    ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
+    "esbuild": "^0.28.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8",
+    "wait-on": "^9.0.10"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}
