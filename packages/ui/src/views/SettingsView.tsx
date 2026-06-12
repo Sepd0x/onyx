@@ -1,11 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, Zap, Power, Palette } from 'lucide-react';
+import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit } from 'lucide-react';
 import Switch from '../components/Switch';
 import { CH, EV } from '../ipc';
 
 export default function SettingsView() {
   const [config, setConfig] = useState<any>({ launchOnStartup: false, startMinimized: false, autoScanGit: false, autoHideCursorOnStart: false, theme: 'midnight' });
   const [updateStatus, setUpdateStatus] = useState<string>('');
+  const [aiStatus, setAiStatus] = useState<{ configured: boolean; encryptionAvailable: boolean; model: string }>({ configured: false, encryptionAvailable: true, model: 'claude-haiku-4-5' });
+  const [aiKey, setAiKey] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState('');
+
+  const loadAiStatus = async () => {
+    if (window.api) {
+      const s: any = await window.api.invoke(CH.aiGetStatus);
+      if (s) setAiStatus(s);
+    }
+  };
 
   useEffect(() => {
     if (window.api) {
@@ -15,6 +26,7 @@ export default function SettingsView() {
           document.documentElement.setAttribute('data-theme', c.theme);
         }
       });
+      loadAiStatus();
       window.api.on(EV.appUpdateAvailable, (version: string) => {
         setUpdateStatus(`Downloading update ${version}...`);
       });
@@ -23,6 +35,34 @@ export default function SettingsView() {
       });
     }
   }, []);
+
+  const saveAiKey = async () => {
+    if (!window.api || !aiKey.trim()) return;
+    setAiBusy(true);
+    setAiMsg('');
+    try {
+      const res: any = await window.api.invoke(CH.aiSetKey, aiKey);
+      if (res?.warning) setAiMsg(res.warning);
+      else if (res?.ok) { setAiKey(''); setAiMsg('API key saved securely.'); }
+      await loadAiStatus();
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const clearAiKey = async () => {
+    if (!window.api) return;
+    setAiBusy(true);
+    setAiMsg('');
+    try {
+      await window.api.invoke(CH.aiSetKey, '');
+      setAiKey('');
+      setAiMsg('API key removed.');
+      await loadAiStatus();
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   const checkForUpdates = async () => {
     setUpdateStatus('Checking for updates...');
@@ -149,6 +189,65 @@ export default function SettingsView() {
           </div>
         </div>
         
+        <div className="flex flex-col gap-4">
+           <h3 className="text-sm font-semibold flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-primary"/> AI Assistant <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded tracking-widest uppercase">Opt-in</span></h3>
+           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm p-6 flex flex-col gap-4">
+             <div className="flex items-start justify-between gap-4">
+               <div className="min-w-0">
+                 <h3 className="font-medium text-[13px] text-text flex items-center gap-2">
+                   <KeyRound className="w-3.5 h-3.5 text-muted" /> Anthropic API Key
+                 </h3>
+                 <p className="text-[11px] text-muted mt-1 leading-relaxed">
+                   Powers real commit-message generation and Inspector insights. Stored encrypted on this device via the OS keychain; calls run locally from the app. Get a key at console.anthropic.com.
+                 </p>
+               </div>
+               <span className={`flex-shrink-0 text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded-md border ${aiStatus.configured ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-surface2 border-border text-muted'}`}>
+                 {aiStatus.configured ? 'CONFIGURED' : 'NOT SET'}
+               </span>
+             </div>
+
+             {!aiStatus.encryptionAvailable && (
+               <div className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-md">
+                 Secure storage is unavailable on this system — the key cannot be stored safely and will not be saved.
+               </div>
+             )}
+
+             <div className="flex flex-col sm:flex-row gap-3">
+               <input
+                 type="password"
+                 placeholder={aiStatus.configured ? '•••••••••••••• (saved)' : 'sk-ant-...'}
+                 value={aiKey}
+                 onChange={e => setAiKey(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && saveAiKey()}
+                 className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono focus:border-primary/50 outline-none"
+               />
+               <div className="flex gap-2">
+                 <button
+                   onClick={saveAiKey}
+                   disabled={aiBusy || !aiKey.trim() || !aiStatus.encryptionAvailable}
+                   className="px-4 py-2 bg-primary hover:bg-accent text-background text-[11px] font-mono font-bold tracking-widest rounded-lg transition-colors disabled:opacity-40"
+                 >
+                   SAVE
+                 </button>
+                 {aiStatus.configured && (
+                   <button
+                     onClick={clearAiKey}
+                     disabled={aiBusy}
+                     className="px-4 py-2 bg-surface2 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 text-text border border-border text-[11px] font-mono font-bold tracking-widest rounded-lg transition-colors disabled:opacity-40"
+                   >
+                     CLEAR
+                   </button>
+                 )}
+               </div>
+             </div>
+
+             <div className="flex items-center justify-between">
+               <span className="text-[10px] font-mono text-muted">Model: <span className="text-text2">{aiStatus.model}</span></span>
+               {aiMsg && <span className="text-[10px] font-mono text-primary/80">{aiMsg}</span>}
+             </div>
+           </div>
+        </div>
+
         <div className="flex flex-col gap-4">
            <h3 className="text-sm font-semibold flex items-center gap-2"><Palette className="w-4 h-4 text-primary"/> Visual Identity</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm grid grid-cols-3 gap-[1px] bg-border p-[1px]">

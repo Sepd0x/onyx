@@ -13,6 +13,7 @@ const initCleaner = require('../../tools/cleaner/index');
 const initSnippets = require('../../tools/snippets/index');
 const initLaunchers = require('../../tools/launchers/index');
 const initPowerManager = require('../../tools/power-manager/index');
+const initAI = require('../../tools/ai/index');
 const logger = require('./logger');
 
 app.setName('Onyx');
@@ -274,7 +275,8 @@ if (!gotTheLock) {
     initSnippets();
     initLaunchers();
     initPowerManager();
-    
+    initAI();
+
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {
       createTray();

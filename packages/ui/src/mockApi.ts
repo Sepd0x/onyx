@@ -236,6 +236,20 @@ class MockApi {
         return pc;
       }
         
+      case 'ai:getStatus':
+        return {
+          configured: localStorage.getItem('onyx-ai-configured') === '1',
+          encryptionAvailable: true,
+          model: 'claude-haiku-4-5',
+        };
+      case 'ai:setKey': {
+        // Never store a real key in the browser mock — just track configured state.
+        const has = typeof args[0] === 'string' && args[0].trim().length > 0;
+        if (has) localStorage.setItem('onyx-ai-configured', '1');
+        else localStorage.removeItem('onyx-ai-configured');
+        return { ok: true, configured: has, encryptionAvailable: true };
+      }
+
       case 'app:notify':
         if (this.config.enableNotifications !== false) {
            window.dispatchEvent(new CustomEvent('mock-event', {detail: {type: 'notification', title: args[0].title, body: args[0].body}}));

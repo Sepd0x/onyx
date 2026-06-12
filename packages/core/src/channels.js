@@ -32,6 +32,8 @@ const INVOKE_CHANNELS = [
   'tray:openMain',
   // Power
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
+  // AI (key management; model calls run in main, key never crosses the bridge)
+  'ai:getStatus', 'ai:setKey',
 ];
 
 // Main -> renderer push events (used with window.api.on).

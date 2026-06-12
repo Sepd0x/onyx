@@ -62,6 +62,9 @@ export const CH = {
   powerSetProfile: 'power:setProfile',
   powerSetAI: 'power:setAI',
   powerSetConfig: 'power:setConfig',
+  // AI
+  aiGetStatus: 'ai:getStatus',
+  aiSetKey: 'ai:setKey',
 } as const;
 
 export const EV = {
