@@ -156,22 +156,17 @@ class MockApi {
       case 'dev:status':
         return this.watchedProcesses;
       case 'dev:startWatch':
-        this.watchedProcesses.push({ id: Math.random().toString(), type: args[0].type, target: args[0].target, name: args[0].name || 'Process', aiError: null, crash: false });
-        return true;
-      case 'dev:heal':
-        const proc = this.watchedProcesses.find(p => p.id === args[0]);
-        if (proc) {
-           proc.aiError = null;
-           proc.crash = false;
-        }
+        // Real dev:status returns only {id, type, target, name} — keep the mock identical.
+        this.watchedProcesses.push({ id: Math.random().toString(), type: args[0].type, target: args[0].target, name: args[0].name || 'Process' });
         return true;
       case 'dev:stopWatch':
         this.watchedProcesses = this.watchedProcesses.filter(p => p.id !== args[0]);
         return true;
       case 'dev:getDevProcesses':
+        // Mirrors the real handler shape: lowercase name, .exe-stripped type, percent confidence.
         return [
-          { pid: '8912', name: 'claude.exe', type: 'claude' },
-          { pid: '4123', name: 'Code.exe', type: 'code'}
+          { pid: '8912', name: 'claude.exe', type: 'claude', confidence: '45%' },
+          { pid: '4123', name: 'code.exe', type: 'code', confidence: '45%' }
         ];
         
       case 'power:get':

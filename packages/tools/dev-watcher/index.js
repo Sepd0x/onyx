@@ -1,5 +1,13 @@
 const { ipcMain, powerSaveBlocker, Notification } = require('electron');
-const { exec, execFile } = require('child_process');
+const { execFile } = require('child_process');
+const path = require('path');
+const { parseWinProcessJson, parsePosixPs, extractDevProcesses } = require('./parse');
+
+// Absolute path: don't resolve powershell.exe via PATH (binary-planting hardening).
+const POWERSHELL = path.join(
+  process.env.SystemRoot || 'C:\\Windows',
+  'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'
+);
 
 module.exports = function initDevWatcher() {
   const activeWatches = new Map();
@@ -27,69 +35,46 @@ module.exports = function initDevWatcher() {
 
   ipcMain.handle('dev:getDevProcesses', () => {
     return new Promise(resolve => {
-      const isWin = process.platform === 'win32';
-      // Use WMIC or PS to get full command line for better AI heuristic context
-      const cmd = isWin ? 'wmic process get processid,name,commandline /format:csv' : 'ps -A -o pid,comm,args';
-      exec(cmd, { windowsHide: true, maxBuffer: 1024 * 1024 * 5 }, (err, stdout) => {
-        if (err || !stdout) return resolve([]);
-        const procs = [];
-        const lines = stdout.split('\n');
-        
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-          let pid, name, command = '';
-          
-          if (isWin) {
-             const parts = line.split(',');
-             if (parts.length >= 4) {
-               // Node,Commandline,Name,ProcessId
-               command = parts[1] || '';
-               name = parts[2] || '';
-               pid = parts[3] || '';
-             }
-          } else {
-             const parts = line.split(/\s+/);
-             if (parts.length >= 3) {
-               pid = parts[0];
-               name = parts[1];
-               command = parts.slice(2).join(' ');
-             }
-          }
-          
-          if (!name || !pid) continue;
-          
-          const pName = name.toLowerCase();
-          const cmdLine = command.toLowerCase();
-          
-          // AI Pattern Heuristic engine
-          let aiConfidence = 0.0;
-          
-          if (pName.includes('node') || cmdLine.includes('node_modules')) aiConfidence += 0.40;
-          if (pName.includes('python') || cmdLine.includes('venv') || cmdLine.includes('.py')) aiConfidence += 0.40;
-          if (cmdLine.includes('--inspect') || cmdLine.includes('-dev')) aiConfidence += 0.30;
-          if (pName.includes('docker') || pName.includes('containerd')) aiConfidence += 0.35;
-          if (cmdLine.includes('build') || cmdLine.includes('start') || cmdLine.includes('run')) aiConfidence += 0.20;
-          if (cmdLine.includes('vite') || cmdLine.includes('webpack') || cmdLine.includes('esbuild')) aiConfidence += 0.45;
-          if (pName.includes('code') || pName.includes('cursor')) aiConfidence += 0.45;
-          if (pName.includes('ollama') || pName.includes('llama') || cmdLine.includes('model')) aiConfidence += 0.50;
-          if (pName.includes('rustc') || pName.includes('cargo')) aiConfidence += 0.45;
-          
-          // Dynamic analysis points based on path characteristics
-          if (cmdLine.match(/\/[a-z0-9_-]+\/src\//i)) aiConfidence += 0.15;
-          if (cmdLine.includes('localhost') || cmdLine.includes('127.0.0.1')) aiConfidence += 0.25;
-
-          if (aiConfidence >= 0.35 && !procs.find(p => p.pid === pid)) {
-            procs.push({ 
-              pid, 
-              name: pName, 
-              type: pName.replace('.exe', ''),
-              confidence: Math.min(99, Math.round(aiConfidence * 100)) + '%'
-            });
-          }
+      const onScan = (parse) => (err, stdout) => {
+        if (err || !stdout) {
+          // Surface failures: the old wmic path died silently when WMIC was
+          // removed in Windows 11 24H2 and the UI just looked empty (#21).
+          console.error('[dev-watcher] process scan failed:', err ? err.message : 'empty output');
+          return resolve([]);
         }
-        resolve(procs);
-      });
+        const list = parse(stdout);
+        if (list === null) {
+          console.error('[dev-watcher] process scan output could not be parsed');
+          return resolve([]);
+        }
+        resolve(extractDevProcesses(list));
+      };
+
+      if (process.platform === 'win32') {
+        // WMIC is removed on Windows 11 24H2+; query CIM via PowerShell 5.1.
+        // Get-CimInstance (not Get-Process): CommandLine on Get-Process needs PS7+.
+        // -InputObject @(...) keeps single results as a JSON array.
+        // The hidden console defaults to the OEM codepage, whose best-fit
+        // encoder maps curly quotes to raw 0x22 AFTER JSON escaping — one
+        // smart quote in any command line would corrupt the whole document,
+        // so force UTF-8 output before emitting JSON.
+        const psCmd =
+          '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
+          'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process | Select-Object ProcessId,Name,CommandLine)';
+        execFile(
+          POWERSHELL,
+          ['-NoProfile', '-NonInteractive', '-Command', psCmd],
+          { windowsHide: true, maxBuffer: 1024 * 1024 * 10, timeout: 15000 },
+          onScan(parseWinProcessJson)
+        );
+      } else {
+        execFile(
+          'ps',
+          ['-A', '-o', 'pid,comm,args'],
+          { maxBuffer: 1024 * 1024 * 10, timeout: 15000 },
+          onScan(parsePosixPs)
+        );
+      }
     });
   });
 
