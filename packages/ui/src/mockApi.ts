@@ -11,7 +11,16 @@ class MockApi {
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null }
   ];
   private watchedProcesses: any[] = [];
-  
+  private cleanerDirs: { path: string; name: string; bytes: number }[] = [
+    { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', bytes: 340 * 1024 * 1024 },
+    { path: '~/Documents/GitHub/test-repo/node_modules', name: 'node_modules', bytes: 512 * 1024 * 1024 },
+    { path: '~/Desktop/temp-js/node_modules', name: 'node_modules', bytes: 120 * 1024 * 1024 },
+  ];
+  private fmtSize(bytes: number) {
+    if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(1) + ' GB';
+    return Math.round(bytes / 1024 / 1024) + ' MB';
+  }
+
   constructor() {
     try {
       const savedConfig = localStorage.getItem('onyx-config');
@@ -139,17 +148,21 @@ class MockApi {
         });
         this.save();
         return { ok: true };
-      case 'cleaner:scan':
-        return {
-          dirs: [
-            { path: '~/Projects/old-react-app/node_modules', size: '340 MB' },
-            { path: '~/Documents/GitHub/test-repo/node_modules', size: '512 MB' },
-            { path: '~/Desktop/temp-js/node_modules', size: '120 MB' }
-          ],
-          totalSize: '972 MB'
-        };
-      case 'cleaner:delete':
-        return true;
+      case 'cleaner:scan': {
+        await delay(600);
+        const dirs = this.cleanerDirs.map(d => ({ path: d.path, name: d.name, size: this.fmtSize(d.bytes) }));
+        const total = this.cleanerDirs.reduce((a, d) => a + d.bytes, 0);
+        return { dirs, totalSize: this.fmtSize(total) };
+      }
+      case 'cleaner:delete': {
+        // Mirror the real { ok, deleted, rejected, failed } shape AND mutate state so a
+        // rescan reflects the deletion (no confirm dialog in the browser preview).
+        const targets: string[] = Array.isArray(args[0]) ? args[0] : [];
+        const before = this.cleanerDirs.length;
+        this.cleanerDirs = this.cleanerDirs.filter(d => !targets.includes(d.path));
+        const deleted = before - this.cleanerDirs.length;
+        return { ok: true, deleted, rejected: targets.length - deleted, failed: [] };
+      }
       case 'snippets:get':
         const saved = localStorage.getItem('onyx-snippets');
         if (saved) return JSON.parse(saved);

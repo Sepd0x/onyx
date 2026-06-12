@@ -2,44 +2,34 @@ const { ipcMain, dialog, BrowserWindow } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const { resolveRoots, safeDeletePath } = require('./containment');
 
-const SCAN_ROOTS = [
+const RAW_SCAN_ROOTS = [
   path.join(os.homedir(), 'Desktop'),
   path.join(os.homedir(), 'Documents'),
   path.join(os.homedir(), 'Projects'),
-  path.join(os.homedir(), 'dev')
+  path.join(os.homedir(), 'dev'),
 ];
 
-// A path is only deletable if it is an actual `node_modules` folder that lives
-// under one of the known scan roots. realpath collapses symlinks/junctions so the
-// containment check reflects what fs.rmSync will actually touch.
-function isSafeDeletePath(target) {
-  if (typeof target !== 'string' || !target) return false;
-  let resolved;
-  try { resolved = fs.realpathSync.native(target); } catch { return false; }
-  if (path.basename(resolved).toLowerCase() !== 'node_modules') return false;
-  const norm = (s) => process.platform === 'win32' ? path.resolve(s).toLowerCase() : path.resolve(s);
-  const t = norm(resolved);
-  return SCAN_ROOTS.some(root => {
-    const r = norm(root);
-    return t === r || t.startsWith(r + path.sep);
-  });
-}
-
-// Real recursive size of a directory in bytes (iterative to avoid deep recursion).
-function dirSizeBytes(dir) {
+// Real recursive size of a directory in bytes. Async (yields to the event loop so the
+// main process stays responsive) and iterative to avoid deep recursion; skips symlinks
+// so junctions can't cause cycles or double-counting.
+async function dirSizeBytes(dir) {
   let total = 0;
   const stack = [dir];
   while (stack.length) {
     const d = stack.pop();
     let entries;
-    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { continue; }
+    try { entries = await fs.promises.readdir(d, { withFileTypes: true }); } catch { continue; }
+    const files = [];
     for (const e of entries) {
-      const full = path.join(d, e.name);
       if (e.isSymbolicLink()) continue;
+      const full = path.join(d, e.name);
       if (e.isDirectory()) stack.push(full);
-      else { try { total += fs.statSync(full).size; } catch (err) {} }
+      else files.push(full);
     }
+    const sizes = await Promise.all(files.map((f) => fs.promises.stat(f).then((s) => s.size).catch(() => 0)));
+    for (const s of sizes) total += s;
   }
   return total;
 }
@@ -51,45 +41,49 @@ function fmtSize(bytes) {
 
 module.exports = function initCleaner() {
   ipcMain.handle('cleaner:scan', async () => {
-    return new Promise((resolve) => {
-      const found = [];
+    const found = [];
+    const roots = resolveRoots(RAW_SCAN_ROOTS);
 
-      const scanDir = (dirStr, depth) => {
-        if (depth > 2) return;
-        try {
-          const items = fs.readdirSync(dirStr, { withFileTypes: true });
-          for (let item of items) {
-            if (item.isDirectory()) {
-              if (item.name === 'node_modules') {
-                const full = path.join(dirStr, item.name);
-                found.push({ path: full, name: 'node_modules', bytes: dirSizeBytes(full) });
-              } else if (item.name !== '.git' && item.name !== '.vscode' && item.name !== 'AppData') {
-                scanDir(path.join(dirStr, item.name), depth + 1);
-              }
-            }
-          }
-        } catch (e) {}
-      };
-
-      for (let p of SCAN_ROOTS) {
-        if (fs.existsSync(p)) scanDir(p, 0);
+    const scanDir = async (dirStr, depth) => {
+      if (depth > 2) return;
+      let items;
+      try { items = await fs.promises.readdir(dirStr, { withFileTypes: true }); } catch { return; }
+      for (const item of items) {
+        if (!item.isDirectory() || item.isSymbolicLink()) continue; // don't descend junctions
+        if (item.name === 'node_modules') {
+          const full = path.join(dirStr, item.name);
+          found.push({ path: full, name: 'node_modules', bytes: await dirSizeBytes(full) });
+        } else if (item.name !== '.git' && item.name !== '.vscode' && item.name !== 'AppData') {
+          await scanDir(path.join(dirStr, item.name), depth + 1);
+        }
       }
+    };
 
-      const totalBytes = found.reduce((acc, f) => acc + f.bytes, 0);
-      const dirs = found.map((f) => ({ path: f.path, name: f.name, size: fmtSize(f.bytes) }));
-      resolve({ dirs, totalSize: fmtSize(totalBytes) });
-    });
+    for (const p of roots) await scanDir(p, 0);
+
+    const totalBytes = found.reduce((acc, f) => acc + f.bytes, 0);
+    const dirs = found.map((f) => ({ path: f.path, name: f.name, size: fmtSize(f.bytes) }));
+    return { dirs, totalSize: fmtSize(totalBytes) };
   });
 
   ipcMain.handle('cleaner:delete', async (_event, paths) => {
-    if (!Array.isArray(paths) || paths.length === 0) return { ok: false, deleted: 0 };
+    if (!Array.isArray(paths) || paths.length === 0) return { ok: false, deleted: 0, rejected: 0, failed: [] };
 
-    const safe = paths.filter(isSafeDeletePath);
+    // Validate against resolved roots and keep the REALPATHs to delete (closes the
+    // junction asymmetry and the TOCTOU re-resolve).
+    const roots = resolveRoots(RAW_SCAN_ROOTS);
+    const safe = [];
+    for (const p of paths) {
+      const resolved = safeDeletePath(p, roots);
+      if (resolved && !safe.includes(resolved)) safe.push(resolved);
+    }
     const rejected = paths.length - safe.length;
-    if (safe.length === 0) return { ok: false, deleted: 0, rejected };
+    if (safe.length === 0) return { ok: false, deleted: 0, rejected, failed: [] };
 
-    // Require explicit confirmation in the main process — the renderer cannot bypass this.
+    // Require explicit confirmation in the main process — the renderer cannot bypass it.
     const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+    const shown = safe.slice(0, 10).map((p) => '• ' + p).join('\n');
+    const more = safe.length > 10 ? `\n…and ${safe.length - 10} more` : '';
     const { response } = await dialog.showMessageBox(win, {
       type: 'warning',
       buttons: ['Cancel', 'Delete'],
@@ -97,15 +91,20 @@ module.exports = function initCleaner() {
       cancelId: 0,
       title: 'Confirm deletion',
       message: `Permanently delete ${safe.length} node_modules folder${safe.length > 1 ? 's' : ''}?`,
-      detail: 'This cannot be undone.'
+      detail: `This cannot be undone.\n\n${shown}${more}`,
     });
-    if (response !== 1) return { ok: false, deleted: 0, cancelled: true };
+    if (response !== 1) return { ok: false, deleted: 0, rejected, cancelled: true, failed: [] };
 
     let deleted = 0;
+    const failed = [];
     for (const p of safe) {
-      try { fs.rmSync(p, { recursive: true, force: true }); deleted++; }
-      catch (e) { /* skip individual failures */ }
+      try {
+        await fs.promises.rm(p, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+        deleted++;
+      } catch (e) {
+        failed.push({ path: p, error: e && e.message ? e.message : String(e) });
+      }
     }
-    return { ok: true, deleted, rejected };
+    return { ok: failed.length === 0, deleted, rejected, failed };
   });
 };

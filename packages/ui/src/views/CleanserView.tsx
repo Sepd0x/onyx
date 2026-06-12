@@ -7,55 +7,40 @@ export default function CleanserView() {
   const [scanning, setScanning] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [scannedSize, setScannedSize] = useState('0 MB');
+  const [notice, setNotice] = useState('');
 
   const scan = async () => {
     setScanning(true);
     setDirs([]);
     setScannedSize('0 MB');
-    if (window.api) {
-      const data = await window.api.invoke(CH.cleanerScan);
+    setNotice('');
+    try {
+      const data: any = await window.api?.invoke(CH.cleanerScan);
       if (data) {
-         setDirs(data.dirs || []);
-         setScannedSize(data.totalSize || '0 MB');
+        setDirs(data.dirs || []);
+        setScannedSize(data.totalSize || '0 MB');
       }
-    } else {
-      // Mock for web preview
-      setTimeout(() => {
-        setDirs([
-          { path: '~/Projects/old-react-app/node_modules', size: '340 MB' },
-          { path: '~/Documents/GitHub/test-repo/node_modules', size: '512 MB' },
-          { path: '~/Desktop/temp-js/node_modules', size: '120 MB' }
-        ]);
-        setScannedSize('972 MB');
-        setScanning(false);
-      }, 1500);
-      return;
+    } finally {
+      setScanning(false);
     }
-    setScanning(false);
   };
 
   const clean = async (path?: string) => {
     setCleaning(true);
-    if (window.api) {
+    try {
       const targets = path ? [path] : dirs.map(d => d.path);
-      const res: any = await window.api.invoke(CH.cleanerDelete, targets);
+      const res: any = await window.api?.invoke(CH.cleanerDelete, targets);
       // The main process shows a confirmation dialog; if cancelled, leave the list as-is.
-      if (!res?.cancelled) {
-        await scan(); // authoritative refresh from disk
+      if (res && !res.cancelled) {
+        await scan(); // authoritative refresh from disk (also clears stale notices)
+        const problems: string[] = [];
+        if (res.rejected) problems.push(`${res.rejected} skipped (not a safe node_modules path)`);
+        if (res.failed?.length) problems.push(`${res.failed.length} could not be deleted — likely in use`);
+        if (problems.length) setNotice(problems.join(' · '));
       }
+    } finally {
       setCleaning(false);
-      return;
     }
-    // Mock for web preview
-    setTimeout(() => {
-      if (path) {
-        setDirs(dirs.filter(d => d.path !== path));
-      } else {
-        setDirs([]);
-        setScannedSize('0 MB');
-      }
-      setCleaning(false);
-    }, 800);
   };
 
   return (
@@ -82,6 +67,13 @@ export default function CleanserView() {
           </button>
         </div>
       </div>
+
+      {notice && (
+        <div className="mb-6 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] font-mono text-amber-400 flex items-center justify-between gap-3">
+          <span className="min-w-0 break-words">{notice}</span>
+          <button onClick={() => setNotice('')} className="text-amber-300 hover:text-amber-200 flex-shrink-0" aria-label="Dismiss">✕</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="col-span-1 md:col-span-2 bg-surface/50 border border-border p-6 rounded-xl flex flex-col min-h-[300px]">
