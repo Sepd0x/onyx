@@ -89,7 +89,7 @@ export default function GitView() {
           const h = Math.max(10, Math.round((v/max)*100));
           const isToday = i === data.length - 1;
           return (
-             <div key={i} className={`flex-1 rounded-sm transition-all duration-300 ${isToday ? 'bg-primary shadow-[0_0_8px_rgba(139,92,246,0.5)]' : v > 0 ? 'bg-primary/30' : 'bg-surface3'}`} style={{ height: `${h}%`}}></div>
+             <div key={i} className={`flex-1 rounded-sm transition-all duration-300 ${isToday ? 'bg-primary shadow-[0_0_8px_rgb(var(--primary)/0.5)]' : v > 0 ? 'bg-primary/30' : 'bg-surface3'}`} style={{ height: `${h}%`}}></div>
           );
         })}
       </div>
@@ -160,7 +160,7 @@ export default function GitView() {
         {repos.map((r: any, i) => {
           const hasRisk = r.risk && r.risk.length > 0;
           return (
-            <div key={i} className={`bg-surface/50 backdrop-blur-sm border ${r.commitWarning ? 'border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'border-border'} rounded-xl p-6 hover:border-border2 transition-all relative overflow-hidden group shadow-sm flex flex-col gap-5`}>
+            <div key={i} className={`bg-surface/50 backdrop-blur-sm border ${r.commitWarning ? 'border-warning/40 shadow-[0_0_15px_rgb(var(--warning)/0.08)]' : 'border-border'} rounded-xl p-6 hover:border-border2 transition-all relative overflow-hidden group shadow-sm flex flex-col gap-5`}>
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-base font-semibold text-text tracking-tight">{r.name}</h3>
@@ -283,7 +283,7 @@ export default function GitView() {
             <div className="flex justify-end gap-3">
                <button onClick={() => setAiModal(null)} className="px-5 py-2.5 text-[11px] font-mono font-bold tracking-widest bg-surface3 hover:bg-border border border-border rounded-lg transition-colors text-text">CLOSE</button>
                {!aiModal.loading && (
-                 <button onClick={handleCopy} className={`px-5 py-2.5 text-[11px] font-mono font-bold tracking-widest text-background rounded-lg transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] ${copied ? 'bg-green-500' : 'bg-primary hover:bg-accent'}`}>{copied ? 'COPIED!' : 'COPY TO CLIPBOARD'}</button>
+                 <button onClick={handleCopy} className={`px-5 py-2.5 text-[11px] font-mono font-bold tracking-widest text-background rounded-lg transition-all shadow-[0_0_15px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_20px_rgb(var(--primary)/0.5)] ${copied ? 'bg-success' : 'bg-primary hover:bg-accent'}`}>{copied ? 'COPIED!' : 'COPY TO CLIPBOARD'}</button>
                )}
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function GitView() {
 
             <div className="flex justify-end gap-3 mt-4">
                <button onClick={() => setGhModal(null)} className="px-5 py-2.5 text-[11px] font-mono font-bold tracking-widest bg-surface3 hover:bg-border border border-border rounded-lg transition-colors text-text">CANCEL</button>
-               <button onClick={addRemote} disabled={ghModal.loading || !ghModal.url} className="px-5 py-2.5 flex items-center justify-center gap-2 text-[11px] font-mono font-bold tracking-widest text-background rounded-lg transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)] bg-primary hover:bg-accent disabled:opacity-50 disabled:shadow-none">
+               <button onClick={addRemote} disabled={ghModal.loading || !ghModal.url} className="px-5 py-2.5 flex items-center justify-center gap-2 text-[11px] font-mono font-bold tracking-widest text-background rounded-lg transition-all shadow-[0_0_15px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_20px_rgb(var(--primary)/0.5)] bg-primary hover:bg-accent disabled:opacity-50 disabled:shadow-none">
                  {ghModal.loading ? <Search className="w-4 h-4 animate-spin"/> : <FolderGit2 className="w-4 h-4"/>} IMPORT
                </button>
             </div>

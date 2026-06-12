@@ -13,7 +13,7 @@ export default function TrayView() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#040405] text-white flex flex-col p-4 border border-border overflow-hidden select-none">
+    <div className="h-screen w-screen bg-background text-text flex flex-col p-4 border border-border overflow-hidden select-none">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xs font-bold tracking-widest text-text">ONYX</h1>
         <button onClick={openApp} className="text-[10px] bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-2 py-1 rounded">
@@ -36,7 +36,7 @@ export default function TrayView() {
       
       <div className="bg-surface2 p-3 rounded-xl border border-border flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Network className="w-4 h-4 text-purple-400"/>
+          <Network className="w-4 h-4 text-primary"/>
           <span className="text-[10px] text-muted font-bold">ACTIVE PORTS</span>
         </div>
         <span className="text-sm font-mono font-bold">{activePorts}</span>

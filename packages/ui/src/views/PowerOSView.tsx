@@ -95,7 +95,7 @@ export default function PowerOSView() {
     <div className="p-8 pb-24 md:p-10 max-w-6xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-[0_0_20px_rgba(34,197,94,0.15)]">
+          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-[0_0_20px_rgb(var(--success)/0.15)]">
             <Zap className="w-6 h-6 text-green-500"/>
           </div>
           <div>
@@ -112,8 +112,8 @@ export default function PowerOSView() {
         <div className="col-span-2 flex flex-col gap-6">
 
           {/* AI Control Card */}
-          <div className={`border p-6 rounded-xl shadow-lg relative overflow-hidden transition-colors ${aiEnabled ? 'bg-[#8b5cf6]/5 border-[#8b5cf6]/30' : 'bg-surface/40 border-border'}`}>
-            {aiEnabled && <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#8b5cf6] to-transparent animate-pulse"></div>}
+          <div className={`border p-6 rounded-xl shadow-lg relative overflow-hidden transition-colors ${aiEnabled ? 'bg-primary/5 border-primary/30' : 'bg-surface/40 border-border'}`}>
+            {aiEnabled && <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse"></div>}
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-[14px] font-bold text-text flex items-center gap-2 mb-1">
@@ -179,7 +179,7 @@ export default function PowerOSView() {
 
         {/* Sidebar Stats & Logs */}
         <div className="flex flex-col gap-6">
-          <div className="bg-[#050505] border border-border rounded-xl p-6 shadow-inner relative overflow-hidden">
+          <div className="bg-surface border border-border rounded-xl p-6 shadow-inner relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-2">
               {sysInfo.charging ? <BatteryCharging className="w-5 h-5 text-green-400" /> : <Battery className="w-5 h-5 text-text" />}
@@ -198,7 +198,7 @@ export default function PowerOSView() {
             )}
           </div>
 
-          <div className="bg-[#050505] border border-border rounded-xl shadow-inner flex flex-col flex-1 max-h-[400px] font-mono">
+          <div className="bg-surface border border-border rounded-xl shadow-inner flex flex-col flex-1 max-h-[400px] font-mono">
             <div className="p-4 border-b border-border flex items-center gap-3 flex-shrink-0 bg-surface/50">
               <Activity className="w-4 h-4 text-green-500" />
               <span className="text-[10px] font-bold text-text uppercase tracking-widest">Power Audit Log</span>

@@ -67,7 +67,7 @@ export default function PortsView() {
   const FilterBtn = ({ lbl }: {lbl: string}) => (
     <button 
       onClick={() => setFilter(lbl)}
-      className={`px-4 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-colors ${filter === lbl ? 'bg-primary text-background shadow-[0_0_10px_rgba(139,92,246,0.3)]' : 'text-muted hover:text-text2 hover:bg-surface2'}`}
+      className={`px-4 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-colors ${filter === lbl ? 'bg-primary text-background shadow-[0_0_10px_rgb(var(--primary)/0.3)]' : 'text-muted hover:text-text2 hover:bg-surface2'}`}
     >
       {lbl}
     </button>
@@ -160,7 +160,7 @@ export default function PortsView() {
                            <span className="text-[10px] font-mono text-muted">PID: {p.pid}</span>
                            <span className="text-[9px] font-mono text-muted/60 mt-0.5">Mem: {p.ram || '~'} | CPU: {p.cpu || '~'}</span>
                         </div>
-                        <button onClick={() => setConfirmPid(p.pid)} aria-label={`Free port ${p.port} by killing PID ${p.pid}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[10px] font-mono font-bold tracking-widest text-[#000000] bg-red-400 hover:bg-red-500 px-4 py-2 rounded shadow-[0_0_10px_rgba(248,113,113,0.3)] transition-all whitespace-nowrap flex-shrink-0 flex items-center justify-center">
+                        <button onClick={() => setConfirmPid(p.pid)} aria-label={`Free port ${p.port} by killing PID ${p.pid}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[10px] font-mono font-bold tracking-widest text-background bg-danger hover:bg-danger/85 px-4 py-2 rounded shadow-[0_0_10px_rgb(var(--danger)/0.35)] transition-all whitespace-nowrap flex-shrink-0 flex items-center justify-center">
                           FREE PORT
                         </button>
                       </div>

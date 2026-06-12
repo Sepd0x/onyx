@@ -45,7 +45,7 @@ export default function AIAuditorView() {
     <div className="p-8 pb-24 md:p-10 max-w-6xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-[0_0_20px_rgba(139,92,246,0.15)]">
+          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-[0_0_20px_rgb(var(--primary)/0.15)]">
             <BrainCircuit className="w-6 h-6 text-primary"/>
           </div>
           <div>
@@ -132,7 +132,7 @@ export default function AIAuditorView() {
           </div>
         </div>
 
-        <div className="bg-[#050505] border border-border rounded-xl shadow-inner flex flex-col h-[600px] font-mono">
+        <div className="bg-surface border border-border rounded-xl shadow-inner flex flex-col h-[600px] font-mono">
           <div className="p-4 border-b border-border flex items-center gap-3 flex-shrink-0 bg-surface/50">
             <Activity className="w-4 h-4 text-primary" />
             <span className="text-xs font-bold text-text uppercase tracking-widest">Live Issues</span>

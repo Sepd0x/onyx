@@ -13,6 +13,11 @@ import { injectMockApi } from './mockApi'
 
 injectMockApi();
 
+// Apply the saved theme before first paint (#30): the config arrives async
+// over IPC, so a synchronous localStorage mirror avoids the Midnight flash.
+// Covers both windows (main + tray) — they share this entry point.
+document.documentElement.setAttribute('data-theme', localStorage.getItem('onyx-theme') || 'midnight');
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />

@@ -116,7 +116,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
             <button 
               onClick={() => watch(pid)} 
               disabled={!pid}
-              className="mt-3 px-4 py-3.5 bg-primary hover:bg-accent disabled:opacity-50 disabled:bg-surface3 disabled:text-muted disabled:border-border text-background border border-transparent rounded-lg text-[11px] font-bold tracking-widest font-mono transition-all shadow-[0_4px_15px_rgba(139,92,246,0.25)] hover:shadow-[0_4px_20px_rgba(139,92,246,0.4)] disabled:shadow-none"
+              className="mt-3 px-4 py-3.5 bg-primary hover:bg-accent disabled:opacity-50 disabled:bg-surface3 disabled:text-muted disabled:border-border text-background border border-transparent rounded-lg text-[11px] font-bold tracking-widest font-mono transition-all shadow-[0_4px_15px_rgb(var(--primary)/0.25)] hover:shadow-[0_4px_20px_rgb(var(--primary)/0.4)] disabled:shadow-none"
             >
               TRACK PID
             </button>

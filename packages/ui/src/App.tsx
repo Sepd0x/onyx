@@ -26,6 +26,15 @@ export default function App() {
   const appConfig = useIpc(CH.appGetConfig, [], { pollMs: isTrayMode ? 0 : 3000 }).data ?? {};
   const stats = useIpc(CH.appGetStats, [], { pollMs: isTrayMode ? 0 : 2000 }).data ?? { cpu: '14%', ram: '4.2GB' };
 
+  // Theme authority (#30): apply the saved theme on every window as soon as the
+  // config arrives (and on later changes), mirroring to localStorage so the
+  // next launch paints with the right theme immediately (see main.tsx).
+  useEffect(() => {
+    const theme = appConfig.theme || 'midnight';
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('onyx-theme', theme); } catch {}
+  }, [appConfig.theme]);
+
   useEffect(() => {
     if (window.location.hash === '#tray') {
       setIsTrayMode(true);
@@ -50,13 +59,13 @@ export default function App() {
   }
 
   return (
-    <div className={`flex flex-col h-screen rounded-xl border border-border2 bg-[#000000] shadow-2xl overflow-hidden relative selection:bg-primary/30 ${appConfig.enableAnimations === false ? 'disable-animations' : ''}`}>
+    <div className={`flex flex-col h-screen rounded-xl border border-border2 bg-background shadow-2xl overflow-hidden relative selection:bg-primary/30 ${appConfig.enableAnimations === false ? 'disable-animations' : ''}`}>
       {/* Premium Glow effect / Orbs */}
       {appConfig.enableAnimations !== false ? (
          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-50">
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[130px] rounded-full animate-blob"></div>
-            <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
-            <div className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-purple-500/15 blur-[140px] rounded-full animate-blob animation-delay-4000"></div>
+            <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
+            <div className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-primary/15 blur-[140px] rounded-full animate-blob animation-delay-4000"></div>
          </div>
       ) : (
          <div className="absolute top-0 left-0 w-full h-full bg-premium-gradient pointer-events-none opacity-20"></div>
@@ -68,7 +77,7 @@ export default function App() {
         style={{ WebkitAppRegion: 'drag' } as any}
       >
         <div className="flex items-center gap-3">
-          <Logo className="w-4 h-4 drop-shadow-[0_0_8px_rgba(147,51,234,0.5)]" />
+          <Logo className="w-4 h-4 drop-shadow-[0_0_8px_rgb(var(--primary)/0.5)]" />
           <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted2">ONYX</span>
         </div>
         <div className="flex items-center gap-4" style={{ WebkitAppRegion: 'no-drag' } as any}>
@@ -98,7 +107,7 @@ export default function App() {
             <div className="text-[10px] font-mono font-bold tracking-widest text-muted uppercase mb-2 pl-2">Tools</div>
             <Tab icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
             {(appConfig.enableAIFeatures ?? true) && (
-              <Tab icon={<BrainCircuit className="w-4 h-4 text-purple-400" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
+              <Tab icon={<BrainCircuit className="w-4 h-4 text-primary" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
             )}
             <Tab icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
             <Tab icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />

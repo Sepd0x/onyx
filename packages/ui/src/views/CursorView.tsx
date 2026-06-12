@@ -75,7 +75,7 @@ export default function CursorView() {
               onClick={() => toggle('active')}
               className={`px-5 py-2 rounded-lg text-[10px] font-bold tracking-widest font-mono flex items-center gap-2 transition-all duration-300 ${
                 config.active 
-                  ? 'bg-primary text-background shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-transparent' 
+                  ? 'bg-primary text-background shadow-[0_0_15px_rgb(var(--primary)/0.3)] border border-transparent' 
                   : 'bg-surface3 text-text hover:bg-border2 border border-border'
               }`}
             >
