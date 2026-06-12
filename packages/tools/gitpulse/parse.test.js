@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseGithubUrl, classifyCommitMessage, bucketCommitDates } from './parse.js';
+import { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff } from './parse.js';
 
 describe('parseGithubUrl', () => {
   it('parses a standard repo url', () => {
@@ -69,5 +69,34 @@ describe('bucketCommitDates', () => {
     expect(out).toEqual(new Array(14).fill(0));
     expect(bucketCommitDates('nope', 14, today)).toEqual(new Array(14).fill(0));
     expect(bucketCommitDates([today], 14, 'bad-today')).toEqual(new Array(14).fill(0));
+  });
+});
+
+describe('capDiff', () => {
+  it('returns empty for non-string or empty input', () => {
+    expect(capDiff('')).toBe('');
+    expect(capDiff(null)).toBe('');
+    expect(capDiff(undefined)).toBe('');
+  });
+
+  it('passes a small diff through unchanged', () => {
+    const d = 'diff --git a/x b/x\n+hello\n';
+    expect(capDiff(d)).toBe(d);
+  });
+
+  it('truncates an oversized single-file diff', () => {
+    const big = 'diff --git a/big b/big\n' + 'x'.repeat(20000);
+    const out = capDiff(big, 30000, 8000);
+    expect(out.length).toBeLessThan(big.length);
+    expect(out).toContain('[file diff truncated]');
+  });
+
+  it('stops adding files once the total cap is reached', () => {
+    const file = (n) => `diff --git a/f${n} b/f${n}\n` + 'y'.repeat(5000) + '\n';
+    const diff = file(1) + file(2) + file(3) + file(4) + file(5) + file(6);
+    const out = capDiff(diff, 12000, 8000);
+    expect(out.length).toBeLessThanOrEqual(12000 + 40);
+    expect(out).toContain('[diff truncated to fit context]');
+    expect(out).toContain('a/f1'); // earliest file kept
   });
 });

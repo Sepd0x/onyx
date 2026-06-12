@@ -4,9 +4,19 @@ const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { parseGithubUrl, classifyCommitMessage, bucketCommitDates } = require('./parse');
+const { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff } = require('./parse');
+const aiStore = require('../ai/store');
 
 const execFileAsync = promisify(execFile);
+
+// Offline/no-key fallback: a crude commit message from coarse diff signals.
+function heuristicCommit(diffStr) {
+  if (diffStr.includes('package.json') || diffStr.includes('npm install')) return 'build: update project dependencies';
+  if (diffStr.includes('console.log') || diffStr.includes('debugger')) return 'fix: remove debug artifacts';
+  if (diffStr.includes('function ') || diffStr.includes('const ')) return 'feat: implement core logic improvements';
+  if (diffStr.includes('class=') || diffStr.includes('className=')) return 'style: refine ui component layouts';
+  return 'refactor: structural improvements across modules';
+}
 
 module.exports = function initGitPulse() {
   const CFG_PATH = path.join(app.getPath('userData'), 'gitpulse.json');
@@ -287,18 +297,42 @@ module.exports = function initGitPulse() {
     }
   });
 
-  // Heuristic commit-message suggestion from the working diff. C2 will swap this for a
-  // real model call when an API key is configured, keeping this as the offline fallback.
+  // Real commit message via Claude when an API key is configured (opt-in, user-triggered
+  // only). Runs in MAIN (packaged CSP blocks renderer egress). Returns null so the caller
+  // falls back to the heuristic on no-key / SDK-missing / any API error.
+  async function aiCommitMessage(repoPath, diffStr) {
+    const key = aiStore.getKey();
+    if (!key) return null;
+    let Anthropic;
+    try { Anthropic = require('@anthropic-ai/sdk'); } catch { return null; }
+    try {
+      const subjects = await git(['log', '-5', '--pretty=%s'], repoPath);
+      const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 30000 });
+      const res = await client.messages.create({
+        model: aiStore.getModel(),
+        max_tokens: 200,
+        system: 'You are a senior engineer writing a git commit message. Given a diff and the repo\'s recent commit subjects (for style reference only), write ONE concise message in Conventional Commits style (e.g. "feat: ...", "fix: ...", "refactor: ..."). Output ONLY the message — no quotes, no preamble, no body. Keep the subject under ~72 characters.',
+        messages: [{
+          role: 'user',
+          content: `Recent commit subjects (style reference):\n${subjects || '(none)'}\n\nDiff:\n${capDiff(diffStr, 30000, 8000) || '(empty)'}`,
+        }],
+      });
+      const text = Array.isArray(res.content)
+        ? res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim()
+        : '';
+      return text || null;
+    } catch {
+      return null; // typed SDK errors, network, rate limits → heuristic fallback
+    }
+  }
+
   ipcMain.handle('git:generateCommit', async (event, p) => {
     let diffStr = await git(['diff', 'HEAD'], p);
     if (!diffStr) diffStr = await git(['diff', '--cached'], p);
-
     if (!diffStr) return 'chore: minor updates and cleanup';
-    if (diffStr.includes('package.json') || diffStr.includes('npm install')) return 'build: update project dependencies';
-    if (diffStr.includes('console.log') || diffStr.includes('debugger')) return 'fix: remove debug artifacts';
-    if (diffStr.includes('function ') || diffStr.includes('const ')) return 'feat: implement core logic improvements';
-    if (diffStr.includes('class=') || diffStr.includes('className=')) return 'style: refine ui component layouts';
-    return 'refactor: structural improvements across modules';
+
+    const ai = await aiCommitMessage(p, diffStr);
+    return ai || heuristicCommit(diffStr);
   });
 
   // Exposed so main.js can trigger a quiet auto-scan at startup when enabled.

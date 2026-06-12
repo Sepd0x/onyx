@@ -46,4 +46,25 @@ function classifyCommitMessage(msg) {
   return out;
 }
 
-module.exports = { parseGithubUrl, classifyCommitMessage, bucketCommitDates };
+// Bound a `git diff` for sending to a model: truncate each file's hunk to
+// maxPerFileBytes, then stop once the running total would exceed maxTotalBytes.
+// Splits on the `diff --git` boundary so truncation lands between files, not
+// mid-token. Pure + deterministic so it can be unit-tested.
+function capDiff(diff, maxTotalBytes = 30000, maxPerFileBytes = 8000) {
+  if (typeof diff !== 'string' || !diff) return '';
+  const parts = diff.split(/(?=^diff --git )/m);
+  let out = '';
+  for (let part of parts) {
+    if (part.length > maxPerFileBytes) {
+      part = part.slice(0, maxPerFileBytes) + '\n… [file diff truncated]\n';
+    }
+    if (out.length + part.length > maxTotalBytes) {
+      out += '\n… [diff truncated to fit context]\n';
+      break;
+    }
+    out += part;
+  }
+  return out;
+}
+
+module.exports = { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff };

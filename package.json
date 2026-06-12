@@ -67,6 +67,7 @@
     "wait-on": "^9.0.10"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "electron-updater": "^6.8.9"
   }
 }
