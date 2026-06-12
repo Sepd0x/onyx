@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Rocket, Plus, Play, Square, Settings2, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Rocket, Plus, Play, Square, Trash2, Sparkles } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
+import EmptyState from '../components/EmptyState';
 
 export default function LaunchersView() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -20,14 +21,29 @@ export default function LaunchersView() {
 
   const addProfile = async () => {
     if (!newTitle.trim()) return;
-    const item = { 
-      id: Math.random().toString(36).substr(2, 9), 
-      title: newTitle, 
-      commands: [ { name: 'Frontend', cmd: 'npm run dev', path: './client' } ] 
+    // One visible blank command row — nothing silently pre-filled.
+    const item = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: newTitle,
+      commands: [ { name: '', cmd: '', path: '' } ]
     };
     const updated = [...profiles, item];
     setProfiles(updated);
     setNewTitle('');
+    if (window.api) await window.api.invoke(CH.launchersSave, updated);
+  };
+
+  const addExampleProfile = async () => {
+    const item = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: 'Dev Server (example)',
+      commands: [
+        { name: 'Frontend', cmd: 'npm run dev', path: 'C:\\path\\to\\your\\project' },
+        { name: 'API', cmd: 'npm run start:api', path: 'C:\\path\\to\\your\\project' },
+      ]
+    };
+    const updated = [...profiles, item];
+    setProfiles(updated);
     if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
@@ -48,7 +64,10 @@ export default function LaunchersView() {
     if (window.api) await window.api.invoke(CH.launchersSave, updated);
   };
 
-  const updateCommand = async (pid: string, idx: number, key: string, value: string) => {
+  // Typing updates locally right away; the IPC write is debounced so we
+  // don't hit the disk on every keystroke.
+  const saveTimer = useRef<number | undefined>(undefined);
+  const updateCommand = (pid: string, idx: number, key: string, value: string) => {
     const updated = profiles.map(p => {
       if (p.id === pid) {
         const nCommands = [...p.commands];
@@ -58,7 +77,10 @@ export default function LaunchersView() {
       return p;
     });
     setProfiles(updated);
-    if (window.api) await window.api.invoke(CH.launchersSave, updated);
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      if (window.api) window.api.invoke(CH.launchersSave, updated);
+    }, 500);
   };
 
   const launchProfile = async (id: string) => {
@@ -88,8 +110,8 @@ export default function LaunchersView() {
             <Rocket className="w-5 h-5"/>
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-text tracking-tight flex items-center gap-3">Launch Profiles</h2>
-            <p className="text-[10px] font-mono text-muted tracking-wide mt-1.5 uppercase">1-Click Local Environments</p>
+            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">Launch Profiles</h2>
+            <p className="micro-label mt-1.5">1-Click local environments</p>
           </div>
         </div>
       </div>
@@ -122,15 +144,34 @@ export default function LaunchersView() {
         )}
 
         {/* Profiles List */}
+        {profiles.length === 0 && (
+          <EmptyState
+            icon={Rocket}
+            title="No launch profiles yet"
+            description="A profile is a named group of commands (frontend, API, database…) that start together with one click and stop together — your whole dev stack as a single button."
+          >
+            <button onClick={addExampleProfile} className="px-5 py-2.5 bg-primary hover:bg-accent text-background text-[11px] font-bold font-mono tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_20px_rgb(var(--primary)/0.5)] flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> ADD EXAMPLE PROFILE
+            </button>
+          </EmptyState>
+        )}
         <div className="flex flex-col gap-5">
-          {profiles.map((p) => {
+          {profiles.map((p, pi) => {
              const isActive = activeProfiles.includes(p.id);
              return (
-              <div key={p.id} className={`p-6 rounded-xl border transition-colors ${isActive ? 'bg-surface/80 border-primary/40' : 'bg-surface/40 border-border'}`}>
+              <div key={p.id} style={{ animationDelay: `${Math.min(pi, 6) * 60}ms` }} className={`p-6 rounded-xl border transition-colors animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards ${isActive ? 'bg-surface/80 border-primary/40 shadow-[0_0_20px_rgb(var(--primary)/0.07)]' : 'bg-surface/40 border-border'}`}>
                 <div className="flex items-center justify-between mb-5">
                    <h3 className="text-sm font-bold text-text flex items-center gap-3">
-                     {p.title} 
-                     {isActive && <span className="text-[9px] font-mono font-bold bg-green-500/20 text-green-400 px-2.5 py-1 rounded-md border border-green-500/30 animate-pulse">RUNNING</span>}
+                     {p.title}
+                     {isActive && (
+                       <span className="text-[9px] font-mono font-bold bg-success/15 text-success px-2.5 py-1 rounded-md border border-success/30 flex items-center gap-1.5">
+                         <span className="relative flex h-1.5 w-1.5">
+                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
+                         </span>
+                         RUNNING
+                       </span>
+                     )}
                    </h3>
                    <div className="flex items-center gap-2">
                      <button onClick={() => removeProfile(p.id)} className="p-2 hover:bg-red-500/20 text-muted hover:text-red-400 rounded-md transition-colors"><Trash2 className="w-4 h-4"/></button>
@@ -155,7 +196,7 @@ export default function LaunchersView() {
                        />
                        <input 
                          type="text" 
-                         placeholder="CWD Path (ex: ./backend)" 
+                         placeholder="Project folder (absolute path)" 
                          value={cmd.path}
                          onChange={e => updateCommand(p.id, i, 'path', e.target.value)}
                          className="bg-background border border-border text-[11px] font-mono text-muted px-3 py-2 rounded-md focus:outline-none focus:border-primary/50 w-full md:w-48" 

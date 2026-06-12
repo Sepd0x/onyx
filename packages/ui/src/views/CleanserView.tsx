@@ -1,6 +1,16 @@
 import { useState } from 'react';
-import { Trash2, Search, Skull } from 'lucide-react';
+import { Trash2, Search, Skull, FolderX } from 'lucide-react';
 import { CH } from '../ipc';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
+
+// "340 MB" → MB number, for proportional size bars.
+const sizeToMB = (s: string) => {
+  const m = String(s).match(/([\d.]+)\s*(KB|MB|GB|TB)/i);
+  if (!m) return 0;
+  const v = parseFloat(m[1]);
+  return { KB: v / 1024, MB: v, GB: v * 1024, TB: v * 1024 * 1024 }[m[2].toUpperCase() as 'KB' | 'MB' | 'GB' | 'TB'] || 0;
+};
 
 export default function CleanserView() {
   const [dirs, setDirs] = useState<any[]>([]);
@@ -51,8 +61,8 @@ export default function CleanserView() {
             <Skull className="w-5 h-5"/>
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-text tracking-tight flex items-center gap-3">Dev Cleanser</h2>
-            <p className="text-[10px] font-mono text-muted tracking-wide mt-1.5 uppercase">Node_Modules & Target Graveyard</p>
+            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">Dev Cleanser</h2>
+            <p className="micro-label mt-1.5">node_modules &amp; target graveyard</p>
           </div>
         </div>
         
@@ -80,29 +90,37 @@ export default function CleanserView() {
            <h3 className="text-[13px] font-semibold text-text mb-4">Detected Folders</h3>
            <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
              {dirs.length === 0 && !scanning && (
-               <div className="flex items-center justify-center p-8 text-xs font-mono font-medium text-muted uppercase tracking-widest border border-dashed border-border/60 rounded-lg">
-                 No Heavy Folders Found
-               </div>
+               <EmptyState compact icon={FolderX} title="Nothing scanned yet" description="Hit SCAN SYSTEM to find heavy node_modules folders eating your SSD — sizes are real, deletion is guarded and confirmed." />
              )}
              {scanning && dirs.length === 0 && (
-               <div className="flex items-center justify-center p-8 text-xs font-mono font-medium text-primary uppercase tracking-widest border border-dashed border-primary/20 rounded-lg animate-pulse">
-                 Scanning directories...
+               <div className="flex flex-col gap-2" aria-label="Scanning directories">
+                 <Skeleton className="h-[64px]" />
+                 <Skeleton className="h-[64px]" />
+                 <Skeleton className="h-[64px]" />
                </div>
              )}
-             {dirs.map((d, i) => (
-                <div key={i} className="flex justify-between items-center p-3.5 bg-background/40 hover:bg-surface2 border border-border rounded-lg transition-colors group">
-                   <div className="flex flex-col min-w-0 pr-4">
-                     <span className="text-xs font-medium text-text truncate" title={d.path}>{d.name || d.path.split(/[\\/]/).pop()}</span>
-                     <span className="text-[10px] font-mono text-muted/70 truncate" title={d.path}>{d.path}</span>
+             {dirs.map((d, i) => {
+                const pct = Math.max(4, Math.round((sizeToMB(d.size) / Math.max(...dirs.map(x => sizeToMB(x.size)), 1)) * 100));
+                return (
+                <div key={d.path} style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }} className="flex flex-col p-3.5 bg-background/40 hover:bg-surface2 border border-border rounded-lg transition-colors group animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards">
+                   <div className="flex justify-between items-center">
+                     <div className="flex flex-col min-w-0 pr-4">
+                       <span className="text-xs font-medium text-text truncate" title={d.path}>{d.name || d.path.split(/[\\/]/).pop()}</span>
+                       <span className="text-[10px] font-mono text-muted/70 truncate" title={d.path}>{d.path}</span>
+                     </div>
+                     <div className="flex items-center gap-4 flex-shrink-0">
+                       <span className="text-xs font-mono font-bold text-danger">{d.size}</span>
+                       <button onClick={() => clean(d.path)} disabled={cleaning} aria-label={`Delete ${d.path}`} title="Delete this node_modules folder" className="p-1.5 hover:bg-danger/20 text-muted hover:text-danger rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100">
+                         <Trash2 className="w-4 h-4" />
+                       </button>
+                     </div>
                    </div>
-                   <div className="flex items-center gap-4 flex-shrink-0">
-                     <span className="text-xs font-mono font-bold text-red-400">{d.size}</span>
-                     <button onClick={() => clean(d.path)} disabled={cleaning} aria-label={`Delete ${d.path}`} title="Delete this node_modules folder" className="p-1.5 hover:bg-red-500/20 text-muted hover:text-red-500 rounded-md transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100">
-                       <Trash2 className="w-4 h-4" />
-                     </button>
+                   <div className="h-[3px] rounded-full bg-surface3 mt-2.5 overflow-hidden">
+                     <div className="h-full rounded-full bg-gradient-to-r from-warning to-danger transition-all duration-700" style={{ width: `${pct}%` }} />
                    </div>
                 </div>
-             ))}
+                );
+             })}
            </div>
         </div>
 

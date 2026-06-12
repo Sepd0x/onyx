@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ShieldAlert, Activity, Coffee, Cpu, Zap, Search } from 'lucide-react';
+import { ShieldAlert, Activity, Coffee, Cpu, Zap, Search, MousePointerClick, Lock, BellRing, ChevronRight } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: boolean }) {
   const [pid, setPid] = useState('');
@@ -44,20 +46,33 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
             <ShieldAlert className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-text tracking-tight flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">
               Session Guard
             </h2>
-            <p className="text-xs font-mono text-muted tracking-wide mt-1.5">SMART WAKE-LOCK EMULATOR</p>
+            <p className="micro-label mt-1.5">Smart wake-lock emulator</p>
           </div>
         </div>
-        
-        <div className="bg-surface/50 border border-border border-l-2 border-l-primary p-5 rounded-xl text-xs leading-relaxed text-muted2 shadow-sm">
-          <p>
-            <strong className="text-text font-medium">The Problem:</strong> You compile a massive Rust binary, train a model or wait for AI logic generation. You close your laptop, the OS sleeps, and sockets break. 
-          </p>
-          <p className="mt-2.5">
-            <strong className="text-text font-medium">The Solution:</strong> Session Guard acquires a system-level Power Save Blocker precisely until your target process exits, then releases the lock and sends a notification.
-          </p>
+
+        {/* How it works — compact step strip (replaces the marketing prose) */}
+        <div className="bg-surface/50 border border-border rounded-xl px-5 py-4 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-0">
+          {[
+            { icon: MousePointerClick, title: 'Pick a process', desc: 'auto-detected or by PID' },
+            { icon: Lock, title: 'Onyx holds a wake lock', desc: 'the OS won’t sleep mid-task' },
+            { icon: BellRing, title: 'Auto-release + notify', desc: 'the moment the task exits' },
+          ].map((s, i) => (
+            <div key={s.title} className="flex items-center flex-1 animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards" style={{ animationDelay: `${i * 90}ms` }}>
+              {i > 0 && <ChevronRight className="hidden sm:block w-4 h-4 text-muted/50 mx-3 flex-shrink-0" />}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary flex-shrink-0">
+                  <s.icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[12px] font-semibold text-text leading-tight">{s.title}</div>
+                  <div className="text-[10px] text-muted font-mono mt-0.5 truncate">{s.desc}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -66,14 +81,19 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
           <h3 className="text-[13px] font-semibold text-text flex items-center gap-2.5 mb-5"><Zap className="w-4 h-4 text-primary"/> Auto-Detected Tasks</h3>
           <div className="flex flex-col gap-2 flex-1">
             {loadingProcs ? (
-                <div className="text-[10px] font-mono text-muted animate-pulse p-4 text-center">Scanning memory...</div>
+                <div className="flex flex-col gap-2" aria-label="Scanning processes">
+                  <Skeleton className="h-[58px]" />
+                  <Skeleton className="h-[58px]" />
+                  <Skeleton className="h-[58px]" />
+                </div>
             ) : suggested.length === 0 ? (
-                <div className="text-[10px] font-mono text-muted p-4 text-center bg-surface3/30 rounded-lg border border-border border-dashed">No active dev processes found.</div>
+                <EmptyState compact icon={Search} title="No dev processes detected" description="Start a dev server, build or IDE and rescan — likely tasks show up here with one-click guarding." />
             ) : (
-                suggested.slice(0,4).map((p, i) => {
+                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto custom-scrollbar pr-1">
+                {suggested.map((p, i) => {
                   const isWatched = active.some(a => a.target === p.pid);
                   return (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50 hover:bg-surface2 transition-colors">
+                    <div key={p.pid} style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background/50 hover:bg-surface2 transition-colors animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards">
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-text flex items-center gap-2">
                           {p.name}
@@ -91,11 +111,12 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[9px] font-mono font-bold text-green-400 bg-green-400/10 px-3 py-2 rounded-md border border-green-400/20">GUARDING</span>
+                        <span className="text-[9px] font-mono font-bold text-success bg-success/10 px-3 py-2 rounded-md border border-success/20">GUARDING</span>
                       )}
                     </div>
                   );
-                })
+                })}
+                </div>
             )}
           </div>
           <button onClick={fetchSuggested} className="mt-4 text-[10px] font-mono font-bold tracking-widest text-muted hover:text-primary transition-colors text-left flex items-center justify-center gap-2 py-2 bg-surface2 rounded-lg border border-border hover:border-primary/30"><Search className="w-3 h-3"/> RESCAN</button>
@@ -128,10 +149,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
         <h3 className="text-[10px] font-mono font-bold tracking-widest text-muted2 mb-5">ACTIVE GUARDS ({active.length})</h3>
         <div className="flex flex-col gap-3">
           {active.length === 0 && (
-            <div className="py-12 border border-dashed border-border rounded-xl text-center flex flex-col items-center gap-4 bg-background/50">
-              <Coffee className="w-8 h-8 text-muted border border-border rounded-full p-2 bg-surface" />
-              <div className="text-[10px] text-muted font-mono tracking-widest">NO ACTIVE SESSION GUARDS</div>
-            </div>
+            <EmptyState compact icon={Coffee} title="Nothing guarded right now" description="Guard a task above and your machine will stay awake exactly until it finishes — then you get notified." />
           )}
           {active.map(task => (
             <div key={task.id} className="relative flex justify-between items-center p-5 border border-primary/30 bg-primary/5 rounded-xl shadow-sm">

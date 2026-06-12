@@ -163,20 +163,18 @@ class MockApi {
         const deleted = before - this.cleanerDirs.length;
         return { ok: true, deleted, rejected: targets.length - deleted, failed: [] };
       }
-      case 'snippets:get':
+      case 'snippets:get': {
+        // Real backend starts empty — the mock must exercise the empty states too.
         const saved = localStorage.getItem('onyx-snippets');
-        if (saved) return JSON.parse(saved);
-        return [
-          { id: '1', title: 'Clear NPM Cache', command: 'npm cache clean --force' },
-          { id: '2', title: 'Kill Port 3000', command: 'npx kill-port 3000' }
-        ];
+        return saved ? JSON.parse(saved) : [];
+      }
       case 'snippets:save':
         localStorage.setItem('onyx-snippets', JSON.stringify(args[0]));
         return true;
-      case 'launchers:get':
+      case 'launchers:get': {
         const lp = localStorage.getItem('onyx-launchers');
-        if (lp) return JSON.parse(lp);
-        return [{ id: '1', title: 'Start Fullstack', commands: [{name: 'Backend', cmd: 'node index.js', path: './server'}] }];
+        return lp ? JSON.parse(lp) : [];
+      }
       case 'launchers:save':
         localStorage.setItem('onyx-launchers', JSON.stringify(args[0]));
         return true;
