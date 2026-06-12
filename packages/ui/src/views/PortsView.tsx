@@ -130,7 +130,7 @@ export default function PortsView() {
               <div className="flex items-center gap-3 text-sm font-semibold text-text tracking-tight">
                 {expanded[proc] ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
                 {proc.toUpperCase()} 
-                <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded ml-2">{prts.length} TICKETS</span>
+                <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded ml-2">{prts.length} {prts.length === 1 ? 'PORT' : 'PORTS'}</span>
               </div>
             </div>
             {expanded[proc] && (

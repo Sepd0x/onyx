@@ -43,8 +43,8 @@ export default function TrayView() {
       </div>
 
       <div className="mt-auto flex flex-col gap-2">
-        <button className="w-full py-2 bg-surface2 hover:bg-surface3 border border-border rounded-lg text-[10px] tracking-widest font-mono font-bold text-muted flex items-center justify-center gap-2 transition-colors">
-          <Rocket className="w-3.5 h-3.5" /> QUICK LAUNCH
+        <button onClick={() => window.api?.invoke(CH.trayOpenMain)} className="w-full py-2 bg-surface2 hover:bg-surface3 border border-border rounded-lg text-[10px] tracking-widest font-mono font-bold text-muted hover:text-text flex items-center justify-center gap-2 transition-colors">
+          <Rocket className="w-3.5 h-3.5" /> OPEN ONYX
         </button>
       </div>
     </div>
