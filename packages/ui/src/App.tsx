@@ -44,6 +44,8 @@ export default function App() {
       if (e.detail?.type === 'notification') {
         const id = Math.random().toString();
         setNotifications(prev => [...prev, { id, title: e.detail.title, body: e.detail.body }]);
+        // Mark as leaving shortly before removal so the exit animation can play.
+        setTimeout(() => setNotifications(prev => prev.map(n => n.id === id ? { ...n, leaving: true } : n)), 4650);
         setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
       }
     };
@@ -127,7 +129,8 @@ export default function App() {
         {/* Main Content */}
         <main className="flex-1 overflow-auto bg-transparent relative no-scrollbar">
           <div className="absolute inset-0 z-0 bg-background/50 pointer-events-none"></div>
-          <div className="relative z-10 h-full">
+          {/* Keyed wrapper: re-mounts on tab change so every view gets a uniform entrance. */}
+          <div key={activeTab} className="relative z-10 h-full animate-in fade-in slide-in-from-bottom-1 duration-200">
             {activeTab === 'ports' && <PortsView />}
             {activeTab === 'git' && <GitView />}
             {activeTab === 'cursor' && <CursorView />}
@@ -145,7 +148,7 @@ export default function App() {
       {notifications.length > 0 && (
          <div className="absolute bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
             {notifications.map(n => (
-               <div key={n.id} className="bg-surface/90 backdrop-blur-md border border-border p-4 rounded-xl shadow-2xl flex items-start gap-3 w-80 animate-in slide-in-from-right-4 fade-in duration-300 pointer-events-auto">
+               <div key={n.id} className={`bg-surface/90 backdrop-blur-md border border-border p-4 rounded-xl shadow-2xl flex items-start gap-3 w-80 pointer-events-auto ${n.leaving ? 'animate-out slide-out-to-right-4 fade-out duration-300 fill-mode-forwards' : 'animate-in slide-in-from-right-4 fade-in duration-300'}`}>
                  <div className="bg-primary/20 text-primary p-2 rounded-lg flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 21h4"/><path d="m19 12-2.5-1.5-.5-5.5-2.5-2v0a2 2 0 0 0-4 0v0l-2.5 2-.5 5.5L4 12V8l2.5-1.5L7 1l2.5 2v0a2 2 0 0 0 4 0v0L16 1l.5 5.5L19 8v4z"/></svg>
                  </div>
