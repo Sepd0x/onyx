@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, HardDrive, Cpu, X, GitCommit, FolderSearch, FolderPlus } from 'lucide-react';
 import { CH, EV } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
 
 export default function GitView() {
-  const [repos, setRepos] = useState<any[]>([]);
+  // No background poll (repo health is expensive); served from cache instantly on
+  // tab switch, revalidated when stale or after a mutation via invalidate('git:').
+  const repos: any[] = useIpc(CH.gitGetRepos, [], { pollMs: 0 }).data ?? [];
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState<{ scanned: number; found: number } | null>(null);
   const [scanRoots, setScanRoots] = useState<string[]>([]);
@@ -21,21 +24,14 @@ export default function GitView() {
     }, 1000);
   };
 
-  const load = async () => {
-    if (window.api) {
-      const r = await window.api.invoke(CH.gitGetRepos);
-      setRepos(r || []);
-    }
-  };
+  const add = async () => { if (window.api) { await window.api.invoke(CH.gitAddRepo); invalidate('git:'); } };
 
-  const add = async () => { if (window.api) { await window.api.invoke(CH.gitAddRepo); load(); } };
-  
   const addRemote = async () => {
     setGhModal({ ...ghModal, loading: true, error: '' });
     if (window.api) {
         const res = await window.api.invoke(CH.gitAddGithubRepo, ghModal.url, ghModal.token);
         if (res.error) setGhModal({ ...ghModal, loading: false, error: res.error });
-        else { setGhModal(null); load(); }
+        else { setGhModal(null); invalidate('git:'); }
     }
   };
 
@@ -50,7 +46,7 @@ export default function GitView() {
     const unsub = window.api.on(EV.gitScanProgress, (p: any) => setScanProgress({ scanned: p.scanned, found: p.found }));
     try {
       const res = await window.api.invoke<any>(CH.gitAutoScan);
-      await load();
+      invalidate('git:');
       if (res?.found) setScanProgress({ scanned: res.scanned, found: res.found.length });
     } finally {
       if (typeof unsub === 'function') unsub();
@@ -72,7 +68,7 @@ export default function GitView() {
     }
   };
 
-  const removeRepo = async (path: string) => { if (window.api) { await window.api.invoke(CH.gitRemoveRepo, path); load(); } };
+  const removeRepo = async (path: string) => { if (window.api) { await window.api.invoke(CH.gitRemoveRepo, path); invalidate('git:'); } };
 
   const openAi = async (path: string) => {
     setAiModal({ path, msg: '', loading: true });
@@ -82,7 +78,7 @@ export default function GitView() {
     }
   };
 
-  useEffect(() => { load(); loadRoots(); }, []);
+  useEffect(() => { loadRoots(); }, []);
 
   const Sparkline = ({ data }: {data: number[]}) => {
     if (!data || data.length < 2) return null;

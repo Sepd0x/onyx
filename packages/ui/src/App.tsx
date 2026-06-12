@@ -14,30 +14,22 @@ import AIAuditorView from './views/AIAuditorView';
 import PowerOSView from './views/PowerOSView';
 import Logo from './components/Logo';
 import { CH } from './ipc';
+import { useIpc } from './lib/ipcCache';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
-  const [stats, setStats] = useState({ cpu: '14%', ram: '4.2GB' });
   const [isTrayMode, setIsTrayMode] = useState(false);
-  const [appConfig, setAppConfig] = useState<any>({});
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Shared cache: config + system stats poll once per channel, served instantly on
+  // re-render and shared with any other view that reads them.
+  const appConfig = useIpc(CH.appGetConfig, [], { pollMs: isTrayMode ? 0 : 3000 }).data ?? {};
+  const stats = useIpc(CH.appGetStats, [], { pollMs: isTrayMode ? 0 : 2000 }).data ?? { cpu: '14%', ram: '4.2GB' };
 
   useEffect(() => {
     if (window.location.hash === '#tray') {
       setIsTrayMode(true);
     }
-    const getConfig = async () => {
-      if (window.api) {
-         try {
-            const c = await window.api.invoke(CH.appGetConfig);
-            if (c) setAppConfig(c);
-         } catch(e) {}
-      }
-    };
-    getConfig();
-    // listen to theme updates etc.
-    const iv = setInterval(getConfig, 3000);
-
     // Mock notification listener in preview
     const notifHandler = (e: any) => {
       if (e.detail?.type === 'notification') {
@@ -47,30 +39,11 @@ export default function App() {
       }
     };
     window.addEventListener('mock-event', notifHandler);
-
-    return () => {
-       clearInterval(iv);
-       window.removeEventListener('mock-event', notifHandler);
-    }
+    return () => window.removeEventListener('mock-event', notifHandler);
   }, []);
 
   const closeWindow = () => window.api?.invoke(CH.windowClose);
   const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
-
-  useEffect(() => {
-    if (isTrayMode) return;
-    const getStats = async () => {
-      if (window.api) {
-        try {
-          const s = await window.api.invoke(CH.appGetStats);
-          if (s) setStats(s);
-        } catch (e) {}
-      }
-    };
-    getStats();
-    const iv = setInterval(getStats, 2000);
-    return () => clearInterval(iv);
-  }, [isTrayMode]);
 
   if (isTrayMode) {
     return <TrayView />;

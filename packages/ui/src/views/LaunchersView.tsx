@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Rocket, Plus, Play, Square, Settings2, Trash2 } from 'lucide-react';
 import { CH } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
 
 export default function LaunchersView() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -8,14 +9,13 @@ export default function LaunchersView() {
   const [activeProfiles, setActiveProfiles] = useState<string[]>([]);
   const [launchError, setLaunchError] = useState('');
 
+  // Profiles are user-edited (write-through); only the running-status feed is polled.
+  // Optimistic launch/stop updates stay local and the poll reconciles them.
+  const statusData = useIpc(CH.launchersStatus, [], { pollMs: 3000 }).data;
+  useEffect(() => { if (Array.isArray(statusData)) setActiveProfiles(statusData); }, [statusData]);
+
   useEffect(() => {
-    if (!window.api) return;
-    window.api.invoke(CH.launchersGet).then(setProfiles);
-    // Poll real running status so a self-exited/crashed process clears its RUNNING badge.
-    const syncStatus = () => { window.api?.invoke(CH.launchersStatus).then((ids: any) => { if (Array.isArray(ids)) setActiveProfiles(ids); }); };
-    syncStatus();
-    const iv = setInterval(syncStatus, 3000);
-    return () => clearInterval(iv);
+    if (window.api) window.api.invoke(CH.launchersGet).then(setProfiles);
   }, []);
 
   const addProfile = async () => {
@@ -71,11 +71,13 @@ export default function LaunchersView() {
     } else {
       setLaunchError(res?.error || 'Failed to start profile');
     }
+    invalidate('launchers:status'); // reconcile against the real running set
   };
 
   const stopProfile = async (id: string) => {
     if (window.api) await window.api.invoke(CH.launchersStop, id);
     setActiveProfiles(activeProfiles.filter(p => p !== id));
+    invalidate('launchers:status');
   };
 
   return (

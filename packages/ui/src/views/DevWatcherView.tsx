@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react';
 import { ShieldAlert, Activity, Coffee, Cpu, Zap, Search } from 'lucide-react';
 import { CH } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
 
 export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: boolean }) {
   const [pid, setPid] = useState('');
-  const [active, setActive] = useState<any[]>([]);
+  // Active guards poll through the shared cache; the suggested-process scan stays
+  // manual (mount + RESCAN button) since it's user-triggered, not a live feed.
+  const active: any[] = useIpc(CH.devStatus, [], { pollMs: 3000 }).data ?? [];
   const [suggested, setSuggested] = useState<any[]>([]);
   const [loadingProcs, setLoadingProcs] = useState(false);
-
-  const fetchStatus = async () => {
-    if (window.api) {
-      const list = await window.api.invoke(CH.devStatus);
-      setActive(list || []);
-    }
-  };
 
   const fetchSuggested = async () => {
     if (window.api) {
@@ -24,12 +20,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
     }
   };
 
-  useEffect(() => {
-    fetchStatus();
-    fetchSuggested();
-    const iv = setInterval(fetchStatus, 3000);
-    return () => clearInterval(iv);
-  }, []);
+  useEffect(() => { fetchSuggested(); }, []);
 
   const watch = async (targetPid: string, name?: string) => {
     if (!targetPid) return;
@@ -37,12 +28,12 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
       await window.api.invoke(CH.devStartWatch, { type: 'pid', target: targetPid, name: name || 'Process' });
     }
     setPid('');
-    fetchStatus();
+    invalidate('dev:status');
   };
 
   const stop = async (id: string) => {
     if (window.api) await window.api.invoke(CH.devStopWatch, id);
-    fetchStatus();
+    invalidate('dev:status');
   };
 
   return (

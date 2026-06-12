@@ -2,47 +2,28 @@ import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Trash2, ChevronDown, ChevronRight, Search, Activity, Network, BoxSelect } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import { CH } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
 
 export default function PortsView() {
-  const [ports, setPorts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data, loading, error } = useIpc(CH.portsGet, [], { pollMs: 5000 });
+  const ports: any[] = data ?? [];
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('ALL');
   const initialLoadDone = useRef(false);
-  const [error, setError] = useState(false);
   const [confirmPid, setConfirmPid] = useState<string | null>(null);
 
-  const refresh = async () => {
-    setLoading(true);
-    if (window.api) {
-      try {
-        const data = await window.api.invoke(CH.portsGet);
-        setPorts(data || []);
-        setError(false);
-        if (!initialLoadDone.current && data?.length) {
-          const initialExp:any = {};
-          data.forEach((p:any) => initialExp[p.process || 'system'] = true);
-          setExpanded(initialExp);
-          initialLoadDone.current = true;
-        }
-      } catch (e) {
-        setError(true);
-      }
-    } else {
-      setPorts([
-        { port: '3000', process: 'node', pid: '1234', local: '0.0.0.0:3000', state: 'LISTENING', proto: 'TCP', cpu: '1.2%', ram: '120MB' },
-        { port: '5432', process: 'postgres', pid: '5678', local: '127.0.0.1:5432', state: 'LISTENING', proto: 'TCP', cpu: '0.5%', ram: '80MB' },
-      ]);
-      if (!initialLoadDone.current) {
-        setExpanded({ node: true, postgres: true });
-        initialLoadDone.current = true;
-      }
+  // Expand every process group on the first successful load.
+  useEffect(() => {
+    if (!initialLoadDone.current && ports.length) {
+      const initialExp: any = {};
+      ports.forEach((p: any) => (initialExp[p.process || 'system'] = true));
+      setExpanded(initialExp);
+      initialLoadDone.current = true;
     }
-    setLoading(false);
-  };
+  }, [ports]);
 
-  useEffect(() => { refresh(); const interval = setInterval(refresh, 5000); return () => clearInterval(interval); }, []);
+  const refresh = () => invalidate('ports:');
 
   const toggleGroup = (proc: string) => setExpanded(p => ({ ...p, [proc]: !p[proc] }));
   const expandAll = () => { const next: any = {}; Object.keys(grouped).forEach(k => next[k] = true); setExpanded(next); };
@@ -52,7 +33,7 @@ export default function PortsView() {
     setConfirmPid(null);
     if (window.api) {
       try { await window.api.invoke(CH.portsKill, pid); } catch (e) {}
-      refresh();
+      invalidate('ports:');
     }
   };
 

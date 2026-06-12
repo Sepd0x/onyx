@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
 import Switch from '../components/Switch';
 import { CH } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
 
 function formatBatteryTime(b: any) {
   const secs = b.charging ? b.chargingTime : b.dischargingTime;
@@ -21,26 +22,21 @@ export default function PowerOSView() {
   );
   const hasBatteryApi = useRef(false);
 
-  const load = async () => {
-    if (window.api) {
-      const d = await window.api.invoke(CH.powerGet);
-      if (d) {
-        setActiveProfile(d.activeProfile);
-        setAiEnabled(d.aiEnabled);
-        setAutoNotify(d.autoNotify !== false);
-        setEvents(d.events || []);
-        if (!hasBatteryApi.current && d.batteryState && typeof d.batteryState.charging === 'boolean') {
-          setSysInfo(prev => ({ ...prev, charging: d.batteryState.charging }));
-        }
-      }
-    }
-  };
-
+  // Profile + power events poll through the shared cache (5s); apply each payload to
+  // local state, keeping the hasBatteryApi merge so the Web Battery API stays the
+  // source of truth for charge level once it's available.
+  const powerData = useIpc(CH.powerGet, [], { pollMs: 5000 }).data;
   useEffect(() => {
-    load();
-    const iv = setInterval(load, 5000); // refresh profile + real power events
-    return () => clearInterval(iv);
-  }, []);
+    const d = powerData;
+    if (!d) return;
+    setActiveProfile(d.activeProfile);
+    setAiEnabled(d.aiEnabled);
+    setAutoNotify(d.autoNotify !== false);
+    setEvents(d.events || []);
+    if (!hasBatteryApi.current && d.batteryState && typeof d.batteryState.charging === 'boolean') {
+      setSysInfo(prev => ({ ...prev, charging: d.batteryState.charging }));
+    }
+  }, [powerData]);
 
   // Real battery telemetry via the Web Battery API (falls back to "AC" when absent).
   useEffect(() => {
@@ -76,14 +72,14 @@ export default function PowerOSView() {
   const setProfile = async (p: string) => {
     if (window.api) {
       await window.api.invoke(CH.powerSetProfile, p);
-      load();
+      invalidate('power:');
     }
   };
 
   const toggleAI = async () => {
     if (window.api) {
       await window.api.invoke(CH.powerSetAI, !aiEnabled);
-      load();
+      invalidate('power:');
       window.api.invoke(CH.appNotify, { title: 'Onyx OS Manager', body: !aiEnabled ? 'AI Power Planner Activated.' : 'AI Power Planner Deactivated. Manual control.' });
     }
   };

@@ -1,65 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { CH } from '../ipc';
+import { useIpc } from '../lib/ipcCache';
 
 export default function AIAuditorView() {
-  const [trackedRepos, setTrackedRepos] = useState<any[]>([]);
-  const [trackedBinaries, setTrackedBinaries] = useState<any[]>([]);
-  const [audits, setAudits] = useState<any[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // Both feeds come from the shared cache (15s here, and instantly reused from
+  // Git Pulse / Session Guard which read the same channels).
+  const reposState = useIpc(CH.gitGetRepos, [], { pollMs: 15000 });
+  const procsState = useIpc(CH.devGetDevProcesses, [], { pollMs: 15000 });
+  const loaded = reposState.data !== undefined && procsState.data !== undefined;
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        if (!window.api) return;
-        const [repos, procs] = await Promise.all([
-          window.api.invoke(CH.gitGetRepos),
-          window.api.invoke(CH.devGetDevProcesses)
-        ]);
-        if (!active) return;
+  const trackedRepos = useMemo(() => (reposState.data ?? []).map((r: any, i: number) => ({
+    id: (r.path || i).toString(),
+    name: r.name || 'Unknown',
+    path: r.path || '',
+    risk: Array.isArray(r.risk) ? r.risk : [],
+    outOfSync: (r.pull || 0) > 0 || (r.push || 0) > 0,
+    pull: r.pull || 0,
+    push: r.push || 0
+  })), [reposState.data]);
 
-        const mappedRepos = (repos || []).map((r: any, i: number) => ({
-          id: (r.path || i).toString(),
-          name: r.name || 'Unknown',
-          path: r.path || '',
-          risk: Array.isArray(r.risk) ? r.risk : [],
-          outOfSync: (r.pull || 0) > 0 || (r.push || 0) > 0,
-          pull: r.pull || 0,
-          push: r.push || 0
-        }));
+  const trackedBinaries = useMemo(() => (procsState.data ?? []).map((p: any, i: number) => ({
+    id: (p.pid || i).toString(),
+    name: p.name || 'Unknown Process',
+    type: p.type || 'process',
+    confidence: p.confidence || null
+  })).slice(0, 10), [procsState.data]);
 
-        const mappedProcs = (procs || []).map((p: any, i: number) => ({
-          id: (p.pid || i).toString(),
-          name: p.name || 'Unknown Process',
-          type: p.type || 'process',
-          confidence: p.confidence || null
-        }));
-
-        setTrackedRepos(mappedRepos);
-        setTrackedBinaries(mappedProcs.slice(0, 10));
-
-        // Live issues derived ONLY from real data (no fabricated metrics, no accumulation).
-        const issues: any[] = [];
-        mappedRepos.forEach((r: any) => {
-          if (r.outOfSync) {
-            issues.push({ key: `${r.id}:sync`, app: r.name, level: 'WARN', msg: `Out of sync with origin (${r.pull} behind, ${r.push} ahead).` });
-          }
-          r.risk.forEach((flag: string) => {
-            issues.push({ key: `${r.id}:risk:${flag}`, app: r.name, level: 'CRITICAL', msg: flag });
-          });
-        });
-        setAudits(issues);
-        setLoaded(true);
-      } catch (e) {
-        console.warn('Failed to load audit data', e);
+  // Live issues derived ONLY from real data (no fabricated metrics, no accumulation).
+  const audits = useMemo(() => {
+    const issues: any[] = [];
+    trackedRepos.forEach((r: any) => {
+      if (r.outOfSync) {
+        issues.push({ key: `${r.id}:sync`, app: r.name, level: 'WARN', msg: `Out of sync with origin (${r.pull} behind, ${r.push} ahead).` });
       }
-    };
-
-    load();
-    const iv = setInterval(load, 15000);
-    return () => { active = false; clearInterval(iv); };
-  }, []);
+      r.risk.forEach((flag: string) => {
+        issues.push({ key: `${r.id}:risk:${flag}`, app: r.name, level: 'CRITICAL', msg: flag });
+      });
+    });
+    return issues;
+  }, [trackedRepos]);
 
   return (
     <div className="p-8 pb-24 md:p-10 max-w-6xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">

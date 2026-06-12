@@ -1,26 +1,12 @@
-import { useState, useEffect } from 'react';
 import { Network, Cpu, MemoryStick, Rocket } from 'lucide-react';
 import { CH } from '../ipc';
+import { useIpc } from '../lib/ipcCache';
 
 export default function TrayView() {
-  const [stats, setStats] = useState({ cpu: '0%', ram: '0GB' });
-  const [activePorts, setActivePorts] = useState(0);
-
-  useEffect(() => {
-    const fetchTrayData = async () => {
-      if (window.api) {
-        try {
-          const s = await window.api.invoke(CH.appGetStats);
-          if (s) setStats(s);
-          const p = await window.api.invoke(CH.portsGet);
-          if (p) setActivePorts(p.length);
-        } catch (e) {}
-      }
-    };
-    fetchTrayData();
-    const iv = setInterval(fetchTrayData, 2000);
-    return () => clearInterval(iv);
-  }, []);
+  // Separate BrowserWindow → its own cache instance; both feeds poll at 2s.
+  const stats = useIpc(CH.appGetStats, [], { pollMs: 2000 }).data ?? { cpu: '0%', ram: '0GB' };
+  const portsData = useIpc(CH.portsGet, [], { pollMs: 2000 }).data;
+  const activePorts = Array.isArray(portsData) ? portsData.length : 0;
 
   const openApp = () => {
     window.api?.invoke(CH.trayOpenMain);
