@@ -1,6 +1,7 @@
 import { Network, Cpu, MemoryStick, Rocket } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc } from '../lib/ipcCache';
+import CountUp from '../components/CountUp';
 
 export default function TrayView() {
   // Separate BrowserWindow → its own cache instance; both feeds poll at 2s.
@@ -22,24 +23,26 @@ export default function TrayView() {
       </div>
       
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-surface2 p-3 rounded-xl border border-border flex flex-col">
-          <Cpu className="w-4 h-4 text-muted mb-2"/>
-          <span className="text-lg font-mono font-bold text-text">{stats.cpu}</span>
-          <span className="text-[9px] text-muted uppercase tracking-wider">CPU Util</span>
+        <div className="bg-surface2 p-3 rounded-xl border border-border flex flex-col card-lift">
+          <Cpu className="w-4 h-4 text-primary mb-2"/>
+          <span className="text-lg font-mono font-bold text-text">
+            <CountUp value={parseInt(stats.cpu) || 0} suffix="%" />
+          </span>
+          <span className="text-[9px] text-muted uppercase tracking-wider">CPU Usage</span>
         </div>
-        <div className="bg-surface2 p-3 rounded-xl border border-border flex flex-col">
-          <MemoryStick className="w-4 h-4 text-muted mb-2"/>
+        <div className="bg-surface2 p-3 rounded-xl border border-border flex flex-col card-lift">
+          <MemoryStick className="w-4 h-4 text-primary mb-2"/>
           <span className="text-lg font-mono font-bold text-text">{stats.ram}</span>
-          <span className="text-[9px] text-muted uppercase tracking-wider">RAM Ocp</span>
+          <span className="text-[9px] text-muted uppercase tracking-wider">RAM Usage</span>
         </div>
       </div>
-      
-      <div className="bg-surface2 p-3 rounded-xl border border-border flex items-center justify-between mb-4">
+
+      <div className="bg-surface2 p-3 rounded-xl border border-border flex items-center justify-between mb-4 card-lift">
         <div className="flex items-center gap-2">
           <Network className="w-4 h-4 text-primary"/>
           <span className="text-[10px] text-muted font-bold">ACTIVE PORTS</span>
         </div>
-        <span className="text-sm font-mono font-bold">{activePorts}</span>
+        <span className="text-sm font-mono font-bold text-text"><CountUp value={activePorts} /></span>
       </div>
 
       <div className="mt-auto flex flex-col gap-2">

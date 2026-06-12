@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, HardDrive, Cpu, X, GitCommit, FolderSearch, FolderPlus } from 'lucide-react';
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
+import Sparkline from '../components/Sparkline';
 
 export default function GitView() {
   // No background poll (repo health is expensive); served from cache instantly on
@@ -80,22 +81,6 @@ export default function GitView() {
 
   useEffect(() => { loadRoots(); }, []);
 
-  const Sparkline = ({ data }: {data: number[]}) => {
-    if (!data || data.length < 2) return null;
-    const max = Math.max(...data, 1);
-    return (
-      <div className="flex items-end gap-[3px] h-8 flex-1">
-        {data.map((v, i) => {
-          const h = Math.max(10, Math.round((v/max)*100));
-          const isToday = i === data.length - 1;
-          return (
-             <div key={i} className={`flex-1 rounded-sm transition-all duration-300 ${isToday ? 'bg-primary shadow-[0_0_8px_rgb(var(--primary)/0.5)]' : v > 0 ? 'bg-primary/30' : 'bg-surface3'}`} style={{ height: `${h}%`}}></div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="h-full flex flex-col bg-transparent relative">
       <div className="flex-shrink-0 px-8 pt-8 pb-4 border-b border-border/60 z-20 bg-background/50 backdrop-blur-sm">
@@ -160,7 +145,7 @@ export default function GitView() {
         {repos.map((r: any, i) => {
           const hasRisk = r.risk && r.risk.length > 0;
           return (
-            <div key={i} className={`bg-surface/50 backdrop-blur-sm border ${r.commitWarning ? 'border-warning/40 shadow-[0_0_15px_rgb(var(--warning)/0.08)]' : 'border-border'} rounded-xl p-6 hover:border-border2 transition-all relative overflow-hidden group shadow-sm flex flex-col gap-5`}>
+            <div key={i} className={`bg-surface/50 backdrop-blur-sm border ${r.commitWarning ? 'border-warning/40 shadow-[0_0_15px_rgb(var(--warning)/0.08)]' : 'border-border'} rounded-xl p-6 card-lift relative overflow-hidden group shadow-sm flex flex-col gap-5`}>
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-base font-semibold text-text tracking-tight">{r.name}</h3>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
 import Switch from '../components/Switch';
+import BatteryGauge from '../components/BatteryGauge';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 
@@ -179,15 +180,23 @@ export default function PowerOSView() {
 
         {/* Sidebar Stats & Logs */}
         <div className="flex flex-col gap-6">
-          <div className="bg-surface border border-border rounded-xl p-6 shadow-inner relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+          <div className="bg-surface border border-border rounded-xl p-6 shadow-inner relative overflow-hidden card-lift">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-2">
-              {sysInfo.charging ? <BatteryCharging className="w-5 h-5 text-green-400" /> : <Battery className="w-5 h-5 text-text" />}
+              {sysInfo.charging ? <BatteryCharging className="w-5 h-5 text-success" /> : <Battery className="w-5 h-5 text-text" />}
               <span className="text-[12px] font-bold uppercase tracking-widest text-text">Battery</span>
             </div>
-            <div className="text-4xl font-bold mt-2 text-text flex items-baseline gap-1">
-              {sysInfo.battery !== null ? <>{sysInfo.battery}<span className="text-xl text-muted">%</span></> : <span className="text-2xl text-muted">AC Power</span>}
-            </div>
+            {sysInfo.battery !== null ? (
+              <div className="flex justify-center mt-3 mb-1">
+                <BatteryGauge level={sysInfo.battery} charging={sysInfo.charging} />
+              </div>
+            ) : (
+              <div className="mt-3 mb-1 h-[132px] flex flex-col items-center justify-center">
+                <Zap className="w-8 h-8 text-success mb-2" />
+                <span className="text-xl font-bold text-text">AC Power</span>
+                <span className="micro-label mt-1">No battery detected</span>
+              </div>
+            )}
             <div className="mt-4 text-[10px] font-mono text-muted flex justify-between">
               <span>Status:</span> <span className="text-text">{sysInfo.charging ? 'Charging (AC)' : sysInfo.battery !== null ? 'On Battery' : 'Plugged in'}</span>
             </div>

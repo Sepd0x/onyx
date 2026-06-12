@@ -101,28 +101,30 @@ export default function App() {
           </div>
         </div>
       </div>
+      {/* Hairline accent under the titlebar */}
+      <div className="h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent relative z-10 flex-shrink-0"></div>
 
       <div className="flex flex-1 overflow-hidden relative z-10">
         {/* Sidebar */}
         <aside className="w-56 bg-surface/40 backdrop-blur-sm border-r border-border p-4 flex flex-col justify-between">
           <div className="flex flex-col gap-2">
             <div className="text-[10px] font-mono font-bold tracking-widest text-muted uppercase mb-2 pl-2">Tools</div>
-            <Tab icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
+            <Tab idx={0} icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
             {(appConfig.enableAIFeatures ?? true) && (
-              <Tab icon={<BrainCircuit className="w-4 h-4 text-primary" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
+              <Tab idx={1} icon={<BrainCircuit className="w-4 h-4 text-primary" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
             )}
-            <Tab icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
-            <Tab icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />
-            <Tab icon={<GitBranch className="w-4 h-4" />} label="Git Pulse" isActive={activeTab === 'git'} onClick={() => setActiveTab('git')} />
-            <Tab icon={<Activity className="w-4 h-4" />} label="Dev Cleanser" isActive={activeTab === 'cleaner'} onClick={() => setActiveTab('cleaner')} />
-            <Tab icon={<Rocket className="w-4 h-4" />} label="Launchers" isActive={activeTab === 'launchers'} onClick={() => setActiveTab('launchers')} />
-            <Tab icon={<TerminalSquare className="w-4 h-4" />} label="Snippets" isActive={activeTab === 'snippets'} onClick={() => setActiveTab('snippets')} />
-            <Tab icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />
+            <Tab idx={2} icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
+            <Tab idx={3} icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />
+            <Tab idx={4} icon={<GitBranch className="w-4 h-4" />} label="Git Pulse" isActive={activeTab === 'git'} onClick={() => setActiveTab('git')} />
+            <Tab idx={5} icon={<Activity className="w-4 h-4" />} label="Dev Cleanser" isActive={activeTab === 'cleaner'} onClick={() => setActiveTab('cleaner')} />
+            <Tab idx={6} icon={<Rocket className="w-4 h-4" />} label="Launchers" isActive={activeTab === 'launchers'} onClick={() => setActiveTab('launchers')} />
+            <Tab idx={7} icon={<TerminalSquare className="w-4 h-4" />} label="Snippets" isActive={activeTab === 'snippets'} onClick={() => setActiveTab('snippets')} />
+            <Tab idx={8} icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />
           </div>
           
           <div className="flex flex-col gap-2">
             <div className="h-px w-full bg-border my-2"></div>
-            <Tab icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+            <Tab idx={9} icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
           </div>
         </aside>
 
@@ -164,13 +166,14 @@ export default function App() {
   );
 }
 
-function Tab({ icon, label, isActive, onClick }: any) {
+function Tab({ icon, label, isActive, onClick, idx = 0 }: any) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all duration-200 w-full ${
-        isActive 
-          ? 'bg-surface3/80 text-text shadow-sm border border-border2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]' 
+      style={{ animationDelay: `${idx * 28}ms` }}
+      className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all duration-200 w-full active:scale-[0.98] animate-in fade-in slide-in-from-left-2 fill-mode-backwards ${
+        isActive
+          ? 'bg-surface3/80 text-text shadow-sm border border-border2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]'
           : 'text-muted2 hover:text-text hover:bg-surface2 border border-transparent'
       }`}
     >
