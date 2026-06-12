@@ -16,7 +16,7 @@ const INVOKE_CHANNELS = [
   'snippets:get', 'snippets:save',
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
   'tray:openMain',
-  'power:get', 'power:setProfile', 'power:setAI',
+  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
 ];
 const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded'];
 

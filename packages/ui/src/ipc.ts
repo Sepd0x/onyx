@@ -58,6 +58,7 @@ export const CH = {
   powerGet: 'power:get',
   powerSetProfile: 'power:setProfile',
   powerSetAI: 'power:setAI',
+  powerSetConfig: 'power:setConfig',
 } as const;
 
 export const EV = {

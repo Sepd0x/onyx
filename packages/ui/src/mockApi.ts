@@ -169,37 +169,39 @@ class MockApi {
           { pid: '4123', name: 'code.exe', type: 'code', confidence: '45%' }
         ];
         
-      case 'power:get':
+      case 'power:get': {
+        // Mirrors the real handler shape (incl. batteryState + config fields).
+        const defaults = { activeProfile: 'balanced', aiEnabled: false, events: [{time: new Date().toLocaleTimeString(), type: 'INFO', msg: 'Power Manager initialized.'}], lastUserProfile: 'balanced', autoNotify: true, preserveBrightness: true };
         const lpwr = localStorage.getItem('onyx-power');
-        if (lpwr) return JSON.parse(lpwr);
-        return { activeProfile: 'balanced', aiEnabled: false, events: [{time: new Date().toLocaleTimeString(), type: 'INFO', msg: 'Power Manager initialized.'}] };
-      case 'power:setProfile':
+        const stored = lpwr ? JSON.parse(lpwr) : {};
+        return { ...defaults, ...stored, batteryState: { charging: true } };
+      }
+      case 'power:setProfile': {
         const curPWR = JSON.parse(localStorage.getItem('onyx-power') || '{"aiEnabled": false, "events": []}');
-        curPWR.activeProfile = args[0];
-        curPWR.events.unshift({time: new Date().toLocaleTimeString(), type: 'ACTION', msg: 'Profile switched to: ' + args[0]});
-        localStorage.setItem('onyx-power', JSON.stringify(curPWR));
+        // Real handler validates the profile and records lastUserProfile.
+        if (['battery_saver', 'balanced', 'performance'].includes(args[0])) {
+          curPWR.activeProfile = args[0];
+          curPWR.lastUserProfile = args[0];
+          curPWR.events.unshift({time: new Date().toLocaleTimeString(), type: 'ACTION', msg: 'User switched power mode to: ' + args[0]});
+          localStorage.setItem('onyx-power', JSON.stringify(curPWR));
+        }
         return curPWR;
+      }
       case 'power:setAI':
         const cp = JSON.parse(localStorage.getItem('onyx-power') || '{"activeProfile": "balanced", "events": []}');
         cp.aiEnabled = args[0];
         cp.events.unshift({time: new Date().toLocaleTimeString(), type: 'AI_TOGGLE', msg: 'AI Dynamic OS Power Planner ' + (args[0] ? 'ENABLED' : 'DISABLED')});
         localStorage.setItem('onyx-power', JSON.stringify(cp));
         return cp;
-      case 'power:mockAIEvent':
-        const cmock = JSON.parse(localStorage.getItem('onyx-power') || '{"activeProfile": "balanced", "events": [], "aiEnabled": true}');
-        if (cmock.aiEnabled) {
-             const profiles = ['battery_saver', 'balanced', 'performance'];
-             const reasons = ['Detected unplugged + compiler running', 'Cable connected', 'Inactivity detected', 'High CPU load detected on IDE'];
-             const nextProfile = profiles[Math.floor(Math.random()*profiles.length)];
-             const reason = reasons[Math.floor(Math.random()*reasons.length)];
-             cmock.activeProfile = nextProfile;
-             cmock.events.unshift({time: new Date().toLocaleTimeString(), type: 'AI_AGENT', msg: `AI moved OS to ${nextProfile} (${reason})`});
-             localStorage.setItem('onyx-power', JSON.stringify(cmock));
-             
-             // Trigger global notification event directly for mock preview
-             window.dispatchEvent(new CustomEvent('mock-event', {detail: {type: 'notification', title: 'Onyx Power Planner', body: `Adjusted OS power to ${nextProfile.replace('_', ' ').toUpperCase()}: ${reason}`}}));
+      case 'power:setConfig': {
+        const pc = JSON.parse(localStorage.getItem('onyx-power') || '{"activeProfile": "balanced", "events": []}');
+        if (args[0] && typeof args[0] === 'object') {
+          if (typeof args[0].autoNotify === 'boolean') pc.autoNotify = args[0].autoNotify;
+          if (typeof args[0].preserveBrightness === 'boolean') pc.preserveBrightness = args[0].preserveBrightness;
         }
-        return cmock;
+        localStorage.setItem('onyx-power', JSON.stringify(pc));
+        return pc;
+      }
         
       case 'app:notify':
         if (this.config.enableNotifications !== false) {

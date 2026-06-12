@@ -14,6 +14,7 @@ function formatBatteryTime(b: any) {
 export default function PowerOSView() {
   const [activeProfile, setActiveProfile] = useState('balanced');
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [autoNotify, setAutoNotify] = useState(true);
   const [events, setEvents] = useState<any[]>([]);
   const [sysInfo, setSysInfo] = useState<{ battery: number | null; charging: boolean; estimatedTime: string | null }>(
     { battery: null, charging: false, estimatedTime: null }
@@ -26,6 +27,7 @@ export default function PowerOSView() {
       if (d) {
         setActiveProfile(d.activeProfile);
         setAiEnabled(d.aiEnabled);
+        setAutoNotify(d.autoNotify !== false);
         setEvents(d.events || []);
         if (!hasBatteryApi.current && d.batteryState && typeof d.batteryState.charging === 'boolean') {
           setSysInfo(prev => ({ ...prev, charging: d.batteryState.charging }));
@@ -86,6 +88,13 @@ export default function PowerOSView() {
     }
   };
 
+  const toggleAutoNotify = async () => {
+    if (window.api) {
+      setAutoNotify(!autoNotify); // optimistic — the 5s poll reconciles
+      await window.api.invoke(CH.powerSetConfig, { autoNotify: !autoNotify });
+    }
+  };
+
   return (
     <div className="p-8 pb-24 md:p-10 max-w-6xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
@@ -115,15 +124,21 @@ export default function PowerOSView() {
                   <BrainCircuit className={`w-4 h-4 ${aiEnabled ? 'text-primary' : 'text-muted'}`} /> Dynamic OS Power Planner
                 </h3>
                 <p className="text-[11px] text-muted leading-relaxed max-w-md mb-4">
-                  Automatically switches the Windows power plan based on AC/battery state. Sends a native notification on each switch.
+                  Automatically adjusts the Windows power mode (the same control as the Settings power slider) from AC/battery state. Switches are debounced, your manual choice is restored on AC, and brightness is never touched.
                 </p>
               </div>
               <Switch active={aiEnabled} onClick={toggleAI} label="Toggle AI power planner" />
             </div>
             {aiEnabled && (
-              <div className="mt-2 text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-md flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 animate-pulse" /> Auto-managing power plan from AC/battery events
-              </div>
+              <>
+                <div className="mt-2 text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-md flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 animate-pulse" /> Auto-managing power mode from AC/battery events
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-[11px] text-muted">Notify on each automatic switch</span>
+                  <Switch active={autoNotify} onClick={toggleAutoNotify} label="Toggle auto-switch notifications" />
+                </div>
+              </>
             )}
           </div>
 
@@ -136,7 +151,7 @@ export default function PowerOSView() {
             >
               <Battery className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-indigo-400' : 'text-muted'}`} />
               <div className="text-[13px] font-bold text-text">Battery Saver</div>
-              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Limit background activity &amp; underclock CPU.</div>
+              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Windows efficiency mode. Less CPU boost &amp; background work.</div>
               {activeProfile === 'battery_saver' && <div className="mt-3 text-[9px] font-bold text-indigo-400 tracking-widest uppercase">Active Profile</div>}
             </button>
 
@@ -160,7 +175,7 @@ export default function PowerOSView() {
             >
               <Zap className={`w-5 h-5 mb-3 ${activeProfile === 'performance' ? 'text-amber-400' : 'text-muted'}`} />
               <div className="text-[13px] font-bold text-text">Max Performance</div>
-              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Overdrive. Prevents sleep and unthrottles cores.</div>
+              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Windows best-performance mode. Full CPU boost.</div>
               {activeProfile === 'performance' && <div className="mt-3 text-[9px] font-bold text-amber-400 tracking-widest uppercase">Active Profile</div>}
             </button>
           </div>

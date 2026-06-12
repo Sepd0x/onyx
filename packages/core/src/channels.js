@@ -30,7 +30,7 @@ const INVOKE_CHANNELS = [
   // Tray
   'tray:openMain',
   // Power
-  'power:get', 'power:setProfile', 'power:setAI',
+  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
 ];
 
 // Main -> renderer push events (used with window.api.on).
