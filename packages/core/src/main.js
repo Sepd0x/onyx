@@ -268,7 +268,7 @@ if (!gotTheLock) {
     appConfig = initAppSettings();
     initPortMapper();
     initCursorAutoHide();
-    initGitPulse();
+    const gitPulse = initGitPulse();
     initDevWatcher();
     initCleaner();
     initSnippets();
@@ -278,6 +278,11 @@ if (!gotTheLock) {
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {
       createTray();
+    }
+
+    // Honour the "Auto-scan Repositories" setting: a quiet bounded scan shortly after launch.
+    if (appConfig.autoScanGit && gitPulse && gitPulse.runAutoScan) {
+      setTimeout(() => { gitPulse.runAutoScan().catch((err) => logger.error('Auto-scan failed:', err)); }, 5000);
     }
     
     if (appConfig.enableGlobalHotkey !== false) {

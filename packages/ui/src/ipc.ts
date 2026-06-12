@@ -21,6 +21,9 @@ export const CH = {
   gitAutoScan: 'git:autoScan',
   gitGenerateCommit: 'git:generateCommit',
   gitAddGithubRepo: 'git:addGithubRepo',
+  gitGetScanRoots: 'git:getScanRoots',
+  gitAddScanRoot: 'git:addScanRoot',
+  gitRemoveScanRoot: 'git:removeScanRoot',
   // Dev watcher
   devStartWatch: 'dev:startWatch',
   devStopWatch: 'dev:stopWatch',
@@ -66,6 +69,7 @@ export const EV = {
   devNotification: 'dev:notification',
   appUpdateAvailable: 'app:update-available',
   appUpdateDownloaded: 'app:update-downloaded',
+  gitScanProgress: 'git:scanProgress',
 } as const;
 
 export type Channel = typeof CH[keyof typeof CH];
@@ -73,7 +77,8 @@ export type EventChannel = typeof EV[keyof typeof EV];
 
 export interface OnyxApi {
   invoke<T = any>(channel: Channel, ...args: any[]): Promise<T>;
-  on(channel: EventChannel, listener: (...args: any[]) => void): void;
+  // Returns an unsubscribe function (no-op in the browser mock / for unknown channels).
+  on(channel: EventChannel, listener: (...args: any[]) => void): () => void;
 }
 
 declare global {

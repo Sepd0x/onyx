@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseGithubUrl, classifyCommitMessage } from './parse.js';
+import { parseGithubUrl, classifyCommitMessage, bucketCommitDates } from './parse.js';
 
 describe('parseGithubUrl', () => {
   it('parses a standard repo url', () => {
@@ -41,5 +41,33 @@ describe('classifyCommitMessage', () => {
 
   it('is null-safe', () => {
     expect(classifyCommitMessage(undefined).warning).toBeNull();
+  });
+});
+
+describe('bucketCommitDates', () => {
+  const today = '2026-06-12';
+
+  it('returns a zero array of the requested length for no commits', () => {
+    expect(bucketCommitDates([], 14, today)).toEqual(new Array(14).fill(0));
+  });
+
+  it('puts today\'s commits in the last bucket', () => {
+    const out = bucketCommitDates([today, today], 14, today);
+    expect(out[13]).toBe(2);
+    expect(out.slice(0, 13)).toEqual(new Array(13).fill(0));
+  });
+
+  it('places older commits at the right offset and ignores out-of-window dates', () => {
+    const out = bucketCommitDates(['2026-06-12', '2026-06-11', '2026-05-01'], 14, today);
+    expect(out[13]).toBe(1); // today
+    expect(out[12]).toBe(1); // yesterday
+    expect(out.reduce((a, b) => a + b, 0)).toBe(2); // 2026-05-01 is >13 days ago, dropped
+  });
+
+  it('ignores malformed or future dates and bad input', () => {
+    const out = bucketCommitDates(['not-a-date', '2026-06-20', null, undefined], 14, today);
+    expect(out).toEqual(new Array(14).fill(0));
+    expect(bucketCommitDates('nope', 14, today)).toEqual(new Array(14).fill(0));
+    expect(bucketCommitDates([today], 14, 'bad-today')).toEqual(new Array(14).fill(0));
   });
 });

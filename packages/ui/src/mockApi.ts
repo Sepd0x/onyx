@@ -7,8 +7,8 @@ class MockApi {
   private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true };
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
   private repos: any[] = [
-    { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2], risk: ['Contains .env'], ready: true, commitWarning: null },
-    { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0], risk: [], ready: true, commitWarning: null }
+    { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null },
+    { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null }
   ];
   private watchedProcesses: any[] = [];
   
@@ -31,8 +31,11 @@ class MockApi {
     localStorage.setItem('onyx-repos', JSON.stringify(this.repos));
   }
 
+  private mockScanRoots: string[] = ['C:/dev', 'C:/Users/dev/Projects'];
+
   // The browser mock has no backend push events; provided so window.api.on is safe.
-  on(_channel: string, _listener: (...args: any[]) => void) {}
+  // Returns a no-op unsubscribe to mirror the real preload bridge contract.
+  on(_channel: string, _listener: (...args: any[]) => void) { return () => {}; }
 
   async invoke(channel: string, ...args: any[]) {
     await delay(100); // simulate IPC latency
@@ -56,7 +59,7 @@ class MockApi {
         
       case 'git:getRepos': return this.repos;
       case 'git:addRepo':
-        const newRepo = { name: 'New-Project-' + Math.floor(Math.random()*100), branch: 'master', dirty: Math.floor(Math.random()*5), pull: 0, push: 0, path: 'C:/dev/new-project', activity: [0,0,0,0,0,0,0], risk: [], ready: false };
+        const newRepo = { name: 'New-Project-' + Math.floor(Math.random()*100), branch: 'master', dirty: Math.floor(Math.random()*5), pull: 0, push: 0, path: 'C:/dev/new-project', activity: [0,0,0,0,0,0,0,0,0,0,0,0,0,0],risk: [], ready: false };
         this.repos.push(newRepo);
         this.save();
         return { ok: true };
@@ -64,9 +67,26 @@ class MockApi {
         this.repos = this.repos.filter(r => r.path !== args[0]);
         this.save();
         return { ok: true };
-      case 'git:autoScan':
-        await delay(1500);
-        return { ok: true };
+      case 'git:autoScan': {
+        await delay(1200);
+        // Exercise the new return shape and surface a freshly "discovered" repo.
+        const discovered = 'C:/dev/discovered-app';
+        if (!this.repos.find(r => r.path === discovered)) {
+          this.repos.push({ name: 'discovered-app', branch: 'main', dirty: 1, pull: 0, push: 0, path: discovered, activity: [0,0,0,0,1,0,2,0,0,3,0,1,0,2], risk: [], ready: true, commitWarning: null });
+          this.save();
+        }
+        return { ok: true, found: [discovered], scanned: 87 };
+      }
+      case 'git:getScanRoots':
+        return this.mockScanRoots;
+      case 'git:addScanRoot':
+        // No OS folder picker in the browser; append a deterministic sample root.
+        const newRoot = 'C:/dev/added-root-' + (this.mockScanRoots.length + 1);
+        if (!this.mockScanRoots.includes(newRoot)) this.mockScanRoots.push(newRoot);
+        return { ok: true, scanRoots: this.mockScanRoots };
+      case 'git:removeScanRoot':
+        this.mockScanRoots = this.mockScanRoots.filter(r => r !== args[0]);
+        return { ok: true, scanRoots: this.mockScanRoots };
       case 'git:generateCommit':
         await delay(2000);
         const options = [
@@ -111,7 +131,7 @@ class MockApi {
            pull: 2, // Mock slightly out-of-sync for the "Análise de Sincronização" feature 
            push: 0, 
            path: '~/Documents/GitHub/' + rName, // Deteção Repo Remoto -> Local
-           activity: [0,0,0,0,0,0,0], 
+           activity: [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
            risk: [], 
            ready: true, 
            commitWarning: null,

@@ -13,6 +13,7 @@ const INVOKE_CHANNELS = [
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
   // Git
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
+  'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot',
   // Dev watcher
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   // App / settings / updates
@@ -34,6 +35,6 @@ const INVOKE_CHANNELS = [
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

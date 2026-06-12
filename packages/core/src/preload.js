@@ -8,6 +8,7 @@ const INVOKE_CHANNELS = [
   'ports:get', 'ports:kill',
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
+  'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot',
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:installUpdate',
   'window:close', 'window:minimize', 'window:openExternal',
@@ -18,7 +19,7 @@ const INVOKE_CHANNELS = [
   'tray:openMain',
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
 ];
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress'];
 
 contextBridge.exposeInMainWorld('api', {
   invoke: (channel, ...args) => {
@@ -27,9 +28,11 @@ contextBridge.exposeInMainWorld('api', {
     }
     throw new Error("Invalid IPC channel " + channel);
   },
+  // Returns an unsubscribe fn so renderers can detach listeners (no leak on remount).
   on: (channel, func) => {
-    if (EVENT_CHANNELS.includes(channel)) {
-      ipcRenderer.on(channel, (event, ...args) => func(...args));
-    }
+    if (!EVENT_CHANNELS.includes(channel)) return () => {};
+    const wrapped = (event, ...args) => func(...args);
+    ipcRenderer.on(channel, wrapped);
+    return () => ipcRenderer.removeListener(channel, wrapped);
   }
 });
