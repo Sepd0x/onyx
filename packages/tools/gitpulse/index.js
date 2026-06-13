@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff } = require('./parse');
 const aiStore = require('../ai/store');
+const aiComplete = require('../ai/complete');
 
 const execFileAsync = promisify(execFile);
 
@@ -301,29 +302,17 @@ module.exports = function initGitPulse() {
   // only). Runs in MAIN (packaged CSP blocks renderer egress). Returns null so the caller
   // falls back to the heuristic on no-key / SDK-missing / any API error.
   async function aiCommitMessage(repoPath, diffStr) {
-    const key = aiStore.getKey();
-    if (!key) return null;
-    let Anthropic;
-    try { Anthropic = require('@anthropic-ai/sdk'); } catch { return null; }
-    try {
-      const subjects = await git(['log', '-5', '--pretty=%s'], repoPath);
-      const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 30000 });
-      const res = await client.messages.create({
-        model: aiStore.getModel(),
-        max_tokens: 200,
-        system: 'You are a senior engineer writing a git commit message. Given a diff and the repo\'s recent commit subjects (for style reference only), write ONE concise message in Conventional Commits style (e.g. "feat: ...", "fix: ...", "refactor: ..."). Output ONLY the message — no quotes, no preamble, no body. Keep the subject under ~72 characters.',
-        messages: [{
-          role: 'user',
-          content: `Recent commit subjects (style reference):\n${subjects || '(none)'}\n\nDiff:\n${capDiff(diffStr, 30000, 8000) || '(empty)'}`,
-        }],
-      });
-      const text = Array.isArray(res.content)
-        ? res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim()
-        : '';
-      return text || null;
-    } catch {
-      return null; // typed SDK errors, network, rate limits → heuristic fallback
-    }
+    if (!aiStore.getKey()) return null;
+    const subjects = await git(['log', '-5', '--pretty=%s'], repoPath);
+    const cappedDiff = capDiff(diffStr, 30000, 8000) || '(empty)';
+    // Shared MAIN-side helper (SDK setup + error→null fallback + result cache).
+    return aiComplete.completeText({
+      feature: 'commit',
+      maxTokens: 200,
+      cacheKey: cappedDiff,
+      system: 'You are a senior engineer writing a git commit message. Given a diff and the repo\'s recent commit subjects (for style reference only), write ONE concise message in Conventional Commits style (e.g. "feat: ...", "fix: ...", "refactor: ..."). Output ONLY the message — no quotes, no preamble, no body. Keep the subject under ~72 characters.',
+      user: `Recent commit subjects (style reference):\n${subjects || '(none)'}\n\nDiff:\n${cappedDiff}`,
+    });
   }
 
   ipcMain.handle('git:generateCommit', async (event, p) => {

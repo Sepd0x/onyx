@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2, ScrollText } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc } from '../lib/ipcCache';
 import ViewHeader from '../components/ViewHeader';
 import Skeleton from '../components/Skeleton';
+import AiPanel from '../components/AiPanel';
 
 export default function AIAuditorView() {
   // Both feeds come from the shared cache (15s here, and instantly reused from
@@ -11,6 +12,8 @@ export default function AIAuditorView() {
   const reposState = useIpc(CH.gitGetRepos, [], { pollMs: 15000 });
   const procsState = useIpc(CH.devGetDevProcesses, [], { pollMs: 15000 });
   const loaded = reposState.data !== undefined && procsState.data !== undefined;
+  // Status only (no poll); AI calls are explicit, never wired into the feeds above.
+  const aiConfigured = (useIpc(CH.aiGetStatus, [], { pollMs: 0 }).data as any)?.configured ?? false;
 
   const trackedRepos = useMemo(() => (reposState.data ?? []).map((r: any, i: number) => ({
     id: (r.path || i).toString(),
@@ -60,6 +63,27 @@ export default function AIAuditorView() {
               <p className="text-[9px] text-muted font-mono mt-1">Local only · no telemetry sent</p>
             </div>
           }
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <AiPanel
+          title="Repository briefing"
+          description="A prioritized, plain-English read on your tracked repos & running dev processes."
+          cta="GENERATE"
+          configured={aiConfigured}
+          run={async () => (await window.api?.invoke(CH.aiInsights, {
+            repos: (reposState.data ?? []).map((r: any) => ({ name: r.name, branch: r.branch, dirty: r.dirty, pull: r.pull, push: r.push, risk: r.risk, ready: r.ready })),
+            processes: trackedBinaries.map((b) => ({ name: b.name, type: b.type, confidence: b.confidence })),
+          })) ?? { error: 'failed' }}
+        />
+        <AiPanel
+          title="Log triage"
+          icon={ScrollText}
+          description="Scan today's app log for errors, likely causes and quick fixes."
+          cta="ANALYZE"
+          configured={aiConfigured}
+          run={async () => (await window.api?.invoke(CH.aiAnalyzeLogs)) ?? { error: 'failed' }}
         />
       </div>
 

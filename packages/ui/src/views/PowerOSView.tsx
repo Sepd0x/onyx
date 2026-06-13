@@ -3,6 +3,8 @@ import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-re
 import Switch from '../components/Switch';
 import BatteryGauge from '../components/BatteryGauge';
 import ViewHeader from '../components/ViewHeader';
+import AiPanel from '../components/AiPanel';
+import { MessageSquareText } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 
@@ -23,6 +25,8 @@ export default function PowerOSView() {
     { battery: null, charging: false, estimatedTime: null }
   );
   const hasBatteryApi = useRef(false);
+  // Status only (no poll); the explanation call is explicit, never wired to the 5s feed.
+  const aiConfigured = (useIpc(CH.aiGetStatus, [], { pollMs: 0 }).data as any)?.configured ?? false;
 
   // Profile + power events poll through the shared cache (5s); apply each payload to
   // local state, keeping the hasBatteryApi merge so the Web Battery API stays the
@@ -172,6 +176,19 @@ export default function PowerOSView() {
               {activeProfile === 'performance' && <div className="mt-3 text-[9px] font-bold text-amber-400 tracking-widest uppercase">Active Profile</div>}
             </button>
           </div>
+
+          <AiPanel
+            title="Explain power activity"
+            icon={MessageSquareText}
+            description="Why the planner switched modes recently, and whether your setup makes sense."
+            cta="EXPLAIN"
+            configured={aiConfigured}
+            run={async () => (await window.api?.invoke(CH.aiExplainPower, {
+              profile: activeProfile,
+              onBattery: !sysInfo.charging,
+              events,
+            })) ?? { error: 'failed' }}
+          />
         </div>
 
         {/* Sidebar Stats & Logs */}

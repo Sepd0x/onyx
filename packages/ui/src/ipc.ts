@@ -65,6 +65,9 @@ export const CH = {
   // AI
   aiGetStatus: 'ai:getStatus',
   aiSetKey: 'ai:setKey',
+  aiInsights: 'ai:insights',
+  aiExplainPower: 'ai:explainPower',
+  aiAnalyzeLogs: 'ai:analyzeLogs',
 } as const;
 
 export const EV = {

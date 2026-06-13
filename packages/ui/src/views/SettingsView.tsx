@@ -3,6 +3,7 @@ import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit } fr
 import Switch from '../components/Switch';
 import ViewHeader from '../components/ViewHeader';
 import { CH, EV } from '../ipc';
+import { invalidate } from '../lib/ipcCache';
 
 export default function SettingsView() {
   const [config, setConfig] = useState<any>({ launchOnStartup: false, startMinimized: false, autoScanGit: false, autoHideCursorOnStart: false, theme: 'midnight' });
@@ -46,6 +47,7 @@ export default function SettingsView() {
       if (res?.warning) setAiMsg(res.warning);
       else if (res?.ok) { setAiKey(''); setAiMsg('API key saved securely.'); }
       await loadAiStatus();
+      invalidate('ai:'); // refresh the status the Inspector/Power panels read
     } finally {
       setAiBusy(false);
     }
@@ -60,6 +62,7 @@ export default function SettingsView() {
       setAiKey('');
       setAiMsg('API key removed.');
       await loadAiStatus();
+      invalidate('ai:'); // refresh the status the Inspector/Power panels read
     } finally {
       setAiBusy(false);
     }
