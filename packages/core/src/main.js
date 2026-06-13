@@ -27,10 +27,17 @@ let appConfig = {};
 const iconPath = path.join(__dirname, '../../../assets/icon.png');
 const trayIconPath = path.join(__dirname, '../../../assets/tray.png');
 
+// Fixed tray-window size. Re-asserted on every show via setBounds — on Windows
+// with fractional DPI scaling, repeated show/setPosition cycles shrink a
+// frameless window by a rounding pixel each time (the "tray keeps getting
+// smaller" bug). Driving size from constants makes it idempotent.
+const TRAY_W = 300;
+const TRAY_H = 430;
+
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
-    width: 280,
-    height: 380,
+    width: TRAY_W,
+    height: TRAY_H,
     show: false,
     frame: false,
     fullscreenable: false,
@@ -63,8 +70,10 @@ const toggleTrayWindow = () => {
   if (trayWindow.isVisible()) {
     trayWindow.hide();
   } else {
-    const position = getTrayPosition(trayWindow.getBounds());
-    trayWindow.setPosition(position.x, position.y, false);
+    const position = getTrayPosition({ width: TRAY_W, height: TRAY_H });
+    // setBounds (not setPosition) — re-assert the canonical size every show so
+    // DPI rounding can't accumulate and shrink the window across clicks.
+    trayWindow.setBounds({ x: position.x, y: position.y, width: TRAY_W, height: TRAY_H });
     trayWindow.show();
     trayWindow.focus();
   }
