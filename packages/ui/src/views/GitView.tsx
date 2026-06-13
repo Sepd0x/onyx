@@ -146,7 +146,15 @@ export default function GitView() {
                   <h3 className="text-base font-semibold text-text tracking-tight">{r.name}</h3>
                   <p className="text-[10px] font-mono text-muted mt-1.5 truncate max-w-[200px]" title={r.path}>{r.path}</p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => removeRepo(r.path)}
+                    title="Remove tracking"
+                    aria-label={`Remove ${r.name} from tracking`}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all active:scale-90"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <div className="text-[10px] font-mono font-bold tracking-widest px-2.5 py-1 bg-primary/10 border border-primary/20 rounded-md shadow-[inset_0_1px_1px_var(--primary-alpha)] text-primary flex items-center gap-1.5">
                     <GitCommit className="w-3 h-3"/> {r.branch}
                   </div>
@@ -217,13 +225,6 @@ export default function GitView() {
                  </button>
               </div>
               
-              <button 
-                onClick={() => removeRepo(r.path)} 
-                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
-                title="Remove Tracking"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
             </div>
           );
         })}
