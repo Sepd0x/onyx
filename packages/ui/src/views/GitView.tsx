@@ -3,6 +3,7 @@ import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, H
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import Sparkline from '../components/Sparkline';
+import ViewHeader from '../components/ViewHeader';
 
 export default function GitView() {
   // No background poll (repo health is expensive); served from cache instantly on
@@ -84,19 +85,13 @@ export default function GitView() {
   return (
     <div className="h-full flex flex-col bg-transparent relative">
       <div className="flex-shrink-0 px-8 pt-8 pb-4 border-b border-border/60 z-20 bg-background/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-surface2 border border-border rounded-xl shadow-lg">
-              <FolderGit2 className="w-5 h-5 text-text"/>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-text tracking-tight">Git Pulse Dashboard</h2>
-              <p className="text-[10px] font-mono text-muted tracking-wide mt-1">REPOSITORY HEALTH & AI ASSISTANT</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
+        <ViewHeader
+          icon={FolderGit2}
+          title="Git Pulse"
+          subtitle="Repository health & AI assistant"
+          actions={<>
             {scanning && scanProgress && (
-              <span className="text-[10px] font-mono text-muted tracking-wide whitespace-nowrap">
+              <span className="text-[10px] font-mono text-muted tracking-wide whitespace-nowrap mr-1">
                 {scanProgress.scanned} scanned · {scanProgress.found} found
               </span>
             )}
@@ -113,8 +108,8 @@ export default function GitView() {
             <button onClick={add} className="px-4 py-2 bg-primary text-background text-[11px] font-bold tracking-wider font-mono rounded-lg border border-transparent hover:bg-accent transition-all flex items-center gap-2 shadow-[0_0_15px_var(--primary-alpha)] hover:shadow-[0_0_20px_var(--primary-alpha)]">
               <Plus className="w-4 h-4"/> ADD MANUAL
             </button>
-          </div>
-        </div>
+          </>}
+        />
 
         {showRoots && (
           <div className="mt-4 bg-surface/60 border border-border rounded-xl p-4 flex flex-col gap-3">
@@ -130,7 +125,7 @@ export default function GitView() {
               ) : scanRoots.map((root) => (
                 <div key={root} className="flex items-center justify-between gap-2 bg-background/60 border border-border/50 rounded-lg px-3 py-2">
                   <span className="text-[10px] font-mono text-text2 truncate" title={root}>{root}</span>
-                  <button onClick={() => removeRoot(root)} className="p-1 text-muted hover:text-red-400 hover:bg-red-400/10 rounded transition-all flex-shrink-0" title="Remove root">
+                  <button onClick={() => removeRoot(root)} className="p-1 text-muted hover:text-danger hover:bg-danger/10 rounded transition-all flex-shrink-0" title="Remove root">
                     <X className="w-3.5 h-3.5"/>
                   </button>
                 </div>
@@ -162,15 +157,15 @@ export default function GitView() {
               <div className="grid grid-cols-3 gap-3 text-xs font-mono">
                 <div className="bg-background/80 py-3 rounded-lg border border-border/50 flex flex-col items-center justify-center gap-1">
                   <span className="text-muted/70 text-[9px] tracking-widest">MODIFIED</span>
-                  <span className={`text-sm font-bold ${r.dirty > 0 ? 'text-amber-400' : 'text-text2'}`}>{r.dirty}</span>
+                  <span className={`text-sm font-bold ${r.dirty > 0 ? 'text-warning' : 'text-text2'}`}>{r.dirty}</span>
                 </div>
                 <div className="bg-background/80 py-3 rounded-lg border border-border/50 flex flex-col items-center justify-center gap-1">
                   <span className="text-muted/70 text-[9px] tracking-widest">PULL</span>
-                  <span className={`text-sm font-bold ${r.pull > 0 ? 'text-blue-400' : 'text-text2'}`}>{r.pull}</span>
+                  <span className={`text-sm font-bold ${r.pull > 0 ? 'text-info' : 'text-text2'}`}>{r.pull}</span>
                 </div>
                 <div className="bg-background/80 py-3 rounded-lg border border-border/50 flex flex-col items-center justify-center gap-1">
                   <span className="text-muted/70 text-[9px] tracking-widest">PUSH</span>
-                  <span className={`text-sm font-bold ${r.push > 0 ? 'text-red-400' : 'text-text2'}`}>{r.push}</span>
+                  <span className={`text-sm font-bold ${r.push > 0 ? 'text-danger' : 'text-text2'}`}>{r.push}</span>
                 </div>
               </div>
 
@@ -178,20 +173,20 @@ export default function GitView() {
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2 text-[10px] font-mono tracking-wide">
                   {r.syncStatus === 'Outdated' ? (
-                     <div className="flex-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 text-center leading-relaxed font-bold">
+                     <div className="flex-1 bg-warning/10 border border-warning/20 text-warning px-3 py-2.5 rounded-lg flex items-center justify-center gap-2 text-center leading-relaxed font-bold">
                        <AlertTriangle className="w-3.5 h-3.5"/> OUT OF SYNC: LOCAL BEHIND REMOTE
                      </div>
                   ) : hasRisk ? (
-                     <div className="flex-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
+                     <div className="flex-1 bg-warning/10 border border-warning/20 text-warning px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
                        <AlertTriangle className="w-3.5 h-3.5"/> RISK: {r.risk[0]}
                      </div>
                   ) : (
-                     <div className="flex-1 bg-green-500/10 border border-green-500/20 text-green-500 px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
+                     <div className="flex-1 bg-success/10 border border-success/20 text-success px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
                        <CheckCircle2 className="w-3.5 h-3.5"/> SECURE
                      </div>
                   )}
                   {r.ready ? (
-                     <div className="flex-1 bg-green-500/10 border border-green-500/20 text-green-500 px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
+                     <div className="flex-1 bg-success/10 border border-success/20 text-success px-3 py-2.5 rounded-lg flex items-center justify-center gap-2">
                        <CheckCircle2 className="w-3.5 h-3.5"/> DOCS READY
                      </div>
                   ) : (
@@ -202,7 +197,7 @@ export default function GitView() {
                 </div>
                 
                 {r.commitWarning && (
-                  <div className="bg-amber-500/5 border border-amber-500/20 text-amber-500 p-3 rounded-lg flex items-start gap-2.5 text-[10px] font-mono">
+                  <div className="bg-warning/5 border border-warning/20 text-warning p-3 rounded-lg flex items-start gap-2.5 text-[10px] font-mono">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5"/>
                     <span className="leading-relaxed whitespace-pre-wrap">{r.commitWarning}</span>
                   </div>
@@ -224,7 +219,7 @@ export default function GitView() {
               
               <button 
                 onClick={() => removeRepo(r.path)} 
-                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 p-2 text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all"
                 title="Remove Tracking"
               >
                 <Trash2 className="w-4 h-4" />
@@ -285,7 +280,7 @@ export default function GitView() {
             
             <div className="flex flex-col gap-4">
                {ghModal.error && (
-                 <div className="text-[10px] font-mono text-red-500 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-md">
+                 <div className="text-[10px] font-mono text-danger bg-danger/10 border border-danger/20 px-3 py-2 rounded-md">
                    {ghModal.error}
                  </div>
                )}

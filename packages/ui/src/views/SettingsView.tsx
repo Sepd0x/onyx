@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit } from 'lucide-react';
 import Switch from '../components/Switch';
+import ViewHeader from '../components/ViewHeader';
 import { CH, EV } from '../ipc';
 
 export default function SettingsView() {
@@ -100,15 +101,7 @@ export default function SettingsView() {
   return (
     <div className="h-full flex flex-col bg-transparent relative">
       <div className="flex-shrink-0 px-10 pt-10 pb-6 border-b border-border/60 z-20 bg-background/50 backdrop-blur-sm">
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-surface2 border border-border rounded-xl shadow-lg">
-            <Settings className="w-6 h-6 text-text" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-text tracking-tight">System Configuration</h2>
-            <p className="text-xs font-mono text-muted mt-1.5 uppercase tracking-widest">Global preferences & modules</p>
-          </div>
-        </div>
+        <ViewHeader icon={Settings} title="System Configuration" subtitle="Global preferences & modules" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-10 pt-8 no-scrollbar pb-24">
@@ -135,7 +128,7 @@ export default function SettingsView() {
         </div>
 
         <div className="flex flex-col gap-4">
-           <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-amber-500"/> Module Automation</h3>
+           <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-warning"/> Module Automation</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
@@ -201,13 +194,13 @@ export default function SettingsView() {
                    Powers real commit-message generation and Inspector insights. Stored encrypted on this device via the OS keychain; calls run locally from the app. Get a key at console.anthropic.com.
                  </p>
                </div>
-               <span className={`flex-shrink-0 text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded-md border ${aiStatus.configured ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-surface2 border-border text-muted'}`}>
+               <span className={`flex-shrink-0 text-[9px] font-mono font-bold tracking-widest px-2.5 py-1 rounded-md border ${aiStatus.configured ? 'bg-success/10 border-success/20 text-success' : 'bg-surface2 border-border text-muted'}`}>
                  {aiStatus.configured ? 'CONFIGURED' : 'NOT SET'}
                </span>
              </div>
 
              {!aiStatus.encryptionAvailable && (
-               <div className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-md">
+               <div className="text-[10px] font-mono text-warning bg-warning/10 border border-warning/20 px-3 py-2 rounded-md">
                  Secure storage is unavailable on this system — the key cannot be stored safely and will not be saved.
                </div>
              )}
@@ -233,7 +226,7 @@ export default function SettingsView() {
                    <button
                      onClick={clearAiKey}
                      disabled={aiBusy}
-                     className="px-4 py-2 bg-surface2 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 text-text border border-border text-[11px] font-mono font-bold tracking-widest rounded-lg transition-colors disabled:opacity-40"
+                     className="px-4 py-2 bg-surface2 hover:bg-danger/10 hover:text-danger hover:border-danger/30 text-text border border-border text-[11px] font-mono font-bold tracking-widest rounded-lg transition-colors disabled:opacity-40"
                    >
                      CLEAR
                    </button>

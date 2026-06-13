@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
 import Switch from '../components/Switch';
 import BatteryGauge from '../components/BatteryGauge';
+import ViewHeader from '../components/ViewHeader';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 
@@ -94,19 +95,14 @@ export default function PowerOSView() {
 
   return (
     <div className="p-8 pb-24 md:p-10 max-w-6xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-[0_0_20px_rgb(var(--success)/0.15)]">
-            <Zap className="w-6 h-6 text-green-500"/>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">
-              OS Power Manager
-              <span className="bg-green-500/20 text-green-500 border border-green-500/30 px-2 py-0.5 rounded-md text-[10px] font-mono tracking-widest uppercase">System Hook</span>
-            </h2>
-            <p className="text-xs font-mono text-muted tracking-wide mt-1.5 uppercase">Performance &amp; Battery Lifespan Controller</p>
-          </div>
-        </div>
+      <div className="mb-10">
+        <ViewHeader
+          icon={Zap}
+          accent="success"
+          title="OS Power Manager"
+          subtitle="Performance & battery lifespan controller"
+          badge={<span className="bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-md text-[10px] font-mono tracking-widest uppercase">System Hook</span>}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

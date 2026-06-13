@@ -4,6 +4,7 @@ import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
+import ViewHeader from '../components/ViewHeader';
 
 export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: boolean }) {
   const [pid, setPid] = useState('');
@@ -41,17 +42,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
   return (
     <div className="p-8 pb-24 max-w-4xl mx-auto h-full overflow-y-auto no-scrollbar">
       <div className="flex flex-col gap-6 mb-10">
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-surface2 border border-border shadow-lg text-text rounded-xl">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">
-              Session Guard
-            </h2>
-            <p className="micro-label mt-1.5">Smart wake-lock emulator</p>
-          </div>
-        </div>
+        <ViewHeader icon={ShieldAlert} title="Session Guard" subtitle="Smart wake-lock emulator" />
 
         {/* How it works — compact step strip (replaces the marketing prose) */}
         <div className="bg-surface/50 border border-border rounded-xl px-5 py-4 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-0">
@@ -106,7 +97,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                           <button onClick={() => watch(p.pid, p.name)} className="px-4 py-2 bg-surface3 hover:bg-primary/20 hover:text-primary hover:border-primary/30 border border-border text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
                             GUARD
                           </button>
-                          <button onClick={() => window.api?.invoke(CH.portsKill, p.pid).then(fetchSuggested)} className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 hover:border-red-500/40 text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
+                          <button onClick={() => window.api?.invoke(CH.portsKill, p.pid).then(fetchSuggested)} className="px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/40 text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
                             KILL
                           </button>
                         </div>
@@ -169,7 +160,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
               <div className="flex flex-col gap-2 items-end min-w-[120px]">
                  <button
                    onClick={() => stop(task.id)}
-                   className="w-full px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest text-text2 bg-surface hover:text-red-400 hover:bg-red-400/10 border border-border hover:border-red-400/30 rounded-lg transition-all flex items-center justify-center"
+                   className="w-full px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest text-text2 bg-surface hover:text-danger hover:bg-danger/10 border border-border hover:border-danger/30 rounded-lg transition-all flex items-center justify-center"
                  >
                    ABORT
                  </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Trash2, ChevronDown, ChevronRight, Search, Activity, Network, BoxSelect } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
+import ViewHeader from '../components/ViewHeader';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 
@@ -76,23 +77,20 @@ export default function PortsView() {
   return (
     <div className="flex flex-col h-full bg-transparent relative overflow-hidden">
       <div className="p-8 border-b border-border/50 flex flex-col gap-6 relative z-10 bg-background/50 backdrop-blur-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-lg"><Network className="w-5 h-5"/></div>
-            <div>
-              <h2 className="text-xl font-semibold text-text tracking-tight">Port Mapper</h2>
-              <p className="text-[10px] font-mono text-muted tracking-wide mt-1.5">{ports.length} TOTAL PORTS ACTIVE</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <ViewHeader
+          icon={Network}
+          title="Port Mapper"
+          subtitle={`${ports.length} ports active`}
+          accent="info"
+          actions={<>
             <button onClick={expandAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">EXPAND ALL</button>
             <button onClick={collapseAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">COLLAPSE ALL</button>
             <button onClick={refresh} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-primary bg-primary/10 border border-primary/20 rounded-lg transition-all hover:bg-primary/20 flex items-center gap-2">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               REFRESH
             </button>
-          </div>
-        </div>
+          </>}
+        />
         
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
           <div className="flex flex-wrap md:flex-nowrap bg-surface/50 p-1 rounded-lg border border-border shadow-inner gap-1">
@@ -116,9 +114,9 @@ export default function PortsView() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-8 relative z-10 pb-24">
         {error && (
-          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[11px] font-mono text-red-300 flex items-center justify-between gap-3">
+          <div className="mb-4 p-4 bg-danger/10 border border-danger/20 rounded-xl text-[11px] font-mono text-danger flex items-center justify-between gap-3">
             <span>Failed to read ports — the native backend may be unavailable.</span>
-            <button onClick={refresh} className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-md tracking-widest">RETRY</button>
+            <button onClick={refresh} className="px-3 py-1.5 bg-danger/20 hover:bg-danger/30 text-danger rounded-md tracking-widest">RETRY</button>
           </div>
         )}
         {Object.entries(grouped).map(([proc, prts]: any) => (
@@ -138,7 +136,7 @@ export default function PortsView() {
                 {prts.map((p: any, i: number) => {
                   const isListen = p.state === 'LISTENING';
                   const isEstab = p.state === 'ESTABLISHED';
-                  const badgeCls = isListen ? 'text-green-400 bg-green-400/10 border-green-400/20' : isEstab ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' : 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+                  const badgeCls = isListen ? 'text-success bg-success/10 border-success/20' : isEstab ? 'text-info bg-info/10 border-info/20' : 'text-warning bg-warning/10 border-warning/20';
                   const profile = detectProfile(p.port);
                   
                   return (

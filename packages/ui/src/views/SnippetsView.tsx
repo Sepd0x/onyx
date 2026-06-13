@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TerminalSquare, Plus, Copy, Trash2, CheckSquare, Sparkles } from 'lucide-react';
 import { CH } from '../ipc';
 import EmptyState from '../components/EmptyState';
+import ViewHeader from '../components/ViewHeader';
 
 // One-click starter pack for the empty state: common Windows-dev commands.
 const STARTER_SNIPPETS = [
@@ -62,16 +63,8 @@ export default function SnippetsView() {
 
   return (
     <div className="p-8 pb-24 md:p-10 max-w-5xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-lg">
-            <TerminalSquare className="w-5 h-5"/>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">Command Snippets</h2>
-            <p className="micro-label mt-1.5">Terminal &amp; shell shortcuts</p>
-          </div>
-        </div>
+      <div className="mb-10">
+        <ViewHeader icon={TerminalSquare} title="Command Snippets" subtitle="Terminal & shell shortcuts" />
       </div>
 
       <div className="flex flex-col gap-6">
@@ -112,7 +105,7 @@ export default function SnippetsView() {
                   <h3 className="text-sm font-semibold text-text truncate pr-4">{s.title}</h3>
                   <button 
                     onClick={() => removeSnippet(s.id)}
-                    className="text-muted hover:text-red-400 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-muted hover:text-danger p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

@@ -1,7 +1,33 @@
 import { useEffect, useState } from 'react';
 import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown } from 'lucide-react';
 import Switch from '../components/Switch';
+import ViewHeader from '../components/ViewHeader';
 import { CH } from '../ipc';
+
+// Accessible stepper, hoisted to module scope so it isn't recreated each render
+// (the old inline version was readOnly and lost focus on every keystroke).
+function NumInput({ val, onChange, label }: { val: number; onChange: (v: number) => void; label: string }) {
+  return (
+    <div className="flex items-stretch bg-background border border-border rounded-lg overflow-hidden shadow-inner focus-within:border-primary/50 transition-colors">
+      <input
+        type="number"
+        min={1}
+        value={val}
+        aria-label={label}
+        onChange={e => { const v = parseInt(e.target.value, 10); if (!Number.isNaN(v)) onChange(v); }}
+        className="w-14 bg-transparent py-2 text-sm text-center font-mono font-semibold text-text no-spin-buttons outline-none"
+      />
+      <div className="flex flex-col border-l border-border bg-surface3/50 h-auto">
+        <button aria-label={`Increase ${label}`} onClick={() => onChange(val + 1)} className="px-2 hover:bg-surface hover:text-text text-muted transition-colors border-b border-border flex items-center justify-center flex-1 active:scale-90">
+          <ChevronUp className="w-3 h-3" />
+        </button>
+        <button aria-label={`Decrease ${label}`} onClick={() => onChange(val - 1)} className="px-2 hover:bg-surface hover:text-text text-muted transition-colors flex items-center justify-center flex-1 active:scale-90">
+          <ChevronDown className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function CursorView() {
   const [config, setConfig] = useState<any>({ seconds: 5, deadzone: 4, active: false, dnd: false, dim: false });
@@ -29,35 +55,10 @@ export default function CursorView() {
     if (window.api) await window.api.invoke(CH.cursorSetConfig, { [key]: value });
   };
 
-  const NumInput = ({ val, onChange }: { val: number, onChange: (v: number) => void }) => (
-    <div className="flex items-stretch bg-background border border-border rounded-lg overflow-hidden shadow-inner">
-      <input 
-        type="number" 
-        value={val}
-        readOnly
-        className="w-14 bg-transparent py-2 text-sm text-center font-mono font-semibold text-text no-spin-buttons outline-none"
-      />
-      <div className="flex flex-col border-l border-border bg-surface3/50 h-auto">
-        <button onClick={() => onChange(val + 1)} className="px-2 hover:bg-surface hover:text-text text-muted transition-colors border-b border-border flex items-center justify-center flex-1">
-          <ChevronUp className="w-3 h-3" />
-        </button>
-        <button onClick={() => onChange(val - 1)} className="px-2 hover:bg-surface hover:text-text text-muted transition-colors flex items-center justify-center flex-1">
-          <ChevronDown className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-8 pb-24 max-w-4xl mx-auto h-full overflow-y-auto no-scrollbar">
-      <div className="flex items-center gap-4 mb-10 pb-8 border-b border-border/60">
-        <div className={`p-3.5 rounded-xl border shadow-lg transition-all duration-500 bg-surface2 text-text border-border`}>
-          <EyeOff className="w-6 h-6" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold text-text tracking-tight">Focus Tools</h2>
-          <p className="text-[10px] font-mono text-muted mt-1.5 tracking-widest uppercase">DISTRACTION-FREE WORKSPACE MODULE</p>
-        </div>
+    <div className="p-8 pb-24 md:p-10 max-w-4xl mx-auto h-full overflow-y-auto no-scrollbar animate-in fade-in duration-300">
+      <div className="mb-10 pb-8 border-b border-border/60">
+        <ViewHeader icon={EyeOff} title="Focus Tools" subtitle="Distraction-free workspace module" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -91,7 +92,7 @@ export default function CursorView() {
                 <p className="text-[10px] text-muted/70 leading-relaxed mt-1">Hide cursor after absolute inactivity.</p>
               </div>
               <div className="w-1/3 flex justify-end">
-                 <NumInput val={config.seconds} onChange={(v) => saveConfig('seconds', v)} />
+                 <NumInput val={config.seconds} onChange={(v) => saveConfig('seconds', v)} label="Inactivity timeout in seconds" />
               </div>
             </div>
             <div className="h-px bg-border/80 w-full"></div>
@@ -101,7 +102,7 @@ export default function CursorView() {
                 <p className="text-[10px] text-muted/70 leading-relaxed mt-1">Ignore minor mouse drifting.</p>
               </div>
               <div className="w-1/3 flex justify-end">
-                 <NumInput val={config.deadzone} onChange={(v) => saveConfig('deadzone', v)} />
+                 <NumInput val={config.deadzone} onChange={(v) => saveConfig('deadzone', v)} label="Hardware deadzone in pixels" />
               </div>
             </div>
           </div>
@@ -115,7 +116,7 @@ export default function CursorView() {
               
               <div className="p-5 flex items-center justify-between border-b border-border/50 hover:bg-surface/60 transition-colors rounded-t-xl group">
                 <div className="flex items-center gap-4">
-                  <div className="bg-background border border-border p-2 rounded-lg text-muted group-hover:text-amber-400 group-hover:border-amber-400/30 transition-all"><Moon className="w-4 h-4"/></div>
+                  <div className="bg-background border border-border p-2 rounded-lg text-muted group-hover:text-warning group-hover:border-warning/30 transition-all"><Moon className="w-4 h-4"/></div>
                   <div>
                     <h4 className="font-medium text-[13px] text-text">Keep Awake (Hardware)</h4>
                     <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[200px]">Prevents OS and monitor from sleeping while coding.</p>
@@ -123,7 +124,7 @@ export default function CursorView() {
                 </div>
                 <Switch
                   active={!!config.keepAwake}
-                  activeColor="bg-amber-500"
+                  activeColor="bg-warning"
                   label="Keep awake (prevent sleep)"
                   onClick={async () => {
                      const ns = !config.keepAwake;
@@ -135,7 +136,7 @@ export default function CursorView() {
 
               <div className="p-5 flex items-center justify-between hover:bg-surface/60 transition-colors rounded-b-xl group">
                 <div className="flex items-center gap-4">
-                  <div className="bg-background border border-border p-2 rounded-lg text-muted group-hover:text-red-400 group-hover:border-red-400/30 transition-all"><BellOff className="w-4 h-4"/></div>
+                  <div className="bg-background border border-border p-2 rounded-lg text-muted group-hover:text-danger group-hover:border-danger/30 transition-all"><BellOff className="w-4 h-4"/></div>
                   <div>
                     <h4 className="font-medium text-[13px] text-text">Deep Focus OS Rules</h4>
                     <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[230px]">Triggers Do-Not-Disturb and overlays workspace universally.</p>
@@ -143,7 +144,7 @@ export default function CursorView() {
                 </div>
                 <Switch
                   active={!!config.focusMode}
-                  activeColor="bg-red-500"
+                  activeColor="bg-danger"
                   label="Deep focus OS rules"
                   onClick={async () => {
                      const ns = !config.focusMode;

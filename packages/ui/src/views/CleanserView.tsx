@@ -3,6 +3,7 @@ import { Trash2, Search, Skull, FolderX } from 'lucide-react';
 import { CH } from '../ipc';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
+import ViewHeader from '../components/ViewHeader';
 
 // "340 MB" → MB number, for proportional size bars.
 const sizeToMB = (s: string) => {
@@ -55,33 +56,28 @@ export default function CleanserView() {
 
   return (
     <div className="p-8 pb-24 md:p-10 max-w-5xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-lg">
-            <Skull className="w-5 h-5"/>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">Dev Cleanser</h2>
-            <p className="micro-label mt-1.5">node_modules &amp; target graveyard</p>
-          </div>
-        </div>
-        
-        <div className="flex bg-surface border border-border rounded-xl p-1 shadow-sm">
-          <button 
-            onClick={scan} 
-            disabled={scanning || cleaning}
-            className="flex items-center gap-2 px-5 py-2.5 text-xs font-mono font-bold tracking-widest bg-primary text-background rounded-lg hover:bg-accent transition-all disabled:opacity-50"
-          >
-            {scanning ? <Search className="w-4 h-4 animate-spin"/> : <Search className="w-4 h-4"/>}
-            SCAN SYSTEM
-          </button>
-        </div>
+      <div className="mb-10">
+        <ViewHeader
+          icon={Skull}
+          title="Dev Cleanser"
+          subtitle="node_modules & target graveyard"
+          actions={
+            <button
+              onClick={scan}
+              disabled={scanning || cleaning}
+              className="flex items-center gap-2 px-5 py-2.5 text-xs font-mono font-bold tracking-widest bg-primary text-background rounded-lg hover:bg-accent transition-all disabled:opacity-50 shadow-[0_0_15px_var(--primary-alpha)]"
+            >
+              <Search className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`}/>
+              SCAN SYSTEM
+            </button>
+          }
+        />
       </div>
 
       {notice && (
-        <div className="mb-6 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[11px] font-mono text-amber-400 flex items-center justify-between gap-3">
+        <div className="mb-6 px-4 py-3 bg-warning/10 border border-warning/30 rounded-lg text-[11px] font-mono text-warning flex items-center justify-between gap-3">
           <span className="min-w-0 break-words">{notice}</span>
-          <button onClick={() => setNotice('')} className="text-amber-300 hover:text-amber-200 flex-shrink-0" aria-label="Dismiss">✕</button>
+          <button onClick={() => setNotice('')} className="text-warning hover:text-warning flex-shrink-0" aria-label="Dismiss">✕</button>
         </div>
       )}
 
@@ -138,7 +134,7 @@ export default function CleanserView() {
              <button 
                onClick={() => clean()}
                disabled={dirs.length === 0 || cleaning || scanning}
-               className="w-full mt-2 flex justify-center items-center gap-2 px-4 py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold tracking-widest uppercase text-[11px] rounded-lg transition-all disabled:opacity-30"
+               className="w-full mt-2 flex justify-center items-center gap-2 px-4 py-3.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 font-bold tracking-widest uppercase text-[11px] rounded-lg transition-all disabled:opacity-30"
              >
                <Skull className="w-4 h-4"/> 
                {cleaning ? 'CLEANING...' : 'NUKE ALL'}

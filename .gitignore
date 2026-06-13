@@ -41,3 +41,5 @@ vault/
 .obsidian/
 # local agent local project config (launch.json, local settings).
 .claude/
+# local agent session instructions (machine paths + contact info) — local only.
+CLAUDE.md

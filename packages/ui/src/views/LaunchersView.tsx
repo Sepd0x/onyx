@@ -3,6 +3,7 @@ import { Rocket, Plus, Play, Square, Trash2, Sparkles } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import EmptyState from '../components/EmptyState';
+import ViewHeader from '../components/ViewHeader';
 
 export default function LaunchersView() {
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -104,16 +105,8 @@ export default function LaunchersView() {
 
   return (
     <div className="p-8 pb-24 md:p-10 max-w-5xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-surface2 text-text rounded-xl border border-border shadow-lg">
-            <Rocket className="w-5 h-5"/>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text tracking-tight flex items-center gap-3">Launch Profiles</h2>
-            <p className="micro-label mt-1.5">1-Click local environments</p>
-          </div>
-        </div>
+      <div className="mb-10">
+        <ViewHeader icon={Rocket} title="Launch Profiles" subtitle="1-Click local environments" />
       </div>
 
       <div className="flex flex-col gap-6">
@@ -137,9 +130,9 @@ export default function LaunchersView() {
         </div>
 
         {launchError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono px-4 py-3 rounded-lg flex items-center justify-between gap-3">
+          <div className="bg-danger/10 border border-danger/30 text-danger text-xs font-mono px-4 py-3 rounded-lg flex items-center justify-between gap-3">
             <span className="min-w-0 break-words">{launchError}</span>
-            <button onClick={() => setLaunchError('')} className="text-red-300 hover:text-red-200 flex-shrink-0">✕</button>
+            <button onClick={() => setLaunchError('')} className="text-danger hover:text-danger flex-shrink-0">✕</button>
           </div>
         )}
 
@@ -174,9 +167,9 @@ export default function LaunchersView() {
                      )}
                    </h3>
                    <div className="flex items-center gap-2">
-                     <button onClick={() => removeProfile(p.id)} className="p-2 hover:bg-red-500/20 text-muted hover:text-red-400 rounded-md transition-colors"><Trash2 className="w-4 h-4"/></button>
+                     <button onClick={() => removeProfile(p.id)} className="p-2 hover:bg-danger/20 text-muted hover:text-danger rounded-md transition-colors"><Trash2 className="w-4 h-4"/></button>
                      {isActive ? (
-                       <button onClick={() => stopProfile(p.id)} className="px-5 py-2 text-xs font-mono font-bold bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded-lg flex items-center gap-2 transition-colors"><Square className="w-3.5 h-3.5"/> STOP ALL</button>
+                       <button onClick={() => stopProfile(p.id)} className="px-5 py-2 text-xs font-mono font-bold bg-danger/10 hover:bg-danger/20 border border-danger/30 text-danger rounded-lg flex items-center gap-2 transition-colors"><Square className="w-3.5 h-3.5"/> STOP ALL</button>
                      ) : (
                        <button onClick={() => launchProfile(p.id)} className="px-5 py-2 text-xs font-mono font-bold bg-primary hover:bg-accent text-background rounded-lg flex items-center gap-2 transition-colors"><Play className="w-3.5 h-3.5 fill-current"/> LAUNCH ALL</button>
                      )}
