@@ -59,6 +59,9 @@ export const CH = {
   launchersStart: 'launchers:start',
   launchersStop: 'launchers:stop',
   launchersStatus: 'launchers:status',
+  // Settings backup / restore
+  settingsExport: 'settings:export',
+  settingsImport: 'settings:import',
   // Tray
   trayOpenMain: 'tray:openMain',
   trayResize: 'tray:resize',

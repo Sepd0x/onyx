@@ -9,6 +9,28 @@ All notable changes to Onyx are documented here. The format follows
 Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
 
 ### Added
+- **First-run onboarding** — a short guided wizard on first launch: pick a theme
+  and accent, optionally add an AI provider key (with a live Test), and a few
+  tips. Persists an `onboarded` flag so it shows once.
+- **Command palette** (`Ctrl`/`Cmd`+`K`) — a spotlight to jump to any view or
+  switch theme from the keyboard, with arrow-key navigation and search.
+- **Git Pulse — local ↔ GitHub unification**: a local repo and its tracked GitHub
+  twin merge into one card showing both sides (local dirty/ahead-behind/risk/
+  activity and remote default branch/open issues/last commit). Auto-matches by
+  normalising the local `origin` remote (https + ssh) against the GitHub slug;
+  manual **link / unlink** for absent or ambiguous origins, persisted.
+- **Git Pulse — per-repo AI actions**: alongside the commit message, the card can
+  explain the current diff, draft a PR description, or summarise recent history
+  (prompts built in the main process with an untrusted-content guard; output only
+  ever displays, never drives an action).
+- **Backup & restore** — export your preferences, snippets and launcher profiles
+  to a JSON file and restore them on another machine. API keys and the GitHub
+  token are never included.
+- Public-facing docs and GitHub community standards: a rewritten README (with a
+  screenshot gallery) and CONTRIBUTING, plus `SECURITY.md`, `CODE_OF_CONDUCT.md`,
+  issue forms and a pull-request template.
+
+### Added (earlier in Phase 6)
 - **Opt-in, multi-provider AI** — Anthropic (Claude), OpenAI (ChatGPT) and Google
   (Gemini). Each provider keeps its own key, encrypted via the OS keychain (own
   `ai.json`, never plaintext, never crosses the IPC bridge); the active provider
@@ -44,6 +66,12 @@ Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
   one-click example launcher profile and snippet starter pack.
 
 ### Changed
+- **Honest AI data-egress copy.** "Local only · no telemetry sent" was misleading
+  once AI is enabled: the Inspector header is now AI-aware, each AI panel discloses
+  that running it sends the shown data to your provider, and the Settings copy says
+  requests are sent from the app to your chosen provider.
+- **Code-split views** (`React.lazy` + Suspense): the ten views load their chunk on
+  first open, so first paint carries only the shell and the landing view.
 - **Premium redesign ("calm" pass):** removed the background orbs, heavy glows
   and drop-shadows; flat neutral icon tiles; sentence-case labels instead of
   all-caps mono; quiet tinted buttons. One accent across the UI rather than a
@@ -73,6 +101,13 @@ Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
   instead of sitting small and flat.
 
 ### Fixed
+- **Session Guard no longer detects Onyx itself** — the process scan excludes the
+  app's own Electron processes (by name and by its own PIDs), so it never offers to
+  guard or kill itself.
+- **The Settings AI test result no longer truncates** — long provider errors (e.g.
+  a Gemini quota message) wrap in their own block, tinted by success or failure.
+- **Git Pulse repo names keep priority** — the branch badge was shrunk so a repo
+  name no longer truncates aggressively next to it.
 - **AI errors now name the real cause.** A failing call surfaces the active
   provider's actual message (e.g. Gemini "free-tier quota: 0 for this model")
   instead of a hard-coded "Anthropic is busy", and the in-panel copy /

@@ -15,6 +15,7 @@ const initLaunchers = require('../../tools/launchers/index');
 const initPowerManager = require('../../tools/power-manager/index');
 const initAI = require('../../tools/ai/index');
 const initConflicts = require('../../tools/conflicts/index');
+const initPortability = require('../../tools/portability/index');
 const logger = require('./logger');
 
 app.setName('Onyx');
@@ -331,6 +332,7 @@ if (!gotTheLock) {
     initPowerManager();
     initAI();
     initConflicts(() => globalShortcut.isRegistered('CommandOrControl+Alt+D'));
+    initPortability();
 
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {

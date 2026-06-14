@@ -28,6 +28,8 @@ const INVOKE_CHANNELS = [
   'snippets:get', 'snippets:save',
   // Launchers
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
+  // Settings backup / restore (config + snippets + launchers; never secrets)
+  'settings:export', 'settings:import',
   // Tray
   'tray:openMain', 'tray:resize',
   // Power

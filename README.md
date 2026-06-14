@@ -57,6 +57,8 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
 
 **Command palette** — press `Ctrl`/`Cmd`+`K` from anywhere to jump to any view or switch theme without the mouse.
 
+**Backup & restore** — export your preferences, snippets and launcher profiles to a JSON file and restore them on another machine (secrets are never included).
+
 **Themes** — Midnight, Pure OLED and Dracula, plus a pickable accent colour.
 
 > [!NOTE]

@@ -199,6 +199,23 @@ class MockApi {
           cpu: Math.floor(Math.random() * 20 + 5) + '%',
           ram: (Math.random() * 2 + 4).toFixed(1) + 'GB'
         };
+      case 'settings:export': {
+        // No native save dialog in the browser — trigger a real file download so
+        // the preview is genuinely functional.
+        try {
+          const payload = { onyx: 'onyx-settings-backup', version: 1, ...(args[0] || {}) };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'onyx-settings-backup.json';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } catch {}
+        return { ok: true, path: 'onyx-settings-backup.json' };
+      }
+      case 'settings:import':
+        // No native open dialog in the browser preview.
+        return { canceled: true };
       case 'tray:openMain':
         console.log('Opened main window from tray dashboard');
         window.location.hash = '';

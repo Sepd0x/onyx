@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload } from 'lucide-react';
 import Switch from '../components/Switch';
 import ViewHeader from '../components/ViewHeader';
 import { CH, EV } from '../ipc';
@@ -14,6 +14,7 @@ export default function SettingsView() {
   const [aiModel, setAiModel] = useState('');
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState('');
+  const [backupMsg, setBackupMsg] = useState('');
   // Conflict surface: whether the global hotkey actually registered (another app
   // may have grabbed Ctrl+Alt+D first).
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
@@ -110,6 +111,40 @@ export default function SettingsView() {
     } finally {
       setAiBusy(false);
     }
+  };
+
+  // Backup & restore (#26): export/import config + snippets + launchers. Never
+  // touches API keys or the GitHub token. Import applies via the existing save
+  // channels so each tool's in-memory state stays in sync.
+  const exportSettings = async () => {
+    if (!window.api) return;
+    setBackupMsg('');
+    const [snippets, launchers] = await Promise.all([
+      window.api.invoke(CH.snippetsGet),
+      window.api.invoke(CH.launchersGet),
+    ]);
+    const res: any = await window.api.invoke(CH.settingsExport, { config, snippets, launchers });
+    if (res?.ok) setBackupMsg('Settings exported ✓');
+    else if (res?.error) setBackupMsg(res.error);
+  };
+
+  const importSettings = async () => {
+    if (!window.api) return;
+    setBackupMsg('');
+    const res: any = await window.api.invoke(CH.settingsImport);
+    if (res?.canceled) return;
+    if (res?.error) { setBackupMsg(res.error); return; }
+    const d = res?.data || {};
+    if (d.config && typeof d.config === 'object') {
+      await window.api.invoke(CH.appSetConfig, d.config);
+      setConfig((c: any) => ({ ...c, ...d.config }));
+      if (d.config.theme) document.documentElement.setAttribute('data-theme', d.config.theme);
+      if ('accent' in d.config) applyAccent(d.config.accent);
+    }
+    if (Array.isArray(d.snippets)) await window.api.invoke(CH.snippetsSave, d.snippets);
+    if (Array.isArray(d.launchers)) await window.api.invoke(CH.launchersSave, d.launchers);
+    invalidate('app:'); invalidate('snippets:'); invalidate('launchers:');
+    setBackupMsg('Settings imported ✓');
   };
 
   const checkForUpdates = async () => {
@@ -444,6 +479,24 @@ export default function SettingsView() {
                    </button>
                  );
                })}
+             </div>
+           </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+           <h3 className="text-sm font-semibold flex items-center gap-2"><Download className="w-4 h-4 text-accent"/> Backup &amp; restore</h3>
+           <div className="bg-surface border border-border rounded-xl shadow-sm p-6 flex flex-col gap-4">
+             <p className="text-[11px] text-muted leading-relaxed">
+               Export your preferences, snippets and launcher profiles to a JSON file — or restore them on another machine. API keys and the GitHub token are never included.
+             </p>
+             <div className="flex flex-wrap items-center gap-3">
+               <button onClick={exportSettings} className="flex items-center gap-2 px-4 py-2 bg-surface2 hover:bg-surface3 border border-border text-text2 text-xs font-medium rounded-lg transition-colors">
+                 <Download className="w-3.5 h-3.5"/> Export settings
+               </button>
+               <button onClick={importSettings} className="flex items-center gap-2 px-4 py-2 bg-surface2 hover:bg-surface3 border border-border text-text2 text-xs font-medium rounded-lg transition-colors">
+                 <Upload className="w-3.5 h-3.5"/> Import settings
+               </button>
+               {backupMsg && <span className="text-[11px] font-mono text-accent/90">{backupMsg}</span>}
              </div>
            </div>
         </div>

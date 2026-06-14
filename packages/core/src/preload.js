@@ -16,6 +16,7 @@ const INVOKE_CHANNELS = [
   'cleaner:scan', 'cleaner:delete',
   'snippets:get', 'snippets:save',
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
+  'settings:export', 'settings:import',
   'tray:openMain', 'tray:resize',
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
   'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs',
