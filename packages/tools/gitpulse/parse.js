@@ -11,6 +11,70 @@ function parseGithubUrl(url) {
   return { owner, repo, slug: `${owner}/${repo}`, url: `https://github.com/${owner}/${repo}` };
 }
 
+// Normalise a `git remote get-url origin` value (https or ssh) to an `owner/repo`
+// slug, dropping any `.git` suffix and trailing slash. Returns null when it isn't
+// a GitHub remote. Case is preserved for display; callers compare case-insensitively.
+//   https://github.com/Owner/Repo.git  → Owner/Repo
+//   git@github.com:Owner/Repo.git       → Owner/Repo
+function parseRemoteSlug(remoteUrl) {
+  if (typeof remoteUrl !== 'string') return null;
+  const m = remoteUrl.trim().match(/github\.com[:/]+([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return null;
+  const owner = m[1];
+  const repo = m[2];
+  if (!owner || !repo) return null;
+  return `${owner}/${repo}`;
+}
+
+// Merge local + remote repo cards that are the same project into one "unified"
+// card (local state kept primary, remote state attached under `remote`).
+//
+// A local card pairs with a remote when either the user forced it (directive.link
+// === remote url) or the local's origin slug matches the remote's slug AND the
+// pair isn't suppressed (directive.unlinked includes the remote url). Pure +
+// deterministic so it can be unit-tested without git or the network.
+function pairRepoCards(localCards, remoteCards, directives = {}) {
+  const lc = (s) => (typeof s === 'string' ? s.toLowerCase() : '');
+  const remotes = remoteCards.map((card) => ({ card, used: false }));
+  const out = [];
+
+  for (const local of localCards) {
+    const d = directives[local.path] || {};
+    const suppressed = new Set((d.unlinked || []).map(lc));
+    let match = null;
+
+    if (d.link) {
+      match = remotes.find((r) => !r.used && lc(r.card.path) === lc(d.link));
+    }
+    if (!match && local.remoteSlug) {
+      match = remotes.find(
+        (r) => !r.used && lc(r.card.name) === lc(local.remoteSlug) && !suppressed.has(lc(r.card.path))
+      );
+    }
+
+    if (match) {
+      match.used = true;
+      const remote = match.card;
+      out.push({
+        ...local,
+        type: 'unified',
+        remote: {
+          slug: remote.name,
+          url: remote.path,
+          branch: remote.branch,
+          openIssues: remote.dirty,
+          lastCommit: remote.lastCommit,
+        },
+      });
+    } else {
+      out.push(local);
+    }
+  }
+
+  for (const r of remotes) if (!r.used) out.push(r.card);
+  return out;
+}
+
 // Bucket a list of commit dates (ISO `YYYY-MM-DD`, e.g. from `git log --date=short`)
 // into a fixed-length per-day activity array. Index 0 is `days-1` days ago and the
 // last index is `todayISO`. Dates outside the window or unparsable are ignored.
@@ -67,4 +131,4 @@ function capDiff(diff, maxTotalBytes = 30000, maxPerFileBytes = 8000) {
   return out;
 }
 
-module.exports = { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff };
+module.exports = { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff };

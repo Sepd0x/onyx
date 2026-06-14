@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/icon.png" width="120" alt="Onyx logo">
+
 # Onyx
 
 **One native app for the small, recurring chores of local development.**
@@ -15,6 +17,14 @@ Free a stuck port, keep your machine awake until a build finishes, see which rep
 </p>
 
 <sub>Local-first · no account · no telemetry · Windows 10/11</sub>
+
+<br>
+
+[Why Onyx](#why-onyx) · [What's inside](#whats-inside) · [Screenshots](#screenshots) · [Getting started](#getting-started) · [How it's built](#how-its-built) · [Contributing](CONTRIBUTING.md)
+
+<br>
+
+<img src="assets/screenshots/inspector.png" width="860" alt="Onyx — Inspector view: a unified read-out of repository sync state, live issues, and detected dev processes, with optional AI briefings">
 
 </div>
 
@@ -32,7 +42,7 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
 |---|---|
 | **Port Mapper** | Live list of listening/established ports grouped by process — free any one in a click. |
 | **Session Guard** | Hold a system wake-lock tied to a build/PID so the OS won't sleep mid-task, then auto-release and notify when it exits. |
-| **Git Pulse** | Track local & GitHub repos at a glance: branch, dirty files, ahead/behind, risk flags, 14-day activity — with optional AI commit messages. |
+| **Git Pulse** | Track local & GitHub repos at a glance: branch, dirty files, ahead/behind, risk flags, 14-day activity. A local repo and its GitHub twin auto-merge into one card (or link/unlink by hand); optional per-repo AI actions — commit message, explain the diff, draft a PR description, summarise history. |
 | **Dev Cleanser** | Scan common dev folders for heavy `node_modules` and reclaim the space, with a guarded, confirmed delete. |
 | **OS Power Manager** | Switch Windows power modes (optionally auto, on AC/battery) without touching brightness. |
 | **Focus Mode** | Cursor auto-hide and distraction-free window rules. |
@@ -43,9 +53,60 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
 
 **Optional AI** — bring your own key for **Anthropic (Claude)**, **OpenAI (ChatGPT)** or **Google (Gemini)**. Keys are encrypted at rest in the OS keychain and never leave your machine except for the call you trigger.
 
+**First-run setup** — a short guided onboarding picks your theme, accent and (optional) AI provider on first launch.
+
+**Command palette** — press `Ctrl`/`Cmd`+`K` from anywhere to jump to any view or switch theme without the mouse.
+
 **Themes** — Midnight, Pure OLED and Dracula, plus a pickable accent colour.
 
-> **Status:** approaching the first tagged release. Core modules work end-to-end; see [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+> [!NOTE]
+> **Status — approaching the first tagged release.** Core modules work end-to-end; see [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+
+## Screenshots
+
+<div align="center">
+
+<img src="assets/screenshots/onboarding.png" width="820" alt="First-run onboarding — pick a theme and accent, optionally add an AI key">
+
+<sub><b>First-run setup</b> — pick a theme and accent, optionally add an AI key, in a few seconds.</sub>
+
+<br><br>
+
+<img src="assets/screenshots/command-palette.png" width="820" alt="Command palette — press Ctrl+K to jump to any view or switch theme">
+
+<sub><b>Command palette</b> — press <kbd>Ctrl</kbd>+<kbd>K</kbd> to jump to any view or switch theme without leaving the keyboard.</sub>
+
+<br><br>
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/git-pulse.png" alt="Git Pulse — repository health cards, local repos merged with their GitHub twin"><br><sub><b>Git Pulse</b> — repo health, with local repos merged into one card with their GitHub twin.</sub></td>
+    <td width="50%"><img src="assets/screenshots/port-mapper.png" alt="Port Mapper — listening ports grouped by process"><br><sub><b>Port Mapper</b> — listening/established ports grouped by process, freed in a click.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/session-guard.png" alt="Session Guard — wake-lock manager with active guards"><br><sub><b>Session Guard</b> — hold a wake-lock tied to a build so the OS won't sleep mid-task.</sub></td>
+    <td width="50%"><img src="assets/screenshots/power.png" alt="OS Power Manager — power modes and battery"><br><sub><b>OS Power Manager</b> — switch Windows power modes, optionally automatic on AC/battery.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/launchers.png" alt="Launchers — one-click local dev stacks"><br><sub><b>Launchers</b> — start a whole local stack (frontend, API, database) as one profile.</sub></td>
+    <td width="50%"><img src="assets/screenshots/dev-cleanser.png" alt="Dev Cleanser — reclaim disk from heavy node_modules"><br><sub><b>Dev Cleanser</b> — find heavy <code>node_modules</code> and reclaim the space, guarded.</sub></td>
+  </tr>
+</table>
+
+**Three themes**, switchable live with a pickable accent colour:
+
+<table>
+  <tr>
+    <td width="33%"><img src="assets/screenshots/git-pulse.png" alt="Midnight theme"><br><sub><b>Midnight</b></sub></td>
+    <td width="33%"><img src="assets/screenshots/git-pulse-oled.png" alt="Pure OLED theme"><br><sub><b>Pure OLED</b></sub></td>
+    <td width="33%"><img src="assets/screenshots/git-pulse-dracula.png" alt="Dracula theme"><br><sub><b>Dracula</b></sub></td>
+  </tr>
+</table>
+
+</div>
+
+> [!NOTE]
+> Captured from the live UI. Run `npm run onyx` to explore it yourself.
 
 ## Getting started
 
@@ -79,6 +140,12 @@ packages/
 ```
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the security model and IPC boundaries, and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved.
+
+## Contributing & security
+
+Contributions are welcome — start with [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, conventions, and the pre-commit gate. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Found a security issue? Report it privately — see [`SECURITY.md`](SECURITY.md). Onyx handles API keys and a GitHub token, so please don't open a public issue for vulnerabilities.
 
 ## License
 

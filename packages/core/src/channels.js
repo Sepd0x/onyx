@@ -13,7 +13,7 @@ const INVOKE_CHANNELS = [
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
   // Git
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
-  'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot',
+  'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot', 'git:linkRepo', 'git:unlinkRepo', 'git:aiRepoAction',
   // Dev watcher
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   // App / settings / updates

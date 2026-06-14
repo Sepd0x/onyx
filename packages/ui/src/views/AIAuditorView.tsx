@@ -62,7 +62,9 @@ export default function AIAuditorView() {
                 <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
                 Active monitoring
               </div>
-              <p className="text-[10px] text-muted">Local only · no telemetry sent</p>
+              <p className="text-[10px] text-muted">
+                {aiConfigured ? 'Local · AI actions send the shown data to your provider' : 'Local only · no telemetry'}
+              </p>
             </div>
           }
         />

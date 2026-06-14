@@ -240,7 +240,7 @@ export default function SettingsView() {
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
                 <h3 className="font-medium text-[13px] text-text">Enable Inspector</h3>
-                <p className="text-[11px] text-muted mt-1 leading-relaxed">Shows the Inspector tab with real repo-sync and dev-process telemetry (local only).</p>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">Shows the Inspector tab with real repo-sync and dev-process readouts (local; the optional AI insights send the shown data to your provider).</p>
               </div>
               <Switch active={config.enableAIFeatures ?? true} onClick={() => toggle('enableAIFeatures')} />
             </div>
@@ -312,7 +312,7 @@ export default function SettingsView() {
                    <KeyRound className="w-3.5 h-3.5 text-muted" /> {activeMeta.label} API Key
                  </h3>
                  <p className="text-[11px] text-muted mt-1 leading-relaxed">
-                   Powers real commit-message generation and Inspector insights. Stored encrypted on this device via the OS keychain; calls run locally from the app{activeMeta.keyUrl ? <>. Get a key at {activeMeta.keyUrl}</> : ''}.
+                   Powers real commit-message generation and Inspector insights. Stored encrypted on this device via the OS keychain; requests are sent from the app (never the browser) to your chosen provider{activeMeta.keyUrl ? <>. Get a key at {activeMeta.keyUrl}</> : ''}.
                  </p>
                </div>
                <span className={`flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md ${aiStatus.configured ? 'bg-surface2 text-muted2' : 'bg-surface2 text-muted'}`}>
@@ -379,8 +379,13 @@ export default function SettingsView() {
                    className="bg-background border border-border rounded px-2 py-1 text-[10px] font-mono text-text2 focus:border-primary/50 outline-none w-52"
                  />
                </div>
-               {aiMsg && <span className="text-[10px] font-mono text-accent/80 shrink-0 truncate max-w-[60%] text-right">{aiMsg}</span>}
              </div>
+
+             {aiMsg && (
+               <div className={`text-[10px] font-mono leading-relaxed break-words rounded-md px-3 py-2 ${/fail|error|reject|unavailable|quota|invalid/i.test(aiMsg) ? 'text-warning bg-warning/10 border border-warning/20' : 'text-accent/90 bg-primary/5 border border-primary/20'}`}>
+                 {aiMsg}
+               </div>
+             )}
 
              {activeMeta.presets?.length > 0 && (
                <div className="flex flex-wrap items-center gap-1.5">

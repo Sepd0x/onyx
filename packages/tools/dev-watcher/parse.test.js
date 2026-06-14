@@ -121,6 +121,25 @@ describe('extractDevProcesses', () => {
     expect(out.map((p) => p.pid)).toEqual(['2']);
   });
 
+  it('never surfaces Onyx itself (packaged onyx.exe), whatever it scores', () => {
+    const out = extractDevProcesses([
+      { pid: '100', name: 'onyx.exe', command: 'onyx --inspect node_modules vite localhost' },
+      { pid: '101', name: 'node.exe', command: 'vite' },
+    ]);
+    expect(out.map((p) => p.pid)).toEqual(['101']);
+  });
+
+  it('excludes our own Electron pids (main/renderer/gpu) passed by the handler', () => {
+    const list = [
+      { pid: '200', name: 'electron.exe', command: 'electron node_modules vite localhost --inspect' },
+      { pid: '201', name: 'node.exe', command: 'vite' },
+    ];
+    expect(extractDevProcesses(list, ['200']).map((p) => p.pid)).toEqual(['201']);
+    expect(extractDevProcesses(list, new Set(['200'])).map((p) => p.pid)).toEqual(['201']);
+    // Without exclusion the dev renderer would (wrongly) show up.
+    expect(extractDevProcesses(list).map((p) => p.pid)).toContain('200');
+  });
+
   it('caps confidence at 99%', () => {
     const out = extractDevProcesses([
       {

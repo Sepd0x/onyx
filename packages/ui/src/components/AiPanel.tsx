@@ -63,6 +63,11 @@ export default function AiPanel({
               <span className="text-[8px] font-mono font-bold tracking-widest text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded uppercase">AI</span>
             </h3>
             <p className="text-[11px] text-muted leading-relaxed mt-1">{description}</p>
+            {configured && (
+              <p className="text-[10px] text-muted/70 leading-relaxed mt-1.5">
+                Runs in the cloud — sends the data shown here to {brand} when you trigger it.
+              </p>
+            )}
           </div>
         </div>
         <button

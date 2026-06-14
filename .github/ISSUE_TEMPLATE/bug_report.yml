@@ -1,0 +1,54 @@
+name: Bug report
+description: Something isn't working the way it should
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please fill in the sections below.
+        **Never paste secrets** (API keys, tokens) into an issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I click "Free port" the row stays in the list…
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can we make it happen?
+      placeholder: |
+        1. Open Port Mapper
+        2. Click "Free" on port 3000
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Onyx version
+      description: From the Settings view, or the installer filename.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Other (note it below)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Optional. Attach a screenshot or relevant log lines (scrub any secrets first).
+    validations:
+      required: false

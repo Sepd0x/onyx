@@ -24,6 +24,9 @@ export const CH = {
   gitGetScanRoots: 'git:getScanRoots',
   gitAddScanRoot: 'git:addScanRoot',
   gitRemoveScanRoot: 'git:removeScanRoot',
+  gitLinkRepo: 'git:linkRepo',
+  gitUnlinkRepo: 'git:unlinkRepo',
+  gitAiRepoAction: 'git:aiRepoAction',
   // Dev watcher
   devStartWatch: 'dev:startWatch',
   devStopWatch: 'dev:stopWatch',

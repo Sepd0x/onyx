@@ -3,13 +3,66 @@
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+// Rich seed data for demo mode (?demo=1). Lets the otherwise-empty views show a
+// realistic, populated state — used for screenshots and for exercising features
+// without real data — while normal dev (no flag) still tests the empty states.
+const DEMO_SNIPPETS = [
+  { id: 'demo-s1', title: 'Kill port 3000', command: 'npx kill-port 3000' },
+  { id: 'demo-s2', title: 'Who owns a port', command: 'netstat -ano | findstr :3000' },
+  { id: 'demo-s3', title: 'Nuke node_modules', command: 'Remove-Item -Recurse -Force node_modules' },
+  { id: 'demo-s4', title: 'Clear NPM cache', command: 'npm cache clean --force' },
+  { id: 'demo-s5', title: 'Recent commits', command: 'git log --oneline -10' },
+  { id: 'demo-s6', title: 'Prune merged branches', command: 'git branch --merged | grep -v main | xargs git branch -d' },
+];
+
+// A local repo already merged with its GitHub twin (origin slug match) → one card.
+const DEMO_UNIFIED = {
+  type: 'unified',
+  name: 'onyx',
+  branch: 'main',
+  dirty: 4,
+  pull: 0,
+  push: 2,
+  path: 'C:/dev/onyx',
+  activity: [0, 1, 0, 3, 5, 0, 2, 1, 0, 4, 2, 0, 1, 3],
+  risk: ['Exposed .env'],
+  ready: true,
+  commitWarning: null,
+  remoteSlug: 'Sepd0x/onyx',
+  remote: {
+    slug: 'Sepd0x/onyx',
+    url: 'https://github.com/Sepd0x/onyx',
+    branch: 'main',
+    openIssues: 3,
+    lastCommit: 'feat: premium overhaul — multi-provider AI',
+  },
+};
+
+const DEMO_LAUNCHERS = [
+  {
+    id: 'demo-mern',
+    title: 'MERN Stack · storefront',
+    commands: [
+      { name: 'Frontend', cmd: 'npm run dev', path: 'C:/dev/storefront/web' },
+      { name: 'API', cmd: 'npm run start:api', path: 'C:/dev/storefront/api' },
+      { name: 'Database', cmd: 'docker compose up db', path: 'C:/dev/storefront' },
+    ],
+  },
+  {
+    id: 'demo-docs',
+    title: 'Docs site',
+    commands: [{ name: 'Docs', cmd: 'npm run docs:dev', path: 'C:/dev/docs' }],
+  },
+];
+
 class MockApi {
-  private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true };
+  private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true, onboarded: true };
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
   private repos: any[] = [
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null },
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null }
   ];
+  private demo = false;
   private watchedProcesses: any[] = [];
   private cleanerDirs: { path: string; name: string; bytes: number }[] = [
     { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', bytes: 340 * 1024 * 1024 },
@@ -23,15 +76,26 @@ class MockApi {
 
   constructor() {
     try {
+      this.demo = /(?:^|[?&#])demo(?:=1)?(?:&|$|#)/.test(location.search + location.hash);
+    } catch {}
+    try {
       const savedConfig = localStorage.getItem('onyx-config');
       if (savedConfig) this.config = JSON.parse(savedConfig);
-      
+
       const savedCursor = localStorage.getItem('onyx-cursor');
       if (savedCursor) this.cursorConfig = JSON.parse(savedCursor);
-      
+
       const savedRepos = localStorage.getItem('onyx-repos');
       if (savedRepos) this.repos = JSON.parse(savedRepos);
     } catch {}
+
+    if (this.demo) {
+      // Two tasks already guarded so Session Guard shows live wake-locks.
+      this.watchedProcesses = [
+        { id: 'demo-g1', type: 'pid', target: '18420', name: 'vite build · onyx-ui' },
+        { id: 'demo-g2', type: 'pid', target: '22107', name: 'next dev · storefront' },
+      ];
+    }
   }
 
   private save() {
@@ -66,7 +130,20 @@ class MockApi {
         this.save();
         return this.cursorConfig.active;
         
-      case 'git:getRepos': return this.repos;
+      case 'git:getRepos': return this.demo ? [DEMO_UNIFIED, ...this.repos] : this.repos;
+      case 'git:linkRepo':
+      case 'git:unlinkRepo':
+        return { ok: true };
+      case 'git:aiRepoAction': {
+        await delay(900);
+        if (!this.demo && localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
+        const demoText: Record<string, string> = {
+          explain: '• Adds a command palette (Ctrl+K) for view navigation and theme switching.\n• Introduces a demo-data mode in the mock backend for screenshots and testing.\n• Refactors the Git Pulse card to merge a local repo with its GitHub twin.',
+          pr: 'Unify a local repo with its GitHub twin in Git Pulse.\n\n## Changes\n- Auto-match by normalising the origin remote against the GitHub slug\n- Manual link / unlink for absent or ambiguous origins, persisted\n- New git:linkRepo / git:unlinkRepo channels across all layers\n- Pure pairRepoCards logic with unit tests',
+          history: '• Recent work centres on a premium UX pass: command palette, demo mode, richer screenshots.\n• Git Pulse gained local↔GitHub unification.\n• Session Guard no longer detects Onyx itself.',
+        };
+        return { text: demoText[args[1]] || demoText.explain, usage: { input: 900, output: 160 }, cached: false };
+      }
       case 'git:addRepo':
         const newRepo = { name: 'New-Project-' + Math.floor(Math.random()*100), branch: 'master', dirty: Math.floor(Math.random()*5), pull: 0, push: 0, path: 'C:/dev/new-project', activity: [0,0,0,0,0,0,0,0,0,0,0,0,0,0],risk: [], ready: false };
         this.repos.push(newRepo);
@@ -164,16 +241,19 @@ class MockApi {
         return { ok: true, deleted, rejected: targets.length - deleted, failed: [] };
       }
       case 'snippets:get': {
-        // Real backend starts empty — the mock must exercise the empty states too.
+        // Real backend starts empty — the mock exercises the empty state by
+        // default, and a populated shelf under ?demo=1.
         const saved = localStorage.getItem('onyx-snippets');
-        return saved ? JSON.parse(saved) : [];
+        if (saved) return JSON.parse(saved);
+        return this.demo ? DEMO_SNIPPETS : [];
       }
       case 'snippets:save':
         localStorage.setItem('onyx-snippets', JSON.stringify(args[0]));
         return true;
       case 'launchers:get': {
         const lp = localStorage.getItem('onyx-launchers');
-        return lp ? JSON.parse(lp) : [];
+        if (lp) return JSON.parse(lp);
+        return this.demo ? DEMO_LAUNCHERS : [];
       }
       case 'launchers:save':
         localStorage.setItem('onyx-launchers', JSON.stringify(args[0]));
@@ -183,7 +263,8 @@ class MockApi {
       case 'launchers:stop':
         return { ok: true };
       case 'launchers:status':
-        return [];
+        // One profile shown as running in demo mode.
+        return this.demo ? ['demo-mern'] : [];
       case 'dev:status':
         return this.watchedProcesses;
       case 'dev:startWatch':
@@ -236,7 +317,7 @@ class MockApi {
         
       case 'ai:getStatus':
         return {
-          configured: localStorage.getItem('onyx-ai-configured') === '1',
+          configured: this.demo || localStorage.getItem('onyx-ai-configured') === '1',
           encryptionAvailable: true,
           model: 'claude-haiku-4-5',
         };
@@ -253,7 +334,7 @@ class MockApi {
         // Browser mock has no real model; gate on the same configured flag and
         // return a canned briefing so the result UI can be exercised in dev.
         await delay(900);
-        if (localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
+        if (!this.demo && localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
         const demo: Record<string, string> = {
           'ai:insights': '• onyx-core: 4 uncommitted files and 2 unpushed commits — commit & push before they grow stale.\n• onyx-core: a .env file is tracked as a risk — add it to .gitignore.\n• Focus-Tools: 2 commits behind origin — pull to avoid a divergent history.\n• 2 dev servers (claude.exe, code.exe) are running — guard them in Session Guard so the machine stays awake.',
           'ai:explainPower': 'You are on AC power in Balanced mode. The auto-planner switched to Battery Saver twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',

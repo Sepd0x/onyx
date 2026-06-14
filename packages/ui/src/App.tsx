@@ -1,18 +1,23 @@
-import { useState, useEffect } from 'react';
-import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit } from 'lucide-react';
-import PortsView from './views/PortsView';
-import GitView from './views/GitView';
-import CursorView from './views/CursorView';
-import DevWatcherView from './views/DevWatcherView';
-import SettingsView from './views/SettingsView';
-import CleanserView from './views/CleanserView';
-import SnippetsView from './views/SnippetsView';
-import LaunchersView from './views/LaunchersView';
-import TrayView from './views/TrayView';
-import AIAuditorView from './views/AIAuditorView';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command } from 'lucide-react';
 
-import PowerOSView from './views/PowerOSView';
+// Views are code-split (React.lazy): each tab's chunk loads on first open, so the
+// initial bundle/first paint only carries the shell + the landing view.
+const PortsView = lazy(() => import('./views/PortsView'));
+const GitView = lazy(() => import('./views/GitView'));
+const CursorView = lazy(() => import('./views/CursorView'));
+const DevWatcherView = lazy(() => import('./views/DevWatcherView'));
+const SettingsView = lazy(() => import('./views/SettingsView'));
+const CleanserView = lazy(() => import('./views/CleanserView'));
+const SnippetsView = lazy(() => import('./views/SnippetsView'));
+const LaunchersView = lazy(() => import('./views/LaunchersView'));
+const TrayView = lazy(() => import('./views/TrayView'));
+const AIAuditorView = lazy(() => import('./views/AIAuditorView'));
+const PowerOSView = lazy(() => import('./views/PowerOSView'));
+
 import Logo from './components/Logo';
+import CommandPalette, { type Command as PaletteCommand } from './components/CommandPalette';
+import Onboarding from './components/Onboarding';
 import { CH, EV } from './ipc';
 import { useIpc, invalidate } from './lib/ipcCache';
 import { applyAccent } from './lib/accents';
@@ -20,6 +25,8 @@ import { applyAccent } from './lib/accents';
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
   const [isTrayMode, setIsTrayMode] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [onboardDone, setOnboardDone] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   // Pause the background polls while the window is hidden (closed to tray /
@@ -34,8 +41,14 @@ export default function App() {
 
   // Shared cache: config + system stats poll once per channel, served instantly on
   // re-render and shared with any other view that reads them.
-  const appConfig = useIpc(CH.appGetConfig, [], { pollMs: idle ? 0 : 3000 }).data ?? {};
+  const appConfigState = useIpc(CH.appGetConfig, [], { pollMs: idle ? 0 : 3000 });
+  const appConfig = appConfigState.data ?? {};
   const stats = useIpc(CH.appGetStats, [], { pollMs: idle ? 0 : 2000 }).data ?? { cpu: '14%', ram: '4.2GB' };
+
+  // First-run onboarding: shown once config has loaded and the flag isn't set
+  // (or forced via ?onboarding for previews). Dismissal flips the flag in config.
+  const forceOnboarding = typeof window !== 'undefined' && /[?&]onboarding/.test(window.location.search);
+  const showOnboarding = appConfigState.data !== undefined && !onboardDone && (forceOnboarding || appConfig.onboarded !== true);
 
   // Theme authority (#30): apply the saved theme on every window as soon as the
   // config arrives (and on later changes), mirroring to localStorage so the
@@ -82,11 +95,65 @@ export default function App() {
     return () => window.removeEventListener('mock-event', notifHandler);
   }, []);
 
+  // Command palette (Ctrl/Cmd+K): toggle from anywhere, even inside inputs.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const setTheme = (theme: string) => {
+    document.documentElement.setAttribute('data-theme', theme); // instant, no flash
+    window.api?.invoke(CH.appSetConfig, { theme });
+    invalidate('app:getConfig');
+  };
+
+  const paletteCommands = useMemo<PaletteCommand[]>(() => {
+    const views: { id: string; label: string; icon: any }[] = [
+      { id: 'watcher', label: 'Session Guard', icon: ShieldAlert },
+      ...((appConfig.enableAIFeatures ?? true) ? [{ id: 'aiauditor', label: 'Inspector', icon: BrainCircuit }] : []),
+      { id: 'cursor', label: 'Focus Mode', icon: MousePointer2 },
+      { id: 'ports', label: 'Port Mapper', icon: Network },
+      { id: 'git', label: 'Git Pulse', icon: GitBranch },
+      { id: 'cleaner', label: 'Dev Cleanser', icon: Activity },
+      { id: 'launchers', label: 'Launchers', icon: Rocket },
+      { id: 'snippets', label: 'Snippets', icon: TerminalSquare },
+      { id: 'power', label: 'OS Power Manager', icon: Zap },
+      { id: 'settings', label: 'Settings', icon: Settings },
+    ];
+    const nav: PaletteCommand[] = views.map((v) => ({
+      id: `go:${v.id}`,
+      label: v.label,
+      section: 'Go to',
+      hint: 'View',
+      keywords: 'open view navigate',
+      icon: v.icon,
+      run: () => setActiveTab(v.id),
+    }));
+    const themes: PaletteCommand[] = [
+      { id: 'theme:midnight', label: 'Midnight', section: 'Theme' },
+      { id: 'theme:oled', label: 'Pure OLED', section: 'Theme' },
+      { id: 'theme:dracula', label: 'Dracula', section: 'Theme' },
+    ].map((t) => ({
+      ...t,
+      hint: 'Theme',
+      keywords: 'theme colour color appearance dark',
+      icon: Palette,
+      run: () => setTheme(t.id.split(':')[1]),
+    }));
+    return [...nav, ...themes];
+  }, [appConfig.enableAIFeatures]);
+
   const closeWindow = () => window.api?.invoke(CH.windowClose);
   const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
 
   if (isTrayMode) {
-    return <TrayView />;
+    return <Suspense fallback={null}><TrayView /></Suspense>;
   }
 
   return (
@@ -101,6 +168,15 @@ export default function App() {
           <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted2">ONYX</span>
         </div>
         <div className="flex items-center gap-4" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          <button
+            onClick={() => setPaletteOpen(true)}
+            title="Command palette (Ctrl+K)"
+            aria-label="Open command palette"
+            className="hidden md:flex items-center gap-2 pl-2 pr-1.5 py-1 rounded-md border border-border text-muted hover:text-text hover:bg-surface2 transition-colors"
+          >
+            <Command className="w-3 h-3" />
+            <kbd className="text-[9px] font-mono font-bold tracking-wider">Ctrl K</kbd>
+          </button>
           <div className="hidden md:flex items-center gap-3 mr-2">
             <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-muted">
                <span className="text-primary">CPU</span> {stats.cpu}
@@ -150,19 +226,25 @@ export default function App() {
         <main className="flex-1 overflow-auto bg-transparent relative no-scrollbar">
           {/* Keyed wrapper: re-mounts on tab change so every view gets a uniform entrance. */}
           <div key={activeTab} className="relative z-10 h-full animate-in fade-in slide-in-from-bottom-1 duration-200">
-            {activeTab === 'ports' && <PortsView />}
-            {activeTab === 'git' && <GitView />}
-            {activeTab === 'cursor' && <CursorView />}
-            {activeTab === 'watcher' && <DevWatcherView isAIEnabled={appConfig.enableAIFeatures ?? true} />}
-            {activeTab === 'aiauditor' && <AIAuditorView />}
-            {activeTab === 'cleaner' && <CleanserView />}
-            {activeTab === 'launchers' && <LaunchersView />}
-            {activeTab === 'snippets' && <SnippetsView />}
-            {activeTab === 'settings' && <SettingsView />}
-            {activeTab === 'power' && <PowerOSView />}
+            <Suspense fallback={<div className="p-8"><div className="shimmer h-9 w-56 rounded-lg" /></div>}>
+              {activeTab === 'ports' && <PortsView />}
+              {activeTab === 'git' && <GitView />}
+              {activeTab === 'cursor' && <CursorView />}
+              {activeTab === 'watcher' && <DevWatcherView isAIEnabled={appConfig.enableAIFeatures ?? true} />}
+              {activeTab === 'aiauditor' && <AIAuditorView />}
+              {activeTab === 'cleaner' && <CleanserView />}
+              {activeTab === 'launchers' && <LaunchersView />}
+              {activeTab === 'snippets' && <SnippetsView />}
+              {activeTab === 'settings' && <SettingsView />}
+              {activeTab === 'power' && <PowerOSView />}
+            </Suspense>
           </div>
         </main>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={paletteCommands} />
+
+      {showOnboarding && <Onboarding onFinish={() => setOnboardDone(true)} />}
 
       {notifications.length > 0 && (
          <div className="absolute bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">

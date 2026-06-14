@@ -1,4 +1,4 @@
-const { ipcMain, powerSaveBlocker, Notification } = require('electron');
+const { app, ipcMain, powerSaveBlocker, Notification } = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
 const { parseWinProcessJson, parsePosixPs, extractDevProcesses } = require('./parse');
@@ -47,7 +47,11 @@ module.exports = function initDevWatcher() {
           console.error('[dev-watcher] process scan output could not be parsed');
           return resolve([]);
         }
-        resolve(extractDevProcesses(list));
+        // Exclude Onyx's own Electron processes (main/renderer/gpu) so the app
+        // never offers to guard or kill itself (#A2).
+        let ownPids = [];
+        try { ownPids = app.getAppMetrics().map((m) => m.pid); } catch {}
+        resolve(extractDevProcesses(list, ownPids));
       };
 
       if (process.platform === 'win32') {

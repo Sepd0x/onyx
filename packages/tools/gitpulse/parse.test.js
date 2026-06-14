@@ -1,5 +1,52 @@
 import { describe, it, expect } from 'vitest';
-import { parseGithubUrl, classifyCommitMessage, bucketCommitDates, capDiff } from './parse.js';
+import { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff } from './parse.js';
+
+describe('parseRemoteSlug', () => {
+  it('normalises https and ssh origins to owner/repo, dropping .git', () => {
+    expect(parseRemoteSlug('https://github.com/Sepd0x/onyx.git')).toBe('Sepd0x/onyx');
+    expect(parseRemoteSlug('https://github.com/Sepd0x/onyx')).toBe('Sepd0x/onyx');
+    expect(parseRemoteSlug('git@github.com:Sepd0x/onyx.git')).toBe('Sepd0x/onyx');
+    expect(parseRemoteSlug('git@github.com:Sepd0x/onyx')).toBe('Sepd0x/onyx');
+  });
+
+  it('returns null for non-GitHub or empty remotes', () => {
+    expect(parseRemoteSlug('https://gitlab.com/a/b.git')).toBeNull();
+    expect(parseRemoteSlug('')).toBeNull();
+    expect(parseRemoteSlug(undefined)).toBeNull();
+  });
+});
+
+describe('pairRepoCards', () => {
+  const local = (path, remoteSlug) => ({ type: 'local', path, name: path.split('/').pop(), remoteSlug });
+  const remote = (slug) => ({ type: 'remote', path: `https://github.com/${slug}`, name: slug, branch: 'main', dirty: 2, lastCommit: 'feat: x' });
+
+  it('merges a local repo with the GitHub twin matching its origin slug (case-insensitive)', () => {
+    const out = pairRepoCards([local('C:/dev/onyx', 'Sepd0x/Onyx')], [remote('sepd0x/onyx')]);
+    expect(out).toHaveLength(1);
+    expect(out[0].type).toBe('unified');
+    expect(out[0].path).toBe('C:/dev/onyx');
+    expect(out[0].remote).toEqual({ slug: 'sepd0x/onyx', url: 'https://github.com/sepd0x/onyx', branch: 'main', openIssues: 2, lastCommit: 'feat: x' });
+  });
+
+  it('leaves unmatched local and remote cards standalone', () => {
+    const out = pairRepoCards([local('C:/dev/a', 'me/a')], [remote('me/b')]);
+    expect(out.map((c) => c.type)).toEqual(['local', 'remote']);
+  });
+
+  it('suppresses an auto-match when the pair is unlinked', () => {
+    const directives = { 'C:/dev/onyx': { unlinked: ['https://github.com/me/onyx'] } };
+    const out = pairRepoCards([local('C:/dev/onyx', 'me/onyx')], [remote('me/onyx')], directives);
+    expect(out.map((c) => c.type)).toEqual(['local', 'remote']);
+  });
+
+  it('forces a pairing via an explicit link even when slugs differ or origin is absent', () => {
+    const directives = { 'C:/dev/onyx': { link: 'https://github.com/me/other' } };
+    const out = pairRepoCards([local('C:/dev/onyx', null)], [remote('me/other')], directives);
+    expect(out).toHaveLength(1);
+    expect(out[0].type).toBe('unified');
+    expect(out[0].remote.slug).toBe('me/other');
+  });
+});
 
 describe('parseGithubUrl', () => {
   it('parses a standard repo url', () => {

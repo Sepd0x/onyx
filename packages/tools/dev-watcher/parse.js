@@ -67,12 +67,20 @@ function scoreDevProcess(pName, cmdLine) {
 
 // Maps raw {pid, name, command} entries to the IPC return shape, keeping only
 // likely dev processes and deduplicating by pid.
-function extractDevProcesses(list) {
+//
+// excludePids: pids that are Onyx's own Electron processes (main/renderer/gpu).
+// Guarding ourselves is nonsensical — and in dev the renderer scores high
+// (vite/node_modules/localhost) — so they're dropped here regardless of score.
+// We also drop anything whose name is Onyx itself (the packaged onyx.exe).
+function extractDevProcesses(list, excludePids) {
+  const exclude = excludePids instanceof Set ? excludePids : new Set((excludePids || []).map(String));
   const procs = [];
   const seen = new Set();
   for (const { pid, name, command } of list) {
     if (!pid || !name || seen.has(pid)) continue;
+    if (exclude.has(String(pid))) continue;
     const pName = name.toLowerCase();
+    if (pName.includes('onyx')) continue; // never surface ourselves
     const cmdLine = (command || '').toLowerCase();
     const confidence = scoreDevProcess(pName, cmdLine);
     if (confidence < 0.35) continue;
