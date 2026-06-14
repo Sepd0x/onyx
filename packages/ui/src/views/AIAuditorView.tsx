@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2, ScrollText } from 'lucide-react';
+import { BrainCircuit, Activity, Box, HardDrive, GitMerge, FileArchive, AlertTriangle, CheckCircle2, ScrollText, Sparkles } from 'lucide-react';
 import { CH } from '../ipc';
 import { useIpc } from '../lib/ipcCache';
 import ViewHeader from '../components/ViewHeader';
@@ -67,6 +67,25 @@ export default function AIAuditorView() {
               </p>
             </div>
           }
+        />
+      </div>
+
+      <div className="mb-6">
+        <AiPanel
+          title="Daily briefing"
+          icon={Sparkles}
+          description="One prioritised summary across your repos, dev processes, power state and today's log — your morning glance."
+          cta="Brief me"
+          configured={aiConfigured}
+          provider={aiProvider}
+          run={async () => {
+            const power: any = await window.api?.invoke(CH.powerGet).catch(() => null);
+            return (await window.api?.invoke(CH.aiBriefing, {
+              repos: (reposState.data ?? []).map((r: any) => ({ name: r.name, branch: r.branch, dirty: r.dirty, pull: r.pull, push: r.push, risk: r.risk, ready: r.ready })),
+              processes: trackedBinaries.map((b) => ({ name: b.name, type: b.type, confidence: b.confidence })),
+              power: power ? { profile: power.activeProfile, charging: power?.batteryState?.charging, otherPowerTools: power.conflicts } : null,
+            })) ?? { error: 'failed' };
+          }}
         />
       </div>
 

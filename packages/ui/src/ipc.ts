@@ -79,6 +79,7 @@ export const CH = {
   aiInsights: 'ai:insights',
   aiExplainPower: 'ai:explainPower',
   aiAnalyzeLogs: 'ai:analyzeLogs',
+  aiBriefing: 'ai:briefing',
 } as const;
 
 export const EV = {

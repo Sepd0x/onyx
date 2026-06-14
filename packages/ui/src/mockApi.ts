@@ -345,6 +345,7 @@ class MockApi {
         else localStorage.removeItem('onyx-ai-configured');
         return { ok: true, configured: has, encryptionAvailable: true };
       }
+      case 'ai:briefing':
       case 'ai:insights':
       case 'ai:explainPower':
       case 'ai:analyzeLogs': {
@@ -353,6 +354,7 @@ class MockApi {
         await delay(900);
         if (!this.demo && localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
         const demo: Record<string, string> = {
+          'ai:briefing': 'Repos:\n• onyx — a .env file is tracked (security risk): add it to .gitignore now.\n• onyx — 4 uncommitted files + 2 unpushed commits: commit & push before they grow stale.\n• Focus-Tools — 2 commits behind origin: pull to avoid a divergent history.\nProcesses & power:\n• 2 dev servers running (claude.exe, code.exe) — guard them so the machine stays awake.\n• On AC in Balanced mode — sensible for this workload.\nLog:\n• A few startup "Invalid IPC channel" warnings; harmless but worth ordering. Otherwise healthy.',
           'ai:insights': '• onyx-core: 4 uncommitted files and 2 unpushed commits — commit & push before they grow stale.\n• onyx-core: a .env file is tracked as a risk — add it to .gitignore.\n• Focus-Tools: 2 commits behind origin — pull to avoid a divergent history.\n• 2 dev servers (claude.exe, code.exe) are running — guard them in Session Guard so the machine stays awake.',
           'ai:explainPower': 'You are on AC power in Balanced mode. The auto-planner switched to Battery Saver twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',
           'ai:analyzeLogs': '• Repeated "Invalid IPC channel" warnings around startup — likely a renderer calling a channel before the handler registered; harmless but worth ordering. \n• One unhandled promise rejection in the updater check — wrap the network call. \n• Otherwise the logs look healthy.',

@@ -9,6 +9,10 @@ All notable changes to Onyx are documented here. The format follows
 Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
 
 ### Added
+- **Daily briefing** — one prioritised AI summary in the Inspector that combines
+  tracked repos, running dev processes, current power state and today's log tail
+  into a single morning glance (security risks first), alongside the existing
+  focused insights and log triage.
 - **First-run onboarding** — a short guided wizard on first launch: pick a theme
   and accent, optionally add an AI provider key (with a live Test), and a few
   tips. Persists an `onboarded` flag so it shows once.

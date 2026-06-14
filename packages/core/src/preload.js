@@ -19,7 +19,7 @@ const INVOKE_CHANNELS = [
   'settings:export', 'settings:import',
   'tray:openMain', 'tray:resize',
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
-  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs',
+  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing',
 ];
 const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed'];
 

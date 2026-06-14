@@ -35,7 +35,7 @@ const INVOKE_CHANNELS = [
   // Power
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
   // AI (key management; model calls run in main, key never crosses the bridge)
-  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs',
+  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing',
 ];
 
 // Main -> renderer push events (used with window.api.on).

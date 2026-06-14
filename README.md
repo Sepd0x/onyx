@@ -48,7 +48,7 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
 | **Focus Mode** | Cursor auto-hide and distraction-free window rules. |
 | **Launchers** | Start a whole local stack (frontend, API, database…) as one named profile. |
 | **Snippets** | Keep the shell one-liners you keep retyping, one click to copy. |
-| **Inspector** | A unified, local read-out of repo sync state and detected dev processes, with optional AI briefings. |
+| **Inspector** | A unified, local read-out of repo sync state and detected dev processes, with an optional one-glance **daily AI briefing** (repos + processes + power + logs) and focused insights. |
 | **System Tray** | A customisable mini-dashboard (CPU, RAM, ports, guards) next to the clock. |
 
 **Optional AI** — bring your own key for **Anthropic (Claude)**, **OpenAI (ChatGPT)** or **Google (Gemini)**. Keys are encrypted at rest in the OS keychain and never leave your machine except for the call you trigger.
