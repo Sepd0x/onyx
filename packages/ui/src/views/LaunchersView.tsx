@@ -106,7 +106,7 @@ export default function LaunchersView() {
   return (
     <div className="p-8 pb-24 md:p-10 max-w-5xl mx-auto h-full overflow-y-auto no-scrollbar relative animate-in fade-in duration-300">
       <div className="mb-10">
-        <ViewHeader icon={Rocket} title="Launch Profiles" subtitle="1-Click local environments" />
+        <ViewHeader icon={Rocket} title="Launchers" subtitle="One-click local environments" />
       </div>
 
       <div className="flex flex-col gap-6">
@@ -120,12 +120,12 @@ export default function LaunchersView() {
             onKeyDown={e => e.key === 'Enter' && addProfile()}
             className="bg-background border border-border text-sm text-text px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary/50 flex-1"
           />
-          <button 
+          <button
             onClick={addProfile}
             disabled={!newTitle.trim()}
-            className="bg-primary hover:bg-accent text-background text-xs font-bold font-mono px-6 py-2.5 rounded-lg tracking-widest disabled:opacity-50 transition-colors flex items-center gap-2"
+            className="bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium px-5 py-2.5 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-2"
           >
-            <Plus className="w-4 h-4"/> CREATE
+            <Plus className="w-4 h-4"/> Create
           </button>
         </div>
 
@@ -143,8 +143,8 @@ export default function LaunchersView() {
             title="No launch profiles yet"
             description="A profile is a named group of commands (frontend, API, database…) that start together with one click and stop together — your whole dev stack as a single button."
           >
-            <button onClick={addExampleProfile} className="px-5 py-2.5 bg-primary hover:bg-accent text-background text-[11px] font-bold font-mono tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_20px_rgb(var(--primary)/0.5)] flex items-center gap-2">
-              <Sparkles className="w-4 h-4" /> ADD EXAMPLE PROFILE
+            <button onClick={addExampleProfile} className="px-5 py-2.5 bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium rounded-lg transition-colors flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> Add example profile
             </button>
           </EmptyState>
         )}
@@ -152,26 +152,23 @@ export default function LaunchersView() {
           {profiles.map((p, pi) => {
              const isActive = activeProfiles.includes(p.id);
              return (
-              <div key={p.id} style={{ animationDelay: `${Math.min(pi, 6) * 60}ms` }} className={`p-6 rounded-xl border transition-colors animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards ${isActive ? 'bg-surface/80 border-primary/40 shadow-[0_0_20px_rgb(var(--primary)/0.07)]' : 'bg-surface/40 border-border'}`}>
+              <div key={p.id} style={{ animationDelay: `${Math.min(pi, 6) * 60}ms` }} className={`p-6 rounded-xl border transition-colors animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards ${isActive ? 'bg-surface/80 border-primary/40' : 'bg-surface/40 border-border'}`}>
                 <div className="flex items-center justify-between mb-5">
-                   <h3 className="text-sm font-bold text-text flex items-center gap-3">
+                   <h3 className="text-sm font-semibold text-text flex items-center gap-3">
                      {p.title}
                      {isActive && (
-                       <span className="text-[9px] font-mono font-bold bg-success/15 text-success px-2.5 py-1 rounded-md border border-success/30 flex items-center gap-1.5">
-                         <span className="relative flex h-1.5 w-1.5">
-                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
-                         </span>
-                         RUNNING
+                       <span className="text-[11px] bg-surface2 text-muted2 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                         <span className="w-1.5 h-1.5 rounded-full bg-success"></span>
+                         Running
                        </span>
                      )}
                    </h3>
                    <div className="flex items-center gap-2">
-                     <button onClick={() => removeProfile(p.id)} className="p-2 hover:bg-danger/20 text-muted hover:text-danger rounded-md transition-colors"><Trash2 className="w-4 h-4"/></button>
+                     <button onClick={() => removeProfile(p.id)} aria-label="Delete profile" className="p-2 hover:bg-danger/20 text-muted hover:text-danger rounded-md transition-colors"><Trash2 className="w-4 h-4"/></button>
                      {isActive ? (
-                       <button onClick={() => stopProfile(p.id)} className="px-5 py-2 text-xs font-mono font-bold bg-danger/10 hover:bg-danger/20 border border-danger/30 text-danger rounded-lg flex items-center gap-2 transition-colors"><Square className="w-3.5 h-3.5"/> STOP ALL</button>
+                       <button onClick={() => stopProfile(p.id)} className="px-4 py-2 text-xs font-medium bg-danger/10 hover:bg-danger/20 border border-danger/30 text-danger rounded-lg flex items-center gap-2 transition-colors"><Square className="w-3.5 h-3.5"/> Stop all</button>
                      ) : (
-                       <button onClick={() => launchProfile(p.id)} className="px-5 py-2 text-xs font-mono font-bold bg-primary hover:bg-accent text-background rounded-lg flex items-center gap-2 transition-colors"><Play className="w-3.5 h-3.5 fill-current"/> LAUNCH ALL</button>
+                       <button onClick={() => launchProfile(p.id)} className="px-4 py-2 text-xs font-medium bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 rounded-lg flex items-center gap-2 transition-colors"><Play className="w-3.5 h-3.5 fill-current"/> Launch all</button>
                      )}
                    </div>
                 </div>
@@ -200,14 +197,14 @@ export default function LaunchersView() {
                          placeholder="Command (ex: node index.js)" 
                          value={cmd.cmd}
                          onChange={e => updateCommand(p.id, i, 'cmd', e.target.value)}
-                         className="bg-background border border-border text-[11px] font-mono text-primary/80 px-3 py-2 rounded-md focus:outline-none focus:border-primary/50 flex-1" 
+                         className="bg-background border border-border text-[11px] font-mono text-accent/80 px-3 py-2 rounded-md focus:outline-none focus:border-primary/50 flex-1"
                          disabled={isActive}
                        />
                     </div>
                   ))}
                   {!isActive && (
-                    <button onClick={() => addCommandToProfile(p.id)} className="mt-2 text-[10px] font-mono font-bold text-muted hover:text-text flex items-center gap-2 w-max transition-colors">
-                      <Plus className="w-3.5 h-3.5"/> ADD PROCESS
+                    <button onClick={() => addCommandToProfile(p.id)} className="mt-2 text-xs font-medium text-muted2 hover:text-text flex items-center gap-2 w-max transition-colors">
+                      <Plus className="w-3.5 h-3.5"/> Add process
                     </button>
                   )}
                 </div>

@@ -13,18 +13,29 @@ import AIAuditorView from './views/AIAuditorView';
 
 import PowerOSView from './views/PowerOSView';
 import Logo from './components/Logo';
-import { CH } from './ipc';
-import { useIpc } from './lib/ipcCache';
+import { CH, EV } from './ipc';
+import { useIpc, invalidate } from './lib/ipcCache';
+import { applyAccent } from './lib/accents';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
   const [isTrayMode, setIsTrayMode] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // Pause the background polls while the window is hidden (closed to tray /
+  // minimised) — no point fetching stats every 2s for a window nobody can see.
+  const [active, setActive] = useState(typeof document !== 'undefined' ? !document.hidden : true);
+  useEffect(() => {
+    const onVis = () => setActive(!document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+  const idle = isTrayMode || !active;
+
   // Shared cache: config + system stats poll once per channel, served instantly on
   // re-render and shared with any other view that reads them.
-  const appConfig = useIpc(CH.appGetConfig, [], { pollMs: isTrayMode ? 0 : 3000 }).data ?? {};
-  const stats = useIpc(CH.appGetStats, [], { pollMs: isTrayMode ? 0 : 2000 }).data ?? { cpu: '14%', ram: '4.2GB' };
+  const appConfig = useIpc(CH.appGetConfig, [], { pollMs: idle ? 0 : 3000 }).data ?? {};
+  const stats = useIpc(CH.appGetStats, [], { pollMs: idle ? 0 : 2000 }).data ?? { cpu: '14%', ram: '4.2GB' };
 
   // Theme authority (#30): apply the saved theme on every window as soon as the
   // config arrives (and on later changes), mirroring to localStorage so the
@@ -34,6 +45,24 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('onyx-theme', theme); } catch {}
   }, [appConfig.theme]);
+
+  // User-picked accent colour: override --primary/--accent (or clear to fall
+  // back to the theme), mirrored to localStorage for a flash-free next launch.
+  useEffect(() => {
+    applyAccent(appConfig.accent);
+    try {
+      if (appConfig.accent) localStorage.setItem('onyx-accent', appConfig.accent);
+      else localStorage.removeItem('onyx-accent');
+    } catch {}
+  }, [appConfig.accent]);
+
+  // Live config sync: main broadcasts config:changed on every save. Revalidate the
+  // shared config cache so theme/accent/feature toggles update instantly in this
+  // window — critical for the tray window, which otherwise never re-reads config.
+  useEffect(() => {
+    const unsub = window.api?.on(EV.configChanged, () => invalidate('app:getConfig'));
+    return () => unsub?.();
+  }, []);
 
   useEffect(() => {
     if (window.location.hash === '#tray') {
@@ -62,24 +91,13 @@ export default function App() {
 
   return (
     <div className={`flex flex-col h-screen rounded-xl border border-border2 bg-background shadow-2xl overflow-hidden relative selection:bg-primary/30 ${appConfig.enableAnimations === false ? 'disable-animations' : ''}`}>
-      {/* Premium Glow effect / Orbs */}
-      {appConfig.enableAnimations !== false ? (
-         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-50">
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/20 blur-[130px] rounded-full animate-blob"></div>
-            <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
-            <div className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-primary/15 blur-[140px] rounded-full animate-blob animation-delay-4000"></div>
-         </div>
-      ) : (
-         <div className="absolute top-0 left-0 w-full h-full bg-premium-gradient pointer-events-none opacity-20"></div>
-      )}
-      
       {/* Titlebar (Draggable) */}
       <div 
         className="h-[42px] bg-surface/80 backdrop-blur-md flex items-center justify-between px-4 border-b border-border relative z-10"
         style={{ WebkitAppRegion: 'drag' } as any}
       >
         <div className="flex items-center gap-3">
-          <Logo className="w-4 h-4 drop-shadow-[0_0_8px_rgb(var(--primary)/0.5)]" />
+          <Logo className="w-4 h-4" />
           <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-muted2">ONYX</span>
         </div>
         <div className="flex items-center gap-4" style={{ WebkitAppRegion: 'no-drag' } as any}>
@@ -111,7 +129,7 @@ export default function App() {
             <div className="text-[10px] font-mono font-bold tracking-widest text-muted uppercase mb-2 pl-2">Tools</div>
             <Tab idx={0} icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
             {(appConfig.enableAIFeatures ?? true) && (
-              <Tab idx={1} icon={<BrainCircuit className="w-4 h-4 text-primary" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
+              <Tab idx={1} icon={<BrainCircuit className="w-4 h-4" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
             )}
             <Tab idx={2} icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
             <Tab idx={3} icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />
@@ -130,7 +148,6 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto bg-transparent relative no-scrollbar">
-          <div className="absolute inset-0 z-0 bg-background/50 pointer-events-none"></div>
           {/* Keyed wrapper: re-mounts on tab change so every view gets a uniform entrance. */}
           <div key={activeTab} className="relative z-10 h-full animate-in fade-in slide-in-from-bottom-1 duration-200">
             {activeTab === 'ports' && <PortsView />}
@@ -173,13 +190,13 @@ function Tab({ icon, label, isActive, onClick, idx = 0 }: any) {
       style={{ animationDelay: `${idx * 28}ms` }}
       className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all duration-200 w-full active:scale-[0.98] animate-in fade-in slide-in-from-left-2 fill-mode-backwards ${
         isActive
-          ? 'bg-surface3/80 text-text shadow-sm border border-border2 shadow-[0_4px_12px_rgba(0,0,0,0.2)]'
-          : 'text-muted2 hover:text-text hover:bg-surface2 border border-transparent'
+          ? 'bg-surface2 text-text border border-border2'
+          : 'text-muted2 hover:text-text hover:bg-surface2/60 border border-transparent'
       }`}
     >
       <span className={`transition-colors duration-200 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted'}`}>{icon}</span>
       <span className="truncate">{label}</span>
-      {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]"></div>}
+      {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary"></div>}
     </button>
   );
 }

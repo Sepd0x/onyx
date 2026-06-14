@@ -17,7 +17,7 @@ const INVOKE_CHANNELS = [
   // Dev watcher
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   // App / settings / updates
-  'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:installUpdate',
+  'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:installUpdate', 'app:getConflicts',
   // Window
   'window:close', 'window:minimize', 'window:openExternal',
   // Environment
@@ -29,14 +29,14 @@ const INVOKE_CHANNELS = [
   // Launchers
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
   // Tray
-  'tray:openMain',
+  'tray:openMain', 'tray:resize',
   // Power
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
   // AI (key management; model calls run in main, key never crosses the bridge)
-  'ai:getStatus', 'ai:setKey', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs',
+  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs',
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

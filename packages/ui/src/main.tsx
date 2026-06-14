@@ -10,13 +10,15 @@ import '@fontsource/jetbrains-mono/latin-500.css'
 import '@fontsource/jetbrains-mono/latin-700.css'
 import './index.css'
 import { injectMockApi } from './mockApi'
+import { applyAccent } from './lib/accents'
 
 injectMockApi();
 
-// Apply the saved theme before first paint (#30): the config arrives async
-// over IPC, so a synchronous localStorage mirror avoids the Midnight flash.
-// Covers both windows (main + tray) — they share this entry point.
+// Apply the saved theme + accent before first paint (#30): the config arrives
+// async over IPC, so a synchronous localStorage mirror avoids the Midnight
+// flash. Covers both windows (main + tray) — they share this entry point.
 document.documentElement.setAttribute('data-theme', localStorage.getItem('onyx-theme') || 'midnight');
+applyAccent(localStorage.getItem('onyx-accent') || undefined);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

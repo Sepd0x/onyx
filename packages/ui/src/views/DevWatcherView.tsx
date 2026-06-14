@@ -45,19 +45,19 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
         <ViewHeader icon={ShieldAlert} title="Session Guard" subtitle="Smart wake-lock emulator" />
 
         {/* How it works — compact step strip (replaces the marketing prose) */}
-        <div className="bg-surface/50 border border-border rounded-xl px-5 py-4 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-0">
+        <div className="bg-surface/50 border border-border rounded-xl px-6 py-4 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-0">
           {[
             { icon: MousePointerClick, title: 'Pick a process', desc: 'auto-detected or by PID' },
             { icon: Lock, title: 'Onyx holds a wake lock', desc: 'the OS won’t sleep mid-task' },
-            { icon: BellRing, title: 'Auto-release + notify', desc: 'the moment the task exits' },
+            { icon: BellRing, title: 'Auto-release + notify', desc: 'the instant it exits' },
           ].map((s, i) => (
             <div key={s.title} className="flex items-center flex-1 animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards" style={{ animationDelay: `${i * 90}ms` }}>
               {i > 0 && <ChevronRight className="hidden sm:block w-4 h-4 text-muted/50 mx-3 flex-shrink-0" />}
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary flex-shrink-0">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-accent flex-shrink-0">
                   <s.icon className="w-4 h-4" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 pr-2">
                   <div className="text-[12px] font-semibold text-text leading-tight">{s.title}</div>
                   <div className="text-[10px] text-muted font-mono mt-0.5 truncate">{s.desc}</div>
                 </div>
@@ -69,7 +69,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-surface/80 border border-border p-6 rounded-xl flex flex-col shadow-sm">
-          <h3 className="text-[13px] font-semibold text-text flex items-center gap-2.5 mb-5"><Zap className="w-4 h-4 text-primary"/> Auto-Detected Tasks</h3>
+          <h3 className="text-[13px] font-semibold text-text flex items-center gap-2.5 mb-5"><Zap className="w-4 h-4 text-accent"/> Auto-detected tasks</h3>
           <div className="flex flex-col gap-2 flex-1">
             {loadingProcs ? (
                 <div className="flex flex-col gap-2" aria-label="Scanning processes">
@@ -88,21 +88,21 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-text flex items-center gap-2">
                           {p.name}
-                          {p.confidence && <span className="text-[9px] font-mono text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded shadow-sm">AI {p.confidence}</span>}
+                          {p.confidence && <span className="text-[9px] font-mono text-accent bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">AI {p.confidence}</span>}
                         </span>
-                        <span className="text-[9px] font-mono text-muted mt-0.5">PID: {p.pid}</span>
+                        <span className="text-[10px] font-mono text-muted mt-0.5">PID {p.pid}</span>
                       </div>
                       {!isWatched ? (
                         <div className="flex gap-2">
-                          <button onClick={() => watch(p.pid, p.name)} className="px-4 py-2 bg-surface3 hover:bg-primary/20 hover:text-primary hover:border-primary/30 border border-border text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
-                            GUARD
+                          <button onClick={() => watch(p.pid, p.name)} className="px-3 py-1.5 text-xs font-medium text-muted2 border border-border rounded-md hover:text-accent hover:border-primary/30 hover:bg-primary/10 transition-colors">
+                            Guard
                           </button>
-                          <button onClick={() => window.api?.invoke(CH.portsKill, p.pid).then(fetchSuggested)} className="px-3 py-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/40 text-[9px] font-mono font-bold tracking-widest rounded-md transition-all">
-                            KILL
+                          <button onClick={() => window.api?.invoke(CH.portsKill, p.pid).then(fetchSuggested)} className="px-3 py-1.5 text-xs font-medium text-muted2 border border-border rounded-md hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-colors">
+                            Kill
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[9px] font-mono font-bold text-success bg-success/10 px-3 py-2 rounded-md border border-success/20">GUARDING</span>
+                        <span className="inline-flex items-center gap-1.5 text-[11px] text-muted2 bg-surface2 px-3 py-1.5 rounded-md"><span className="w-1.5 h-1.5 rounded-full bg-success"></span>Guarding</span>
                       )}
                     </div>
                   );
@@ -110,7 +110,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                 </div>
             )}
           </div>
-          <button onClick={fetchSuggested} className="mt-4 text-[10px] font-mono font-bold tracking-widest text-muted hover:text-primary transition-colors text-left flex items-center justify-center gap-2 py-2 bg-surface2 rounded-lg border border-border hover:border-primary/30"><Search className="w-3 h-3"/> RESCAN</button>
+          <button onClick={fetchSuggested} className="mt-4 text-xs font-medium text-muted2 hover:text-text transition-colors flex items-center justify-center gap-2 py-2 bg-surface2 rounded-lg border border-border hover:bg-surface3"><Search className="w-3.5 h-3.5"/> Rescan</button>
         </div>
         
         <div className="bg-surface/80 border border-border p-6 rounded-xl shadow-sm">
@@ -137,7 +137,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
       </div>
 
       <div className="bg-surface border border-border p-6 rounded-xl shadow-sm">
-        <h3 className="text-[10px] font-mono font-bold tracking-widest text-muted2 mb-5">ACTIVE GUARDS ({active.length})</h3>
+        <h3 className="text-sm font-semibold text-text mb-5">Active guards <span className="text-muted font-mono font-normal">({active.length})</span></h3>
         <div className="flex flex-col gap-3">
           {active.length === 0 && (
             <EmptyState compact icon={Coffee} title="Nothing guarded right now" description="Guard a task above and your machine will stay awake exactly until it finishes — then you get notified." />
@@ -153,16 +153,16 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                   <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 rounded-full z-20 bg-green-400"></span>
                 </div>
                 <div className="min-w-0 flex-1 pr-6">
-                  <div className="text-sm font-semibold text-text">{task.name || 'External Process'}</div>
-                  <div className="text-[10px] font-mono text-muted mt-1 tracking-wide">PID: <span className="text-text2">{task.target}</span> • WAKE LOCK ACQUIRED</div>
+                  <div className="text-sm font-semibold text-text">{task.name || 'External process'}</div>
+                  <div className="text-[11px] font-mono text-muted mt-1">PID <span className="text-text2">{task.target}</span> · wake lock held</div>
                 </div>
               </div>
               <div className="flex flex-col gap-2 items-end min-w-[120px]">
                  <button
                    onClick={() => stop(task.id)}
-                   className="w-full px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest text-text2 bg-surface hover:text-danger hover:bg-danger/10 border border-border hover:border-danger/30 rounded-lg transition-all flex items-center justify-center"
+                   className="w-full px-4 py-2 text-xs font-medium text-muted2 bg-surface hover:text-danger hover:bg-danger/10 border border-border hover:border-danger/30 rounded-lg transition-colors flex items-center justify-center"
                  >
-                   ABORT
+                   Release
                  </button>
               </div>
             </div>

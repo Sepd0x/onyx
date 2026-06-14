@@ -1,9 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
-import { RefreshCw, Trash2, ChevronDown, ChevronRight, Search, Activity, Network, BoxSelect } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronRight, Search, Activity, Network } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import ViewHeader from '../components/ViewHeader';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
+
+// Status as a calm dot + sentence-case label — never a fixed-width pill that can
+// overflow (the old "ESTABLISHED" spill). One accent: purple for our own
+// listeners, a quiet green for live connections.
+const STATUS: Record<string, { label: string; dot: string; text: string }> = {
+  LISTENING: { label: 'Listening', dot: 'bg-primary', text: 'text-accent' },
+  ESTABLISHED: { label: 'Established', dot: 'bg-success', text: 'text-muted2' },
+};
 
 export default function PortsView() {
   const { data, loading, error } = useIpc(CH.portsGet, [], { pollMs: 5000 });
@@ -65,10 +73,10 @@ export default function PortsView() {
     return null;
   };
 
-  const FilterBtn = ({ lbl }: {lbl: string}) => (
-    <button 
-      onClick={() => setFilter(lbl)}
-      className={`px-4 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-colors ${filter === lbl ? 'bg-primary text-background shadow-[0_0_10px_rgb(var(--primary)/0.3)]' : 'text-muted hover:text-text2 hover:bg-surface2'}`}
+  const FilterBtn = ({ k, lbl }: {k: string; lbl: string}) => (
+    <button
+      onClick={() => setFilter(k)}
+      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filter === k ? 'bg-surface3 text-text border border-border2' : 'text-muted hover:text-text2 hover:bg-surface2 border border-transparent'}`}
     >
       {lbl}
     </button>
@@ -76,28 +84,27 @@ export default function PortsView() {
 
   return (
     <div className="flex flex-col h-full bg-transparent relative overflow-hidden">
-      <div className="p-8 border-b border-border/50 flex flex-col gap-6 relative z-10 bg-background/50 backdrop-blur-sm">
+      <div className="p-8 border-b border-border/50 flex flex-col gap-6 relative z-10">
         <ViewHeader
           icon={Network}
           title="Port Mapper"
           subtitle={`${ports.length} ports active`}
-          accent="info"
+          accent="primary"
           actions={<>
-            <button onClick={expandAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">EXPAND ALL</button>
-            <button onClick={collapseAll} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-muted2 hover:text-text bg-surface/50 border border-border rounded-lg transition-all hover:bg-surface2">COLLAPSE ALL</button>
-            <button onClick={refresh} className="px-4 py-2 text-[10px] font-mono font-bold tracking-widest text-primary bg-primary/10 border border-primary/20 rounded-lg transition-all hover:bg-primary/20 flex items-center gap-2">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              REFRESH
+            <button onClick={expandAll} className="px-3 py-2 text-xs font-medium text-muted2 hover:text-text border border-border rounded-lg transition-colors hover:bg-surface2">Expand all</button>
+            <button onClick={collapseAll} className="px-3 py-2 text-xs font-medium text-muted2 hover:text-text border border-border rounded-lg transition-colors hover:bg-surface2">Collapse all</button>
+            <button onClick={refresh} aria-label="Refresh ports" className="p-2 text-muted2 hover:text-text border border-border rounded-lg transition-colors hover:bg-surface2">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </>}
         />
         
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
-          <div className="flex flex-wrap md:flex-nowrap bg-surface/50 p-1 rounded-lg border border-border shadow-inner gap-1">
-            <FilterBtn lbl="ALL" />
-            <FilterBtn lbl="LISTEN" />
-            <FilterBtn lbl="ESTAB" />
-            <FilterBtn lbl="UDP" />
+          <div className="flex flex-wrap md:flex-nowrap bg-surface/50 p-1 rounded-lg border border-border gap-1">
+            <FilterBtn k="ALL" lbl="All" />
+            <FilterBtn k="LISTEN" lbl="Listening" />
+            <FilterBtn k="ESTAB" lbl="Established" />
+            <FilterBtn k="UDP" lbl="UDP" />
           </div>
           <div className="flex-1 relative w-full">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
@@ -114,52 +121,44 @@ export default function PortsView() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-8 relative z-10 pb-24">
         {error && (
-          <div className="mb-4 p-4 bg-danger/10 border border-danger/20 rounded-xl text-[11px] font-mono text-danger flex items-center justify-between gap-3">
+          <div className="mb-4 p-4 bg-danger/10 border border-danger/20 rounded-xl text-xs text-danger flex items-center justify-between gap-3">
             <span>Failed to read ports — the native backend may be unavailable.</span>
-            <button onClick={refresh} className="px-3 py-1.5 bg-danger/20 hover:bg-danger/30 text-danger rounded-md tracking-widest">RETRY</button>
+            <button onClick={refresh} className="px-3 py-1.5 bg-danger/20 hover:bg-danger/30 text-danger rounded-md font-medium">Retry</button>
           </div>
         )}
         {Object.entries(grouped).map(([proc, prts]: any) => (
-          <div key={proc} className="mb-4 border border-border/80 rounded-xl overflow-hidden bg-surface/40 backdrop-blur-sm shadow-sm hover:border-border transition-colors">
-            <div 
-              className="px-5 py-3.5 flex items-center justify-between cursor-pointer hover:bg-surface2/80 transition-colors border-b border-border/40"
+          <div key={proc} className="mb-3 border border-border rounded-xl overflow-hidden bg-surface/40 transition-colors">
+            <div
+              className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-surface2/60 transition-colors"
               onClick={() => toggleGroup(proc)}
             >
-              <div className="flex items-center gap-3 text-sm font-semibold text-text tracking-tight">
-                {expanded[proc] ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
-                {proc.toUpperCase()} 
-                <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded ml-2">{prts.length} {prts.length === 1 ? 'PORT' : 'PORTS'}</span>
+              <div className="flex items-center gap-2.5 text-sm font-medium text-text min-w-0">
+                {expanded[proc] ? <ChevronDown className="w-4 h-4 text-muted flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" />}
+                <span className="truncate">{proc}</span>
+                <span className="text-[11px] font-mono text-muted bg-surface2 px-2 py-0.5 rounded-md ml-1 flex-shrink-0">{prts.length}</span>
               </div>
             </div>
             {expanded[proc] && (
-              <div className="divide-y divide-border/40 bg-background/50">
+              <div className="divide-y divide-border/40 border-t border-border/60">
                 {prts.map((p: any, i: number) => {
-                  const isListen = p.state === 'LISTENING';
-                  const isEstab = p.state === 'ESTABLISHED';
-                  const badgeCls = isListen ? 'text-success bg-success/10 border-success/20' : isEstab ? 'text-info bg-info/10 border-info/20' : 'text-warning bg-warning/10 border-warning/20';
+                  const st = STATUS[p.state] || { label: p.state || p.proto, dot: 'bg-muted', text: 'text-muted2' };
                   const profile = detectProfile(p.port);
-                  
+
                   return (
-                    <div key={i} className="px-5 py-4 flex flex-col md:flex-row items-start md:items-center justify-between text-sm hover:bg-surface2/50 transition-colors group gap-4">
-                      <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0 overflow-x-auto no-scrollbar">
-                        <div className="w-16 font-mono text-sm font-bold text-text flex-shrink-0">:{p.port}</div>
-                        <div className={`w-[72px] text-[9px] font-mono font-bold tracking-widest px-1 py-1 text-center rounded border ${badgeCls} flex-shrink-0`}>
-                          {p.state || p.proto}
-                        </div>
-                        <div className="w-28 md:w-36 text-[10px] font-mono text-muted truncate flex-shrink-0 select-all">{p.local}</div>
+                    <div key={i} className="px-5 py-3 flex items-center gap-4 hover:bg-surface2/40 transition-colors group">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${st.dot}`} />
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="font-mono text-sm font-medium text-text flex-shrink-0">:{p.port}</span>
+                        <span className={`text-[11px] flex-shrink-0 ${st.text}`}>{st.label}</span>
+                        <span className="text-[11px] font-mono text-muted truncate select-all">{p.local}</span>
                         {profile && (
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-primary bg-primary/5 px-2 py-1 rounded border border-primary/10 whitespace-nowrap flex-shrink-0">
-                            <BoxSelect className="w-3 h-3"/> {profile}
-                          </div>
+                          <span className="text-[10px] font-mono text-accent bg-primary/10 px-2 py-0.5 rounded flex-shrink-0 whitespace-nowrap">{profile}</span>
                         )}
                       </div>
-                      <div className="flex items-center justify-between w-full md:w-auto gap-4 md:gap-6 flex-shrink-0 mt-2 md:mt-0">
-                        <div className="flex flex-col items-start md:items-end whitespace-nowrap">
-                           <span className="text-[10px] font-mono text-muted">PID: {p.pid}</span>
-                           <span className="text-[9px] font-mono text-muted/60 mt-0.5">Mem: {p.ram || '~'} | CPU: {p.cpu || '~'}</span>
-                        </div>
-                        <button onClick={() => setConfirmPid(p.pid)} aria-label={`Free port ${p.port} by killing PID ${p.pid}`} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[10px] font-mono font-bold tracking-widest text-background bg-danger hover:bg-danger/85 px-4 py-2 rounded shadow-[0_0_10px_rgb(var(--danger)/0.35)] transition-all whitespace-nowrap flex-shrink-0 flex items-center justify-center">
-                          FREE PORT
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        <span className="text-[11px] font-mono text-muted whitespace-nowrap hidden sm:inline">PID {p.pid}{p.ram ? ` · ${p.ram}` : ''}</span>
+                        <button onClick={() => setConfirmPid(p.pid)} aria-label={`Free port ${p.port} by killing PID ${p.pid}`} className="text-[11px] font-medium text-muted2 border border-border rounded-md px-3 py-1.5 hover:text-danger hover:border-danger/40 hover:bg-danger/10 transition-colors flex-shrink-0">
+                          Free
                         </button>
                       </div>
                     </div>
@@ -172,16 +171,16 @@ export default function PortsView() {
         {Object.keys(grouped).length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-muted gap-4">
              <Activity className="w-10 h-10 opacity-20" />
-             <p className="text-[11px] font-mono tracking-widest">NO PORTS MATCHING FILTER</p>
+             <p className="text-sm">No ports match this filter.</p>
           </div>
         )}
       </div>
 
       <ConfirmModal
         open={!!confirmPid}
-        title="Kill process?"
+        title="Free this port?"
         message={`This will force-terminate PID ${confirmPid} and free its port.`}
-        confirmLabel="FREE PORT"
+        confirmLabel="Free port"
         onConfirm={() => confirmPid && doKill(confirmPid)}
         onCancel={() => setConfirmPid(null)}
       />

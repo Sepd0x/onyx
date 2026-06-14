@@ -73,25 +73,25 @@ export default function SnippetsView() {
           <div className="flex flex-col md:flex-row gap-4">
             <input 
               type="text" 
-              placeholder="Snippet Title (e.g. Delete Docker Containers)" 
+              placeholder="Title (e.g. Nuke node_modules)"
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               className="bg-background border border-border text-sm text-text px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary/50 flex-1"
             />
             <input 
               type="text" 
-              placeholder="Command (e.g. docker rm -f $(docker ps -a -q))" 
+              placeholder="Command (e.g. rm -rf node_modules)"
               value={newCmd}
               onChange={e => setNewCmd(e.target.value)}
               className="bg-background border border-border text-sm font-mono text-text px-4 py-2.5 rounded-lg focus:outline-none focus:border-primary/50 flex-[2]"
               onKeyDown={e => e.key === 'Enter' && addSnippet()}
             />
-            <button 
+            <button
               onClick={addSnippet}
               disabled={!newTitle.trim() || !newCmd.trim()}
-              className="bg-primary hover:bg-accent text-background text-xs font-bold font-mono px-6 py-2.5 rounded-lg tracking-widest disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium px-5 py-2.5 rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
-              <Plus className="w-4 h-4"/> ADD
+              <Plus className="w-4 h-4"/> Add
             </button>
           </div>
         </div>
@@ -111,18 +111,18 @@ export default function SnippetsView() {
                   </button>
                 </div>
                 <div className="bg-background border border-border/60 rounded-lg p-3 overflow-x-auto no-scrollbar relative">
-                  <code className="text-[11px] font-mono text-primary/90 whitespace-nowrap">
+                  <code className="text-[11px] font-mono text-accent/90 whitespace-nowrap">
                     {s.command}
                   </code>
                 </div>
               </div>
               <div className="mt-4 flex justify-end">
-                <button 
+                <button
                   onClick={() => copyToClipboard(s.id, s.command)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-surface2 hover:bg-surface3 border border-border rounded-md text-[10px] font-mono font-bold tracking-wider text-text transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-surface2 hover:bg-surface3 border border-border rounded-md text-xs font-medium text-text2 transition-colors"
                 >
                   {copiedId === s.id ? <CheckSquare className="w-3.5 h-3.5 text-success animate-in zoom-in-50 duration-200"/> : <Copy className="w-3.5 h-3.5 text-muted"/>}
-                  {copiedId === s.id ? 'COPIED' : 'COPY'}
+                  {copiedId === s.id ? 'Copied' : 'Copy'}
                 </button>
               </div>
             </div>
@@ -134,8 +134,8 @@ export default function SnippetsView() {
                 title="Your command shelf is empty"
                 description="Snippets are the shell one-liners you keep retyping — kill a port, clean a cache, nuke node_modules. Save them once, copy with one click."
               >
-                <button onClick={addStarters} className="px-5 py-2.5 bg-primary hover:bg-accent text-background text-[11px] font-bold font-mono tracking-widest rounded-lg transition-all shadow-[0_0_15px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_20px_rgb(var(--primary)/0.5)] flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" /> ADD STARTER PACK
+                <button onClick={addStarters} className="px-5 py-2.5 bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium rounded-lg transition-colors flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" /> Add starter pack
                 </button>
               </EmptyState>
             </div>

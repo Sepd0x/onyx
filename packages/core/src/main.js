@@ -14,10 +14,23 @@ const initSnippets = require('../../tools/snippets/index');
 const initLaunchers = require('../../tools/launchers/index');
 const initPowerManager = require('../../tools/power-manager/index');
 const initAI = require('../../tools/ai/index');
+const initConflicts = require('../../tools/conflicts/index');
 const logger = require('./logger');
 
 app.setName('Onyx');
 if (process.platform === 'win32') app.setAppUserModelId('com.onyx.app');
+
+// Last-resort crash guards. Without these a single unhandled rejection in any
+// async IPC handler (e.g. an AI call) kills the main process silently — no log,
+// the window just vanishes. Log the cause and keep the app alive rather than
+// disappearing on the user; registering the listener also prevents Node's
+// default hard-exit on an uncaught exception.
+process.on('uncaughtException', (err) => {
+  try { logger.error('Uncaught exception:', err && err.stack ? err.stack : String(err)); } catch {}
+});
+process.on('unhandledRejection', (reason) => {
+  try { logger.error('Unhandled rejection:', reason && reason.stack ? reason.stack : String(reason)); } catch {}
+});
 
 let win = null;
 let tray = null;
@@ -32,12 +45,30 @@ const trayIconPath = path.join(__dirname, '../../../assets/tray.png');
 // frameless window by a rounding pixel each time (the "tray keeps getting
 // smaller" bug). Driving size from constants makes it idempotent.
 const TRAY_W = 300;
-const TRAY_H = 430;
+
+// Tray height adapts to which tiles the user enabled (Settings → Tray dashboard),
+// so the popup is always snug — no dead space, no clipping. Mirrors TrayView's
+// layout: p-4 padding + header + (stats row) + (ports row) + (guards row) + footer.
+function trayHeight() {
+  const showCpu = appConfig.trayShowCpu !== false;
+  const showRam = appConfig.trayShowRam !== false;
+  const showPorts = appConfig.trayShowPorts !== false;
+  const showGuards = appConfig.trayShowGuards === true;
+  // Generous starting estimate; the renderer reports the exact height via
+  // tray:resize the moment it mounts/shows, so this only needs to be in the
+  // ballpark and slightly over (a window that shrinks reads better than a
+  // clipped one that grows).
+  let h = 36 + 48 + 56; // p-4 (top+bottom) + header(+mb) + footer button
+  if (showCpu || showRam) h += 128; // stats grid row + gap
+  if (showPorts) h += 68;           // ports row + gap
+  if (showGuards) h += 68;          // guards row + gap
+  return Math.max(176, h);
+}
 
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
     width: TRAY_W,
-    height: TRAY_H,
+    height: trayHeight(),
     show: false,
     frame: false,
     fullscreenable: false,
@@ -70,10 +101,12 @@ const toggleTrayWindow = () => {
   if (trayWindow.isVisible()) {
     trayWindow.hide();
   } else {
-    const position = getTrayPosition({ width: TRAY_W, height: TRAY_H });
+    const h = trayHeight();
+    const position = getTrayPosition({ width: TRAY_W, height: h });
     // setBounds (not setPosition) — re-assert the canonical size every show so
-    // DPI rounding can't accumulate and shrink the window across clicks.
-    trayWindow.setBounds({ x: position.x, y: position.y, width: TRAY_W, height: TRAY_H });
+    // DPI rounding can't accumulate and shrink the window across clicks. Height is
+    // recomputed each show so tray-tile changes take effect on next open.
+    trayWindow.setBounds({ x: position.x, y: position.y, width: TRAY_W, height: h });
     trayWindow.show();
     trayWindow.focus();
   }
@@ -199,7 +232,7 @@ function createWindow() {
     const cpuStr = totalDiff === 0 ? '0%' : Math.round(100 * (1 - idleDiff / totalDiff)) + '%';
     prevCpus = cpus;
 
-    return { cpu: cpuStr, ram: (used / 1024 / 1024 / 1024).toFixed(1) + 'GB' };
+    return { cpu: cpuStr, ram: (used / 1024 / 1024 / 1024).toFixed(1) + 'GB', ramPct: Math.round(100 * used / total) };
   });
 
   ipcMain.handle('app:notify', (_, data) => {
@@ -239,6 +272,18 @@ function createWindow() {
     if (trayWindow) trayWindow.hide();
     showWindow();
     return true;
+  });
+
+  // The tray popup measures its own rendered content and asks for an exact fit, so
+  // the footer is never clipped and the height tracks tile changes live — no
+  // pixel-guessing. Grows/shrinks upward so the bottom edge stays by the tray.
+  ipcMain.handle('tray:resize', (_e, height) => {
+    if (!trayWindow || trayWindow.isDestroyed()) return;
+    const h = Math.max(160, Math.min(720, Math.round(Number(height)) || trayHeight()));
+    const b = trayWindow.getBounds();
+    if (b.height === h) return;
+    const bottom = b.y + b.height;
+    trayWindow.setBounds({ x: b.x, y: bottom - h, width: TRAY_W, height: h });
   });
 
   win.on('close', (e) => {
@@ -285,6 +330,7 @@ if (!gotTheLock) {
     initLaunchers();
     initPowerManager();
     initAI();
+    initConflicts(() => globalShortcut.isRegistered('CommandOrControl+Alt+D'));
 
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {

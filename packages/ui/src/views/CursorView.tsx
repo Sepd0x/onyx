@@ -58,7 +58,7 @@ export default function CursorView() {
   return (
     <div className="p-8 pb-24 md:p-10 max-w-4xl mx-auto h-full overflow-y-auto no-scrollbar animate-in fade-in duration-300">
       <div className="mb-10 pb-8 border-b border-border/60">
-        <ViewHeader icon={EyeOff} title="Focus Tools" subtitle="Distraction-free workspace module" />
+        <ViewHeader icon={EyeOff} title="Focus Mode" subtitle="Distraction-free workspace module" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

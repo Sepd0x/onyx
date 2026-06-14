@@ -1,15 +1,10 @@
 const { ipcMain, dialog, BrowserWindow } = require('electron');
 const path = require('path');
-const os = require('os');
 const fs = require('fs');
 const { resolveRoots, safeDeletePath } = require('./containment');
 
-const RAW_SCAN_ROOTS = [
-  path.join(os.homedir(), 'Desktop'),
-  path.join(os.homedir(), 'Documents'),
-  path.join(os.homedir(), 'Projects'),
-  path.join(os.homedir(), 'dev'),
-];
+// Shared with Git Pulse so both tools sweep the same common dev locations.
+const RAW_SCAN_ROOTS = require('../devroots').defaultDevRoots();
 
 // Real recursive size of a directory in bytes. Async (yields to the event loop so the
 // main process stays responsive) and iterative to avoid deep recursion; skips symlinks

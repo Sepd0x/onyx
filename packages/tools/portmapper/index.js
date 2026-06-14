@@ -1,6 +1,16 @@
 const { exec, execFile } = require('child_process');
 const { ipcMain } = require('electron');
 
+// tasklist prints memory in the OS locale (e.g. "60 964 K" on pt-PT, where the
+// grouping separator is a non-breaking space that mangles to U+FFFD under UTF-8,
+// or "60,964 K" elsewhere). Keep only the digits and format it ourselves.
+function formatMem(rawKb) {
+  const kb = parseInt(String(rawKb).replace(/\D+/g, ''), 10);
+  if (!Number.isFinite(kb)) return null;
+  if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
+  return kb + ' KB';
+}
+
 module.exports = function initPortMapper() {
   const NO_WIN = process.platform === 'win32' ? { windowsHide: true } : {};
   
@@ -31,16 +41,19 @@ module.exports = function initPortMapper() {
           const mems = {};
           if (!e2) {
             for (const l of out2.split('\n')) {
-              const parts = l.trim().replace(/"/g,'').split(',');
-              if (parts.length >= 5) {
-                names[parts[1].trim()] = parts[0].replace(/\.exe$/i,'');
-                mems[parts[1].trim()] = parts[4].replace(' K', 'KB'); // Memory usage
+              // Parse the quoted CSV fields directly so a locale comma inside the
+              // memory column ("60,964 K") can't split the value in two.
+              const fields = (l.match(/"([^"]*)"/g) || []).map(s => s.slice(1, -1));
+              if (fields.length >= 5) {
+                const pid = fields[1].trim();
+                names[pid] = fields[0].replace(/\.exe$/i, '');
+                mems[pid] = formatMem(fields[4]);
               }
             }
           }
           for (const r of rows) {
             r.process = names[r.pid] || 'system';
-            r.ram = mems[r.pid] || '~';
+            r.ram = mems[r.pid] || null;
             r.cpu = '-';
           }
           resolve(rows.sort((a,b) => +a.port - +b.port));

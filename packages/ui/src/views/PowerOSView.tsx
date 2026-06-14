@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Battery, BatteryCharging, Zap, BrainCircuit, Activity } from 'lucide-react';
+import { Battery, BatteryCharging, Zap, BrainCircuit, Activity, AlertTriangle } from 'lucide-react';
 import Switch from '../components/Switch';
 import BatteryGauge from '../components/BatteryGauge';
 import ViewHeader from '../components/ViewHeader';
@@ -26,7 +26,12 @@ export default function PowerOSView() {
   );
   const hasBatteryApi = useRef(false);
   // Status only (no poll); the explanation call is explicit, never wired to the 5s feed.
-  const aiConfigured = (useIpc(CH.aiGetStatus, [], { pollMs: 0 }).data as any)?.configured ?? false;
+  const aiStatus = useIpc(CH.aiGetStatus, [], { pollMs: 0 }).data as any;
+  const aiConfigured = aiStatus?.configured ?? false;
+  const aiProvider = aiStatus?.provider;
+  // Other vendor power tools running ⇒ Onyx's mode switching can fight them.
+  const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
+  const powerTools: string[] = conflicts?.powerTools ?? [];
 
   // Profile + power events poll through the shared cache (5s); apply each payload to
   // local state, keeping the hasBatteryApi merge so the Web Battery API stays the
@@ -102,23 +107,31 @@ export default function PowerOSView() {
       <div className="mb-10">
         <ViewHeader
           icon={Zap}
-          accent="success"
           title="OS Power Manager"
           subtitle="Performance & battery lifespan controller"
-          badge={<span className="bg-success/20 text-success border border-success/30 px-2 py-0.5 rounded-md text-[10px] font-mono tracking-widest uppercase">System Hook</span>}
+          badge={<span className="bg-surface2 text-muted2 border border-border px-2 py-0.5 rounded-md text-[10px] font-mono">System hook</span>}
         />
       </div>
+
+      {powerTools.length > 0 && (
+        <div className="mb-8 flex items-start gap-3 bg-warning/10 border border-warning/30 text-warning rounded-xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div className="text-[12px] leading-relaxed">
+            <span className="font-semibold">{powerTools.join(', ')}</span> {powerTools.length > 1 ? 'are' : 'is'} also running and {powerTools.length > 1 ? 'manage' : 'manages'} Windows power profiles.
+            Onyx's auto-planner can conflict with {powerTools.length > 1 ? 'them' : 'it'} — keep only one in charge of power, or disable the dynamic planner below.
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="col-span-2 flex flex-col gap-6">
 
           {/* AI Control Card */}
-          <div className={`border p-6 rounded-xl shadow-lg relative overflow-hidden transition-colors ${aiEnabled ? 'bg-primary/5 border-primary/30' : 'bg-surface/40 border-border'}`}>
-            {aiEnabled && <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse"></div>}
+          <div className={`border p-6 rounded-xl relative overflow-hidden transition-colors ${aiEnabled ? 'bg-primary/5 border-primary/30' : 'bg-surface/40 border-border'}`}>
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-[14px] font-bold text-text flex items-center gap-2 mb-1">
-                  <BrainCircuit className={`w-4 h-4 ${aiEnabled ? 'text-primary' : 'text-muted'}`} /> Dynamic OS Power Planner
+                <h3 className="text-[14px] font-semibold text-text flex items-center gap-2 mb-1">
+                  <BrainCircuit className={`w-4 h-4 ${aiEnabled ? 'text-accent' : 'text-muted'}`} /> Dynamic OS power planner
                 </h3>
                 <p className="text-[11px] text-muted leading-relaxed max-w-md mb-4">
                   Automatically adjusts the Windows power mode (the same control as the Settings power slider) from AC/battery state. Switches are debounced, your manual choice is restored on AC, and brightness is never touched.
@@ -128,8 +141,8 @@ export default function PowerOSView() {
             </div>
             {aiEnabled && (
               <>
-                <div className="mt-2 text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 px-3 py-2 rounded-md flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5 animate-pulse" /> Auto-managing power mode from AC/battery events
+                <div className="mt-2 text-[11px] text-accent bg-primary/10 border border-primary/20 px-3 py-2 rounded-md flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5" /> Auto-managing power mode from AC/battery events
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-[11px] text-muted">Notify on each automatic switch</span>
@@ -144,36 +157,36 @@ export default function PowerOSView() {
             <button
               onClick={() => setProfile('battery_saver')}
               disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-all ${activeProfile === 'battery_saver' ? 'bg-indigo-500/10 border-indigo-500/40 shadow-inner' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'battery_saver' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Battery className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-indigo-400' : 'text-muted'}`} />
-              <div className="text-[13px] font-bold text-text">Battery Saver</div>
-              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Windows efficiency mode. Less CPU boost &amp; background work.</div>
-              {activeProfile === 'battery_saver' && <div className="mt-3 text-[9px] font-bold text-indigo-400 tracking-widest uppercase">Active Profile</div>}
+              <Battery className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-accent' : 'text-muted'}`} />
+              <div className="text-[13px] font-semibold text-text">Battery saver</div>
+              <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows efficiency mode. Less CPU boost &amp; background work.</div>
+              {activeProfile === 'battery_saver' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
 
             {/* Balanced */}
             <button
               onClick={() => setProfile('balanced')}
               disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-all ${activeProfile === 'balanced' ? 'bg-green-500/10 border-green-500/40 shadow-inner' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'balanced' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Activity className={`w-5 h-5 mb-3 ${activeProfile === 'balanced' ? 'text-green-400' : 'text-muted'}`} />
-              <div className="text-[13px] font-bold text-text">Balanced OS</div>
-              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Default OS limits. Recommended for mixed usage.</div>
-              {activeProfile === 'balanced' && <div className="mt-3 text-[9px] font-bold text-green-400 tracking-widest uppercase">Active Profile</div>}
+              <Activity className={`w-5 h-5 mb-3 ${activeProfile === 'balanced' ? 'text-accent' : 'text-muted'}`} />
+              <div className="text-[13px] font-semibold text-text">Balanced</div>
+              <div className="text-[11px] text-muted mt-1 leading-relaxed">Default OS limits. Recommended for mixed usage.</div>
+              {activeProfile === 'balanced' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
 
             {/* Performance */}
             <button
               onClick={() => setProfile('performance')}
               disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-all ${activeProfile === 'performance' ? 'bg-amber-500/10 border-amber-500/40 shadow-inner' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'performance' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Zap className={`w-5 h-5 mb-3 ${activeProfile === 'performance' ? 'text-amber-400' : 'text-muted'}`} />
-              <div className="text-[13px] font-bold text-text">Max Performance</div>
-              <div className="text-[10px] font-mono text-muted mt-1 leading-relaxed">Windows best-performance mode. Full CPU boost.</div>
-              {activeProfile === 'performance' && <div className="mt-3 text-[9px] font-bold text-amber-400 tracking-widest uppercase">Active Profile</div>}
+              <Zap className={`w-5 h-5 mb-3 ${activeProfile === 'performance' ? 'text-accent' : 'text-muted'}`} />
+              <div className="text-[13px] font-semibold text-text">Max performance</div>
+              <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows best-performance mode. Full CPU boost.</div>
+              {activeProfile === 'performance' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
           </div>
 
@@ -181,11 +194,15 @@ export default function PowerOSView() {
             title="Explain power activity"
             icon={MessageSquareText}
             description="Why the planner switched modes recently, and whether your setup makes sense."
-            cta="EXPLAIN"
+            cta="Explain"
             configured={aiConfigured}
+            provider={aiProvider}
             run={async () => (await window.api?.invoke(CH.aiExplainPower, {
               profile: activeProfile,
               onBattery: !sysInfo.charging,
+              battery: sysInfo.battery,
+              charging: sysInfo.charging,
+              conflicts: powerTools,
               events,
             })) ?? { error: 'failed' }}
           />
@@ -193,11 +210,10 @@ export default function PowerOSView() {
 
         {/* Sidebar Stats & Logs */}
         <div className="flex flex-col gap-6">
-          <div className="bg-surface border border-border rounded-xl p-6 shadow-inner relative overflow-hidden card-lift">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-success/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+          <div className="bg-surface border border-border rounded-xl p-6 relative overflow-hidden card-lift">
             <div className="flex items-center gap-3 mb-2">
               {sysInfo.charging ? <BatteryCharging className="w-5 h-5 text-success" /> : <Battery className="w-5 h-5 text-text" />}
-              <span className="text-[12px] font-bold uppercase tracking-widest text-text">Battery</span>
+              <span className="text-[13px] font-semibold text-text">Battery</span>
             </div>
             {sysInfo.battery !== null ? (
               <div className="flex justify-center mt-3 mb-1">
@@ -222,21 +238,21 @@ export default function PowerOSView() {
 
           <div className="bg-surface border border-border rounded-xl shadow-inner flex flex-col flex-1 max-h-[400px] font-mono">
             <div className="p-4 border-b border-border flex items-center gap-3 flex-shrink-0 bg-surface/50">
-              <Activity className="w-4 h-4 text-green-500" />
-              <span className="text-[10px] font-bold text-text uppercase tracking-widest">Power Audit Log</span>
+              <Activity className="w-4 h-4 text-accent" />
+              <span className="text-xs font-semibold text-text">Power audit log</span>
             </div>
             <div className="p-4 flex-1 overflow-y-auto w-full custom-scrollbar flex flex-col gap-3">
               {events.length === 0 ? (
-                <div className="text-[10px] text-muted uppercase tracking-widest text-center py-6">No power events yet</div>
+                <div className="text-sm text-muted text-center py-6">No power events yet</div>
               ) : events.map((e, i) => (
                 <div key={i} className="flex flex-col gap-1 border-b border-border/40 pb-3 last:border-0">
                   <div className="flex items-center justify-between text-[9px] text-muted">
                     <span>[{e.time}]</span>
-                    <span className={`px-1.5 py-0.5 rounded font-bold ${e.type === 'AI_AGENT' ? 'text-primary bg-primary/20' : 'bg-surface2 text-text'}`}>
+                    <span className={`px-1.5 py-0.5 rounded font-medium ${e.type === 'AI_AGENT' ? 'text-accent bg-primary/15' : 'bg-surface2 text-text'}`}>
                       {e.type}
                     </span>
                   </div>
-                  <div className={`text-[10px] leading-relaxed mt-1 ${e.type === 'AI_AGENT' ? 'text-primary/90' : 'text-text/80'}`}>
+                  <div className={`text-[10px] leading-relaxed mt-1 ${e.type === 'AI_AGENT' ? 'text-accent/90' : 'text-text/80'}`}>
                     {e.msg}
                   </div>
                 </div>

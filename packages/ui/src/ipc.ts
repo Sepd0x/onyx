@@ -36,6 +36,7 @@ export const CH = {
   appNotify: 'app:notify',
   appCheckForUpdates: 'app:checkForUpdates',
   appInstallUpdate: 'app:installUpdate',
+  appGetConflicts: 'app:getConflicts',
   // Window
   windowClose: 'window:close',
   windowMinimize: 'window:minimize',
@@ -57,6 +58,7 @@ export const CH = {
   launchersStatus: 'launchers:status',
   // Tray
   trayOpenMain: 'tray:openMain',
+  trayResize: 'tray:resize',
   // Power
   powerGet: 'power:get',
   powerSetProfile: 'power:setProfile',
@@ -65,6 +67,9 @@ export const CH = {
   // AI
   aiGetStatus: 'ai:getStatus',
   aiSetKey: 'ai:setKey',
+  aiSetProvider: 'ai:setProvider',
+  aiSetModel: 'ai:setModel',
+  aiTest: 'ai:test',
   aiInsights: 'ai:insights',
   aiExplainPower: 'ai:explainPower',
   aiAnalyzeLogs: 'ai:analyzeLogs',
@@ -76,6 +81,7 @@ export const EV = {
   appUpdateAvailable: 'app:update-available',
   appUpdateDownloaded: 'app:update-downloaded',
   gitScanProgress: 'git:scanProgress',
+  configChanged: 'config:changed',
 } as const;
 
 export type Channel = typeof CH[keyof typeof CH];

@@ -1,4 +1,4 @@
-const { ipcMain, app } = require('electron');
+const { ipcMain, app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -28,6 +28,12 @@ module.exports = function initAppSettings() {
       });
     }
     app.emit('config:changed', config);
+    // Push the new config to every renderer (main window + tray window) so theme,
+    // accent and feature toggles sync live — the tray reads config once and would
+    // otherwise stay stale until the app restarts.
+    for (const w of BrowserWindow.getAllWindows()) {
+      try { w.webContents.send('config:changed', config); } catch {}
+    }
     return config;
   });
   

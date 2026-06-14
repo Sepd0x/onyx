@@ -80,10 +80,10 @@
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
   }
-  /* Premium gradient icon tile used by every ViewHeader (glow set inline per accent). */
+  /* Flat neutral icon tile used by every ViewHeader. One accent: the icon is
+     the brand purple, the tile itself stays a quiet surface (no per-view glow). */
   .icon-tile {
-    @apply relative p-3 rounded-xl border border-border shrink-0;
-    background: linear-gradient(160deg, rgb(var(--surface2)), rgb(var(--surface)));
+    @apply relative p-3 rounded-xl border border-border shrink-0 bg-surface2;
   }
   /* Base premium surface: a faint vertical gradient + hairline top highlight +
      soft elevation, so cards read as raised glass instead of flat rectangles. */

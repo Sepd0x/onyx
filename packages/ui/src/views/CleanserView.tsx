@@ -65,10 +65,10 @@ export default function CleanserView() {
             <button
               onClick={scan}
               disabled={scanning || cleaning}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-mono font-bold tracking-widest bg-primary text-background rounded-lg hover:bg-accent transition-all disabled:opacity-50 shadow-[0_0_15px_var(--primary-alpha)]"
+              className="flex items-center gap-2 px-4 py-2.5 text-xs font-medium bg-primary/15 text-accent border border-primary/25 rounded-lg hover:bg-primary/25 transition-colors disabled:opacity-50"
             >
               <Search className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`}/>
-              SCAN SYSTEM
+              Scan system
             </button>
           }
         />
@@ -83,10 +83,10 @@ export default function CleanserView() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="col-span-1 md:col-span-2 bg-surface/50 border border-border p-6 rounded-xl flex flex-col min-h-[300px]">
-           <h3 className="text-[13px] font-semibold text-text mb-4">Detected Folders</h3>
+           <h3 className="text-[13px] font-semibold text-text mb-4">Detected folders</h3>
            <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
              {dirs.length === 0 && !scanning && (
-               <EmptyState compact icon={FolderX} title="Nothing scanned yet" description="Hit SCAN SYSTEM to find heavy node_modules folders eating your SSD — sizes are real, deletion is guarded and confirmed." />
+               <EmptyState compact icon={FolderX} title="Nothing scanned yet" description="Hit Scan system to find heavy node_modules folders eating your SSD — sizes are real, deletion is guarded and confirmed." />
              )}
              {scanning && dirs.length === 0 && (
                <div className="flex flex-col gap-2" aria-label="Scanning directories">
@@ -112,7 +112,7 @@ export default function CleanserView() {
                      </div>
                    </div>
                    <div className="h-[3px] rounded-full bg-surface3 mt-2.5 overflow-hidden">
-                     <div className="h-full rounded-full bg-gradient-to-r from-warning to-danger transition-all duration-700" style={{ width: `${pct}%` }} />
+                     <div className="h-full rounded-full bg-danger/40 transition-all duration-700" style={{ width: `${pct}%` }} />
                    </div>
                 </div>
                 );
@@ -122,8 +122,8 @@ export default function CleanserView() {
 
         <div className="bg-surface/50 border border-border p-6 rounded-xl flex flex-col justify-between">
            <div>
-             <h3 className="text-[13px] font-semibold text-text mb-2">Total Recoverable</h3>
-             <p className="text-[10px] text-muted leading-relaxed mb-6 font-mono">This will permanently delete these heavy caching folders to reclaim SSD space.</p>
+             <h3 className="text-[13px] font-semibold text-text mb-2">Total recoverable</h3>
+             <p className="text-[11px] text-muted leading-relaxed mb-6">This will permanently delete these heavy caching folders to reclaim SSD space.</p>
            </div>
            
            <div className="flex flex-col gap-4">
@@ -131,13 +131,13 @@ export default function CleanserView() {
                {scannedSize}
              </div>
              
-             <button 
+             <button
                onClick={() => clean()}
                disabled={dirs.length === 0 || cleaning || scanning}
-               className="w-full mt-2 flex justify-center items-center gap-2 px-4 py-3.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 font-bold tracking-widest uppercase text-[11px] rounded-lg transition-all disabled:opacity-30"
+               className="w-full mt-2 flex justify-center items-center gap-2 px-4 py-3 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 font-medium text-sm rounded-lg transition-colors disabled:opacity-30"
              >
-               <Skull className="w-4 h-4"/> 
-               {cleaning ? 'CLEANING...' : 'NUKE ALL'}
+               <Trash2 className="w-4 h-4"/>
+               {cleaning ? 'Cleaning…' : 'Clean all'}
              </button>
            </div>
         </div>

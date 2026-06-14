@@ -6,11 +6,112 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
+
+### Added
+- **Opt-in, multi-provider AI** — Anthropic (Claude), OpenAI (ChatGPT) and Google
+  (Gemini). Each provider keeps its own key, encrypted via the OS keychain (own
+  `ai.json`, never plaintext, never crosses the IPC bridge); the active provider
+  and a per-provider **model override** are pickable in Settings. Real
+  commit-message generation in Git Pulse with a heuristic fallback, plus
+  button-triggered **insights**, **power explanations** and **log triage** —
+  every call is built in the main process and cached by input hash, never wired
+  into a poll.
+- **AI key check + model presets** — saving a key now fires a tiny live request
+  and reports immediately whether the provider + key + model actually work (so the
+  Gemini "free-tier quota: 0 for this model" case is obvious at setup, not at first
+  use); there's also a manual **Test** button and per-provider **model preset**
+  chips next to the free-text model field.
+- **Git Pulse name search** — filter tracked repositories by name, path or branch.
+- **Customisable tray dashboard** — choose which tiles the tray popup shows (CPU,
+  RAM, active ports, active guards); the popup height adapts to the selection so
+  there is never dead space or clipping.
+- **Conflict detection** — when a vendor power tool (Lenovo Vantage, Dell Power
+  Manager, Armoury Crate, MyASUS, …) is running, OS Power Manager warns that its
+  auto-planner may clash; Settings flags when another app already owns the
+  Ctrl+Alt+D global hotkey.
+- **User-pickable accent colour** (purple, blue, teal, emerald, amber, rose):
+  overrides `--primary`/`--accent` on `<html>`, persists in the config and is
+  applied before first paint so there is no flash on relaunch.
+- **Git Pulse repository discovery**: a bounded-depth (≤3) async scanner that
+  skips symlinks/junctions and heavy dirs, plus user-managed scan roots; real
+  14-day commit activity replaces the previous random sparkline.
+- Shared **SWR-style IPC cache** (`useIpc`/`invalidate`): view switches are
+  instant, each channel polls once regardless of how many views read it, and
+  polling pauses when no view is mounted.
+- Data-viz and depth primitives — radial battery gauge, count-up, sparkline,
+  shared `ViewHeader`, raised-glass panels — and onboarding empty states with a
+  one-click example launcher profile and snippet starter pack.
+
+### Changed
+- **Premium redesign ("calm" pass):** removed the background orbs, heavy glows
+  and drop-shadows; flat neutral icon tiles; sentence-case labels instead of
+  all-caps mono; quiet tinted buttons. One accent across the UI rather than a
+  different colour per view.
+- **Dev-watcher** discovers processes with `Get-CimInstance` (UTF-8 forced)
+  instead of the removed `WMIC`, so process discovery works on Windows 11.
+- **OS Power Manager** switches modes through the Windows power-overlay API
+  (P/Invoke) — brightness is never touched — with conservative, debounced
+  auto-logic that restores the manual choice on AC.
+- Theme integrity: the saved theme is applied before first paint and every
+  hard-coded colour is tokenised, with a semantic `success`/`warning`/`danger`/
+  `info` status palette (Dracula-native).
+- Entrance, tab-switch and toast animations are live via `tailwindcss-animate`,
+  all guarded by `prefers-reduced-motion`.
+- **AI prompts hardened**: each carries an explicit prompt-injection guard
+  (tracked repos, logs, diffs and power events are treated strictly as data,
+  never as instructions) and asks for concrete, grounded output. Thinking is
+  disabled (`thinkingBudget: 0`) for Gemini 2.5/3.x *flash* models so their
+  output budget is no longer eaten by chain-of-thought, with raised token
+  ceilings; default Gemini model is `gemini-2.5-flash`.
+- **Git Pulse & Dev Cleanser** now scan a shared, much broader set of common dev
+  locations under the home folder (Desktop, Documents/GitHub, Projects, Code,
+  dev, source, repos, workspace, OneDrive-redirected folders, …) instead of a few
+  fixed paths — so they find work spread across the machine, not just one folder.
+- **New premium app & tray icon**: a larger isometric "Onyx" gem with gradient
+  faces, brand glow, edge highlights and a contact shadow — it fills the tile
+  instead of sitting small and flat.
+
+### Fixed
+- **AI errors now name the real cause.** A failing call surfaces the active
+  provider's actual message (e.g. Gemini "free-tier quota: 0 for this model")
+  instead of a hard-coded "Anthropic is busy", and the in-panel copy /
+  attribution follow the selected provider rather than always saying Claude.
+- **Tray live-sync**: theme, accent and feature toggles are broadcast to every
+  window on save, so the tray mini-dashboard updates instantly instead of staying
+  stale until restart; its RAM tile now shows a real usage bar and the window is
+  sized to its content (no dead space).
+- Long branch names and step labels no longer overflow their cards (Git Pulse
+  branch badge, Session Guard step strip).
+- **Resilience:** the main process now logs uncaught exceptions and unhandled
+  rejections and stays alive, instead of a single unhandled async error (e.g. in
+  an AI call) making the window vanish silently with nothing in the log.
+- **AI requests can't hang forever:** the OpenAI and Google HTTP calls gained a
+  30 s timeout (matching the Anthropic SDK), so a stalled request fails cleanly
+  instead of leaving the panel spinning.
+- View headers match their sidebar entry: "Focus Tools" → **Focus Mode**,
+  "Launch Profiles" → **Launchers**. Shortened the Snippets input placeholders so
+  they no longer truncate.
+- **Tray popup fits its content exactly** — the renderer now measures its real
+  height and the window sizes to it (on open and whenever tiles change), so the
+  "Open dashboard" button is never clipped and there is no dead space, whatever
+  combination of tiles is enabled.
+- **Less idle work:** the tray popup and the main window pause their 2–3 s
+  background polls (stats, ports, guards, config) while hidden/minimised, and
+  refetch on show.
+- **Port Mapper** formats process memory itself from the raw kilobytes, so a
+  non-English locale's digit grouping (e.g. the pt-PT non-breaking space) no
+  longer corrupts the value.
+- **Dev Cleanser** delete path hardened: realpath'd roots and target (closes a
+  TOCTOU window), retries on locked files, and surfaces per-path failures
+  instead of silently no-op'ing.
+- The tray window no longer shrinks on repeated clicks (fractional-DPI rounding
+  in the show/hide toggle), and its Open-dashboard button is wired.
+
 ## [1.0.0] - 2026-06-11
 
-The first stable release. Onyx was hardened from a Google-AI-Studio prototype into a
-real product through themed, peer-reviewed pull requests; the audit that drove the
-work lives in [`AUDIT.md`](AUDIT.md).
+The 1.0.0 code baseline. Onyx was hardened from a Google-AI-Studio prototype into a
+real product through themed, peer-reviewed pull requests.
 
 ### Security
 - Store the GitHub Personal Access Token with Electron `safeStorage` (OS keychain)
