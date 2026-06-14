@@ -9,6 +9,10 @@ All notable changes to Onyx are documented here. The format follows
 Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
 
 ### Added
+- **Streaming AI responses** — the longer Inspector outputs (daily briefing,
+  repository insights, log triage) now render token-by-token as they arrive, with
+  a live cursor, instead of waiting for the whole reply. Falls back to a normal
+  completion if streaming fails, so a result always lands.
 - **Daily briefing** — one prioritised AI summary in the Inspector that combines
   tracked repos, running dev processes, current power state and today's log tail
   into a single morning glance (security risks first), alongside the existing

@@ -19,9 +19,9 @@ const INVOKE_CHANNELS = [
   'settings:export', 'settings:import',
   'tray:openMain', 'tray:resize',
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
-  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing',
+  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing', 'ai:stream',
 ];
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed', 'ai:streamDelta'];
 
 contextBridge.exposeInMainWorld('api', {
   invoke: (channel, ...args) => {

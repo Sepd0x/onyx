@@ -35,10 +35,10 @@ const INVOKE_CHANNELS = [
   // Power
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
   // AI (key management; model calls run in main, key never crosses the bridge)
-  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing',
+  'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing', 'ai:stream',
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed', 'ai:streamDelta'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

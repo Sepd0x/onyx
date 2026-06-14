@@ -80,6 +80,7 @@ export const CH = {
   aiExplainPower: 'ai:explainPower',
   aiAnalyzeLogs: 'ai:analyzeLogs',
   aiBriefing: 'ai:briefing',
+  aiStream: 'ai:stream',
 } as const;
 
 export const EV = {
@@ -89,6 +90,7 @@ export const EV = {
   appUpdateDownloaded: 'app:update-downloaded',
   gitScanProgress: 'git:scanProgress',
   configChanged: 'config:changed',
+  aiStreamDelta: 'ai:streamDelta',
 } as const;
 
 export type Channel = typeof CH[keyof typeof CH];

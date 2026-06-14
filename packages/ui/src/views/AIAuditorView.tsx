@@ -5,6 +5,7 @@ import { useIpc } from '../lib/ipcCache';
 import ViewHeader from '../components/ViewHeader';
 import Skeleton from '../components/Skeleton';
 import AiPanel from '../components/AiPanel';
+import { streamAi } from '../lib/aiStream';
 
 export default function AIAuditorView() {
   // Both feeds come from the shared cache (15s here, and instantly reused from
@@ -78,13 +79,13 @@ export default function AIAuditorView() {
           cta="Brief me"
           configured={aiConfigured}
           provider={aiProvider}
-          run={async () => {
+          run={async (onDelta) => {
             const power: any = await window.api?.invoke(CH.powerGet).catch(() => null);
-            return (await window.api?.invoke(CH.aiBriefing, {
+            return streamAi('briefing', {
               repos: (reposState.data ?? []).map((r: any) => ({ name: r.name, branch: r.branch, dirty: r.dirty, pull: r.pull, push: r.push, risk: r.risk, ready: r.ready })),
               processes: trackedBinaries.map((b) => ({ name: b.name, type: b.type, confidence: b.confidence })),
               power: power ? { profile: power.activeProfile, charging: power?.batteryState?.charging, otherPowerTools: power.conflicts } : null,
-            })) ?? { error: 'failed' };
+            }, onDelta);
           }}
         />
       </div>
@@ -96,10 +97,10 @@ export default function AIAuditorView() {
           cta="Generate"
           configured={aiConfigured}
           provider={aiProvider}
-          run={async () => (await window.api?.invoke(CH.aiInsights, {
+          run={async (onDelta) => streamAi('insights', {
             repos: (reposState.data ?? []).map((r: any) => ({ name: r.name, branch: r.branch, dirty: r.dirty, pull: r.pull, push: r.push, risk: r.risk, ready: r.ready })),
             processes: trackedBinaries.map((b) => ({ name: b.name, type: b.type, confidence: b.confidence })),
-          })) ?? { error: 'failed' }}
+          }, onDelta)}
         />
         <AiPanel
           title="Log triage"
@@ -108,7 +109,7 @@ export default function AIAuditorView() {
           cta="Analyse"
           configured={aiConfigured}
           provider={aiProvider}
-          run={async () => (await window.api?.invoke(CH.aiAnalyzeLogs)) ?? { error: 'failed' }}
+          run={async (onDelta) => streamAi('logs', {}, onDelta)}
         />
       </div>
 

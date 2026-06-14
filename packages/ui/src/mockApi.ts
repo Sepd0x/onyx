@@ -55,6 +55,17 @@ const DEMO_LAUNCHERS = [
   },
 ];
 
+// Canned AI outputs for the browser mock, shared by the one-shot and streaming paths.
+const AI_DEMO: Record<string, string> = {
+  'ai:briefing': 'Repos:\n• onyx — a .env file is tracked (security risk): add it to .gitignore now.\n• onyx — 4 uncommitted files + 2 unpushed commits: commit & push before they grow stale.\n• Focus-Tools — 2 commits behind origin: pull to avoid a divergent history.\nProcesses & power:\n• 2 dev servers running (claude.exe, code.exe) — guard them so the machine stays awake.\n• On AC in Balanced mode — sensible for this workload.\nLog:\n• A few startup "Invalid IPC channel" warnings; harmless but worth ordering. Otherwise healthy.',
+  'ai:insights': '• onyx-core: 4 uncommitted files and 2 unpushed commits — commit & push before they grow stale.\n• onyx-core: a .env file is tracked as a risk — add it to .gitignore.\n• Focus-Tools: 2 commits behind origin — pull to avoid a divergent history.\n• 2 dev servers (claude.exe, code.exe) are running — guard them in Session Guard so the machine stays awake.',
+  'ai:explainPower': 'You are on AC power in Balanced mode. The auto-planner switched to Battery Saver twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',
+  'ai:analyzeLogs': '• Repeated "Invalid IPC channel" warnings around startup — likely a renderer calling a channel before the handler registered; harmless but worth ordering. \n• One unhandled promise rejection in the updater check — wrap the network call. \n• Otherwise the logs look healthy.',
+};
+const AI_FEATURE_CHANNEL: Record<string, string> = {
+  briefing: 'ai:briefing', insights: 'ai:insights', power: 'ai:explainPower', logs: 'ai:analyzeLogs',
+};
+
 class MockApi {
   private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true, onboarded: true };
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
@@ -63,6 +74,7 @@ class MockApi {
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null }
   ];
   private demo = false;
+  private listeners: Record<string, Function[]> = {};
   private watchedProcesses: any[] = [];
   private cleanerDirs: { path: string; name: string; bytes: number }[] = [
     { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', bytes: 340 * 1024 * 1024 },
@@ -106,9 +118,15 @@ class MockApi {
 
   private mockScanRoots: string[] = ['C:/dev', 'C:/Users/dev/Projects'];
 
-  // The browser mock has no backend push events; provided so window.api.on is safe.
-  // Returns a no-op unsubscribe to mirror the real preload bridge contract.
-  on(_channel: string, _listener: (...args: any[]) => void) { return () => {}; }
+  // Track listeners so the mock can push events (e.g. ai:streamDelta) like the real
+  // bridge; returns an unsubscribe to mirror the preload contract.
+  on(channel: string, listener: (...args: any[]) => void) {
+    (this.listeners[channel] ||= []).push(listener);
+    return () => { this.listeners[channel] = (this.listeners[channel] || []).filter(l => l !== listener); };
+  }
+  private emit(channel: string, payload: any) {
+    (this.listeners[channel] || []).forEach(l => { try { l(payload); } catch {} });
+  }
 
   async invoke(channel: string, ...args: any[]) {
     await delay(100); // simulate IPC latency
@@ -353,13 +371,19 @@ class MockApi {
         // return a canned briefing so the result UI can be exercised in dev.
         await delay(900);
         if (!this.demo && localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
-        const demo: Record<string, string> = {
-          'ai:briefing': 'Repos:\n• onyx — a .env file is tracked (security risk): add it to .gitignore now.\n• onyx — 4 uncommitted files + 2 unpushed commits: commit & push before they grow stale.\n• Focus-Tools — 2 commits behind origin: pull to avoid a divergent history.\nProcesses & power:\n• 2 dev servers running (claude.exe, code.exe) — guard them so the machine stays awake.\n• On AC in Balanced mode — sensible for this workload.\nLog:\n• A few startup "Invalid IPC channel" warnings; harmless but worth ordering. Otherwise healthy.',
-          'ai:insights': '• onyx-core: 4 uncommitted files and 2 unpushed commits — commit & push before they grow stale.\n• onyx-core: a .env file is tracked as a risk — add it to .gitignore.\n• Focus-Tools: 2 commits behind origin — pull to avoid a divergent history.\n• 2 dev servers (claude.exe, code.exe) are running — guard them in Session Guard so the machine stays awake.',
-          'ai:explainPower': 'You are on AC power in Balanced mode. The auto-planner switched to Battery Saver twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',
-          'ai:analyzeLogs': '• Repeated "Invalid IPC channel" warnings around startup — likely a renderer calling a channel before the handler registered; harmless but worth ordering. \n• One unhandled promise rejection in the updater check — wrap the network call. \n• Otherwise the logs look healthy.',
-        };
-        return { text: demo[channel], usage: { input: 1200, output: 180 }, cached: false };
+        return { text: AI_DEMO[channel], usage: { input: 1200, output: 180 }, cached: false };
+      }
+      case 'ai:stream': {
+        // Simulate token streaming: emit ai:streamDelta chunks, then resolve final.
+        const { id, feature } = args[0] || {};
+        if (!this.demo && localStorage.getItem('onyx-ai-configured') !== '1') return { error: 'no-key' };
+        const full = AI_DEMO[AI_FEATURE_CHANNEL[feature] || 'ai:insights'] || '';
+        const chunks = full.match(/\S+\s*/g) || [full];
+        for (let i = 0; i < chunks.length; i++) {
+          setTimeout(() => this.emit('ai:streamDelta', { id, delta: chunks[i] }), 22 * i);
+        }
+        await delay(22 * chunks.length + 120);
+        return { text: full, usage: { input: 1200, output: 180 }, cached: false };
       }
 
       case 'app:notify':

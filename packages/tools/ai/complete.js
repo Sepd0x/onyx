@@ -122,7 +122,111 @@ async function callGoogle({ key, model, system, user, maxTokens }) {
   }
 }
 
+// ---- Streaming variants (emit text via onDelta as it arrives) ----------------
+
+// Yield each SSE `data:` payload from a fetch Response body (web ReadableStream).
+async function* sseLines(res) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, idx).trim();
+      buf = buf.slice(idx + 1);
+      if (line.startsWith('data:')) yield line.slice(5).trim();
+    }
+  }
+}
+
+async function streamAnthropic({ key, model, system, user, maxTokens, onDelta }) {
+  let Anthropic;
+  try { Anthropic = require('@anthropic-ai/sdk'); } catch { return { error: 'sdk-missing' }; }
+  try {
+    const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 30000 });
+    const stream = await client.messages.create({
+      model, max_tokens: maxTokens, system,
+      messages: [{ role: 'user', content: user }], stream: true,
+    });
+    let text = '';
+    let usage = null;
+    for await (const ev of stream) {
+      if (ev.type === 'content_block_delta' && ev.delta && ev.delta.type === 'text_delta') {
+        text += ev.delta.text; onDelta(ev.delta.text);
+      } else if (ev.type === 'message_start' && ev.message && ev.message.usage) {
+        usage = { input: ev.message.usage.input_tokens, output: 0 };
+      } else if (ev.type === 'message_delta' && ev.usage) {
+        usage = { input: (usage && usage.input) || 0, output: ev.usage.output_tokens };
+      }
+    }
+    return { text, usage };
+  } catch (e) {
+    const detail = (e && (e?.error?.error?.message || e.message)) || '';
+    return { error: statusToError(e && e.status), detail };
+  }
+}
+
+async function streamOpenAI({ key, model, system, user, maxTokens, onDelta }) {
+  try {
+    const res = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model, max_tokens: maxTokens, stream: true,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      }),
+    });
+    if (!res.ok) return { error: statusToError(res.status), detail: await errorDetail(res) };
+    let text = '';
+    for await (const data of sseLines(res)) {
+      if (data === '[DONE]') break;
+      try {
+        const d = JSON.parse(data).choices?.[0]?.delta?.content;
+        if (d) { text += d; onDelta(d); }
+      } catch {}
+    }
+    return { text, usage: null };
+  } catch (e) {
+    if (e && e.name === 'AbortError') return { error: 'failed', detail: 'Request timed out after 30s.' };
+    return { error: 'failed' };
+  }
+}
+
+async function streamGoogle({ key, model, system, user, maxTokens, onDelta }) {
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
+    const generationConfig = { maxOutputTokens: maxTokens };
+    if (shouldDisableThinking(model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    const res = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig,
+      }),
+    });
+    if (!res.ok) return { error: statusToError(res.status), detail: await errorDetail(res) };
+    let text = '';
+    for await (const data of sseLines(res)) {
+      try {
+        const parts = JSON.parse(data).candidates?.[0]?.content?.parts;
+        const d = Array.isArray(parts) ? parts.map((p) => p.text || '').join('') : '';
+        if (d) { text += d; onDelta(d); }
+      } catch {}
+    }
+    return { text, usage: null };
+  } catch (e) {
+    if (e && e.name === 'AbortError') return { error: 'failed', detail: 'Request timed out after 30s.' };
+    return { error: 'failed' };
+  }
+}
+
 const CALLERS = { anthropic: callAnthropic, openai: callOpenAI, google: callGoogle };
+const STREAMERS = { anthropic: streamAnthropic, openai: streamOpenAI, google: streamGoogle };
 
 async function complete({ feature, system, user, maxTokens = 500, cacheKey }) {
   const key = store.getKey();
@@ -147,6 +251,36 @@ async function complete({ feature, system, user, maxTokens = 500, cacheKey }) {
   return result;
 }
 
+// Streaming completion: same contract as complete() but invokes onDelta with each
+// text chunk as it arrives. Falls through the same cache (serving a cached answer
+// in one delta). Caller decides what to do on { error }.
+async function completeStream({ feature, system, user, maxTokens = 500, cacheKey, onDelta }) {
+  const key = store.getKey();
+  if (!key) return { error: 'no-key' };
+
+  const provider = store.getProvider();
+  const model = store.getModel();
+  const ck = cacheKey ? hashInput(`${feature}:${provider}:${model}`, cacheKey) : null;
+  if (ck && cache.has(ck)) {
+    const cached = cache.get(ck);
+    if (onDelta && cached.text) onDelta(cached.text);
+    return { ...cached, cached: true };
+  }
+
+  const streamer = STREAMERS[provider] || streamAnthropic;
+  const cb = typeof onDelta === 'function' ? onDelta : () => {};
+  const out = await streamer({ key, model, system, user, maxTokens, onDelta: cb });
+  if (out.error) return { error: out.error, detail: out.detail || '' };
+  if (!out.text) return { error: 'empty' };
+
+  const result = { text: out.text, usage: out.usage || null };
+  if (ck) {
+    cache.set(ck, result);
+    if (cache.size > MAX_CACHE) cache.delete(cache.keys().next().value);
+  }
+  return result;
+}
+
 // Convenience for callers that just want the string or a clean null fallback
 // (e.g. commit-message generation degrading to its heuristic).
 async function completeText(opts) {
@@ -154,4 +288,4 @@ async function completeText(opts) {
   return r && r.text ? r.text : null;
 }
 
-module.exports = { complete, completeText };
+module.exports = { complete, completeStream, completeText };
