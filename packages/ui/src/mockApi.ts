@@ -215,10 +215,12 @@ class MockApi {
 
       case 'ports:get':
         return [
-          { port: '3000', process: 'node', pid: '1234', local: '0.0.0.0:3000', state: 'LISTENING', proto: 'TCP', cpu: '1.2%', ram: '120MB' },
-          { port: '5432', process: 'postgres', pid: '5678', local: '127.0.0.1:5432', state: 'LISTENING', proto: 'TCP', cpu: '0.5%', ram: '80MB' },
-          { port: '5173', process: 'vite', pid: '8910', local: '127.0.0.1:5173', state: 'LISTENING', proto: 'TCP', cpu: '2.5%', ram: '65MB' },
-          { port: '443', process: 'system', pid: '4', local: '0.0.0.0:443', state: 'LISTEN', proto: 'TCP', cpu: '0.1%', ram: '12MB' }
+          { port: '3000', process: 'node', pid: '1234', ppid: '600', path: 'C:\\Program Files\\nodejs\\node.exe', local: '0.0.0.0:3000', remote: '0.0.0.0:0', state: 'LISTENING', proto: 'TCP', ipv6: false, cpu: '-', ram: '120 MB' },
+          { port: '54880', process: 'node', pid: '1234', ppid: '600', path: 'C:\\Program Files\\nodejs\\node.exe', local: '127.0.0.1:54880', remote: '104.18.32.7:443', state: 'ESTABLISHED', proto: 'TCP', ipv6: false, cpu: '-', ram: '120 MB' },
+          { port: '5432', process: 'postgres', pid: '5678', ppid: '700', path: 'C:\\Program Files\\PostgreSQL\\16\\bin\\postgres.exe', local: '127.0.0.1:5432', remote: '0.0.0.0:0', state: 'LISTENING', proto: 'TCP', ipv6: false, cpu: '-', ram: '80 MB' },
+          { port: '5173', process: 'vite', pid: '8910', ppid: '1234', path: 'C:\\Program Files\\nodejs\\node.exe', local: '127.0.0.1:5173', remote: '0.0.0.0:0', state: 'LISTENING', proto: 'TCP', ipv6: false, cpu: '-', ram: '65 MB' },
+          { port: '5353', process: 'svchost', pid: '2200', ppid: '1', path: null, local: '0.0.0.0:5353', remote: '*:*', state: 'UDP', proto: 'UDP', ipv6: false, cpu: '-', ram: '8 MB' },
+          { port: '443', process: 'System', pid: '4', ppid: '0', path: null, local: '[::]:443', remote: '[::]:0', state: 'LISTENING', proto: 'TCP', ipv6: true, cpu: '-', ram: null }
         ];
       case 'ports:kill':
         console.log('Killed PID: ', args[0]);

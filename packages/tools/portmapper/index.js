@@ -1,75 +1,72 @@
 const { exec, execFile } = require('child_process');
 const { ipcMain } = require('electron');
+const path = require('path');
+const { parseNetstat, parseTasklistCsv, parseCimProcesses } = require('./parse');
 
-// tasklist prints memory in the OS locale (e.g. "60 964 K" on pt-PT, where the
-// grouping separator is a non-breaking space that mangles to U+FFFD under UTF-8,
-// or "60,964 K" elsewhere). Keep only the digits and format it ourselves.
-function formatMem(rawKb) {
-  const kb = parseInt(String(rawKb).replace(/\D+/g, ''), 10);
-  if (!Number.isFinite(kb)) return null;
-  if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
-  return kb + ' KB';
-}
+// Absolute path: don't resolve powershell.exe via PATH (binary-planting hardening).
+const POWERSHELL = path.join(
+  process.env.SystemRoot || 'C:\\Windows',
+  'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'
+);
 
 module.exports = function initPortMapper() {
   const NO_WIN = process.platform === 'win32' ? { windowsHide: true } : {};
-  
-  ipcMain.handle('ports:get', () => new Promise(resolve => {
-    exec('netstat -ano', { ...NO_WIN, timeout: 8000 }, (err, stdout) => {
+
+  // Resolve pid → { name, ppid, path, ram } on Windows. Prefer CIM (gives the
+  // executable path + parent PID + working set for the "owning process" detail
+  // and process tree); fall back to tasklist (name + ram only) if PowerShell
+  // is unavailable or returns nothing.
+  function getProcMapWin() {
+    return new Promise((resolve) => {
+      const cmd =
+        '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
+        'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process | ' +
+        'Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,WorkingSetSize)';
+      execFile(
+        POWERSHELL,
+        ['-NoProfile', '-NonInteractive', '-Command', cmd],
+        { windowsHide: true, timeout: 8000, maxBuffer: 10 * 1024 * 1024 },
+        (err, out) => {
+          if (!err && out) {
+            const m = parseCimProcesses(out);
+            if (Object.keys(m).length) return resolve(m);
+          }
+          exec('tasklist /fo csv /nh', { windowsHide: true, timeout: 6000 }, (e2, out2) =>
+            resolve(e2 ? {} : parseTasklistCsv(out2))
+          );
+        }
+      );
+    });
+  }
+
+  ipcMain.handle('ports:get', () => new Promise((resolve) => {
+    exec('netstat -ano', { ...NO_WIN, timeout: 8000 }, async (err, stdout) => {
       if (err) return resolve([]);
-      const rows = [], seen = new Set();
-      for (const line of stdout.split('\n')) {
-        const p = line.trim().split(/\s+/);
-        if (p.length < 4) continue;
-        const proto = p[0].toUpperCase();
-        if (!['TCP','UDP'].includes(proto)) continue;
-        const local = p[1] || '';
-        const portStr = local.split(':').pop();
-        if (!portStr || isNaN(portStr)) continue;
-        const isTcp = proto === 'TCP';
-        const state = isTcp ? (p[3] || '') : 'UDP';
-        const pid   = (isTcp ? p[4] : p[3] || '').trim();
-        const key   = `${portStr}|${pid}|${state}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        rows.push({ proto, port: portStr, local, state, pid, ram: 'N/A', cpu: 'N/A' });
-      }
+      const rows = parseNetstat(stdout);
       if (process.platform === 'win32') {
-        // Advanced info gathering for Windows
-        exec('tasklist /fo csv /nh', { ...NO_WIN, timeout: 6000 }, (e2, out2) => {
-          const names = {};
-          const mems = {};
-          if (!e2) {
-            for (const l of out2.split('\n')) {
-              // Parse the quoted CSV fields directly so a locale comma inside the
-              // memory column ("60,964 K") can't split the value in two.
-              const fields = (l.match(/"([^"]*)"/g) || []).map(s => s.slice(1, -1));
-              if (fields.length >= 5) {
-                const pid = fields[1].trim();
-                names[pid] = fields[0].replace(/\.exe$/i, '');
-                mems[pid] = formatMem(fields[4]);
-              }
-            }
-          }
-          for (const r of rows) {
-            r.process = names[r.pid] || 'system';
-            r.ram = mems[r.pid] || null;
-            r.cpu = '-';
-          }
-          resolve(rows.sort((a,b) => +a.port - +b.port));
-        });
+        const procMap = await getProcMapWin();
+        for (const r of rows) {
+          const info = procMap[r.pid] || {};
+          // PID 4 is the Windows kernel/System; 0 is the idle process.
+          r.process = info.name || (r.pid === '4' ? 'System' : r.pid === '0' ? 'System Idle' : 'system');
+          r.ram = info.ram || null;
+          r.path = info.path || null;
+          r.ppid = info.ppid || null;
+          r.cpu = '-';
+        }
+        resolve(rows.sort((a, b) => +a.port - +b.port));
       } else {
-        for (const r of rows) r.process = 'system';
+        for (const r of rows) { r.process = 'system'; r.ram = null; r.path = null; r.ppid = null; r.cpu = '-'; }
         resolve(rows);
       }
     });
   }));
 
-  ipcMain.handle('ports:kill', (_, pid) => new Promise(resolve => {
+  ipcMain.handle('ports:kill', (_, pid) => new Promise((resolve) => {
     const pidStr = String(pid);
     if (!/^[0-9]+$/.test(pidStr)) return resolve(false); // reject non-numeric PIDs (no shell, no injection)
     const file = process.platform === 'win32' ? 'taskkill' : 'kill';
     const args = process.platform === 'win32' ? ['/F', '/PID', pidStr] : ['-9', pidStr];
-    execFile(file, args, { ...NO_WIN }, err => resolve(!err));
+    execFile(file, args, { ...NO_WIN }, (err) => resolve(!err));
   }));
 };
