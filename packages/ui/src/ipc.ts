@@ -70,6 +70,7 @@ export const CH = {
   powerSetProfile: 'power:setProfile',
   powerSetAI: 'power:setAI',
   powerSetConfig: 'power:setConfig',
+  powerGetBatteryHealth: 'power:getBatteryHealth',
   // AI
   aiGetStatus: 'ai:getStatus',
   aiSetKey: 'ai:setKey',
