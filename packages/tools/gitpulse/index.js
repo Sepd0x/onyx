@@ -29,8 +29,9 @@ module.exports = function initGitPulse() {
     'node_modules', '.git', 'appdata', '$recycle.bin', 'program files', 'windows',
     'dist', 'build', '.cache', '.vscode', '.idea', 'venv', '.venv', '__pycache__', 'vendor',
   ]);
-  const MAX_DEPTH = 3;       // directories below a root to descend
-  const MAX_VISITED = 20000; // hard cap on dirs read per scan
+  const MAX_DEPTH = 6;       // directories below a root to descend (was 3 — too shallow, missed nested repos)
+  const MAX_VISITED = 40000; // hard cap on dirs read per scan
+  const SCAN_CONCURRENCY = 12; // parallel readdir workers — fast AND thorough
 
   // Per-repo `git fetch` throttle. Session-scoped Map instead of persisting on the
   // cfg entry: avoids the load/save clobber race the remote `_lastCheck` path has
@@ -268,35 +269,58 @@ module.exports = function initGitPulse() {
     return { ok: true };
   });
 
-  // Bounded-depth async walk for local git repos. Skips symlinks/junctions and known
-  // heavy dirs, stops descending at a repo root, and caps total dirs visited.
+  // Bounded-depth PARALLEL async walk for local git repos. A fixed pool of workers
+  // drains a shared frontier so many directories are read at once (fast) while still
+  // descending deep (thorough). Skips symlinks/junctions and known heavy dirs, stops
+  // descending at a repo root, de-dupes visited paths, and caps total dirs visited.
   async function runAutoScan(onProgress) {
     const cfg = loadCfg();
     const known = new Set(cfg.repos.filter(r => r.type === 'local').map(r => r.path));
     const found = [];
-    let scanned = 0;
-    const queue = scanRootsFrom(cfg).filter(r => fs.existsSync(r)).map(dir => ({ dir, depth: 0 }));
+    let scanned = 0, active = 0;
+    const seen = new Set();
+    const queue = [];
+    for (const r of scanRootsFrom(cfg)) {
+      if (fs.existsSync(r) && !seen.has(r)) { seen.add(r); queue.push({ dir: r, depth: 0 }); }
+    }
 
-    while (queue.length && scanned < MAX_VISITED) {
-      const { dir, depth } = queue.shift();
-      scanned++;
+    async function processDir(dir, depth) {
       let entries;
       try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); }
-      catch { continue; }
+      catch { return; }
 
       if (entries.some(e => e.name === '.git')) {
         // dir is a repo root (covers worktree .git files too): record, don't descend.
         if (!known.has(dir)) { known.add(dir); found.push(dir); }
-      } else if (depth < MAX_DEPTH) {
+        return;
+      }
+      if (depth < MAX_DEPTH) {
         for (const e of entries) {
           if (!e.isDirectory()) continue;
           if (typeof e.isSymbolicLink === 'function' && e.isSymbolicLink()) continue;
           if (SKIP_DIRS.has(e.name.toLowerCase())) continue;
-          queue.push({ dir: path.join(dir, e.name), depth: depth + 1 });
+          const child = path.join(dir, e.name);
+          if (seen.has(child)) continue;
+          seen.add(child);
+          queue.push({ dir: child, depth: depth + 1 });
         }
       }
-      if (onProgress && scanned % 50 === 0) onProgress({ dir, found: found.length, scanned });
+      if (onProgress && scanned % 25 === 0) onProgress({ dir, found: found.length, scanned });
     }
+
+    await new Promise((resolve) => {
+      const pump = () => {
+        if (queue.length === 0 && active === 0) return resolve();
+        while (active < SCAN_CONCURRENCY && queue.length && scanned < MAX_VISITED) {
+          const { dir, depth } = queue.shift();
+          active++; scanned++;
+          processDir(dir, depth).catch(() => {}).finally(() => { active--; pump(); });
+        }
+        // Cap reached with work still draining: let in-flight workers finish.
+        if (scanned >= MAX_VISITED && active === 0) resolve();
+      };
+      pump();
+    });
 
     if (found.length) {
       for (const p of found) {
