@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- Transparent-background variant of icon.svg: the gem + brand glow only, no
+       dark tile and no contact shadow. Used for the tray + taskbar/window icon so
+       it reads light next to neighbouring app icons. icon.svg (framed tile) stays
+       for the installer / app tile (icon.ico). -->
+  <defs>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#a855f7" stop-opacity="0.45"/>
+      <stop offset="0.55" stop-color="#7c3aed" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="face-top" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#efe0ff"/>
+      <stop offset="0.5" stop-color="#c084fc"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="face-left" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#4c1d95"/>
+    </linearGradient>
+    <linearGradient id="face-right" x1="1" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#6d28d9"/>
+      <stop offset="1" stop-color="#2e0d5e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Brand glow behind the gem (subtle halo on transparency) -->
+  <ellipse cx="128" cy="124" rx="104" ry="104" fill="url(#glow)"/>
+
+  <!-- Isometric "Onyx" gem -->
+  <g stroke-linejoin="round">
+    <path d="M44 78 L128 126 L128 224 L44 176 Z" fill="url(#face-left)"/>
+    <path d="M212 78 L128 126 L128 224 L212 176 Z" fill="url(#face-right)"/>
+    <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="url(#face-top)"/>
+    <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="none" stroke="#f7efff" stroke-width="3" stroke-opacity="0.9"/>
+    <path d="M128 126 L128 224" fill="none" stroke="#c4b5fd" stroke-width="2.5" stroke-opacity="0.5"/>
+    <path d="M44 78 L44 176 L128 224" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-opacity="0.4"/>
+  </g>
+</svg>

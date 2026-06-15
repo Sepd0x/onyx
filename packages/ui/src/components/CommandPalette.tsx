@@ -86,7 +86,7 @@ export default function CommandPalette({
         role="dialog"
         aria-label="Command palette"
       >
-        <div className="flex items-center gap-3 px-4 border-b border-border">
+        <div className="flex items-center gap-3 px-4 border-b border-border rounded-t-2xl">
           <Search className="w-4 h-4 text-muted flex-shrink-0" />
           <input
             ref={inputRef}
