@@ -81,6 +81,9 @@ function createTrayWindow() {
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
+      // No DevTools in the packaged app — a "system guard" must not expose its
+      // renderer/IPC surface via Ctrl+Shift+I in production (audit B1).
+      devTools: !app.isPackaged,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -170,6 +173,8 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
+      // No DevTools in the packaged app (audit B1) — see the tray window above.
+      devTools: !app.isPackaged,
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -242,17 +247,32 @@ function createWindow() {
     }
   });
 
+  // Returns a structured result so the renderer never has to string-match
+  // magic phrases, and the message is honest about each state (audit B4):
+  // there is no published release yet (private repo, no tags), so a failed
+  // check is "no channel yet", not a scary "Error checking".
   ipcMain.handle('app:checkForUpdates', async () => {
-    if (app.isPackaged) {
-      try {
-        const result = await autoUpdater.checkForUpdates();
-        return result?.updateInfo?.version || 'Latest';
-      } catch (err) {
-        logger.error('Update check failed:', err);
-        return 'Error checking';
-      }
+    if (!app.isPackaged) {
+      return { state: 'dev', message: 'Updates are disabled in development builds.' };
     }
-    return 'Dev Mode: No updates';
+    const current = app.getVersion();
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      const latest = result?.updateInfo?.version;
+      if (latest && latest !== current) {
+        return { state: 'available', version: latest, message: `Update ${latest} found — downloading…` };
+      }
+      return { state: 'latest', version: current, message: `You're on the latest version (${current}).` };
+    } catch (err) {
+      logger.error('Update check failed:', err);
+      const msg = String((err && err.message) || err);
+      // A missing feed/release is the expected state until the first release is
+      // published — treat it as "up to date", not a failure.
+      if (/404|latest\.yml|No published|ENOENT|Unable to find|Cannot find/i.test(msg)) {
+        return { state: 'no-feed', message: `No update channel yet — you're on the latest build (${current}).` };
+      }
+      return { state: 'error', message: "Couldn't reach the update server. Check your connection and try again." };
+    }
   });
 
   ipcMain.handle('app:installUpdate', () => {

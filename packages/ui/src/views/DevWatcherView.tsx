@@ -153,7 +153,14 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                   <span className="absolute -top-1 -right-0.5 w-2.5 h-2.5 rounded-full z-20 bg-green-400"></span>
                 </div>
                 <div className="min-w-0 flex-1 pr-6">
-                  <div className="text-sm font-semibold text-text">{task.name || 'External process'}</div>
+                  <div className="text-sm font-semibold text-text flex items-center gap-2">
+                    {task.name || 'External process'}
+                    {task.respawns > 0 && (
+                      <span className="text-[9px] font-mono text-accent bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded" title="The process re-spawned under a new PID — the guard followed it.">
+                        re-spawned ×{task.respawns}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[11px] font-mono text-muted mt-1">PID <span className="text-text2">{task.target}</span> · wake lock held</div>
                 </div>
               </div>

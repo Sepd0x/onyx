@@ -29,6 +29,52 @@ module.exports = function initDevWatcher() {
     });
   };
 
+  // Resolves a PID's image name (e.g. "node.exe") once at watch start, so the
+  // guard can recognise the same task after it re-spawns under a new PID.
+  const getProcessName = (pid) => {
+    return new Promise(resolve => {
+      const pidStr = String(pid);
+      if (!/^[0-9]+$/.test(pidStr)) return resolve(null);
+      if (process.platform === 'win32') {
+        execFile('tasklist', ['/FI', `PID eq ${pidStr}`, '/FO', 'CSV', '/NH'], { windowsHide: true }, (err, stdout) => {
+          const m = !err && stdout && String(stdout).match(/^"([^"]+)"/);
+          resolve(m ? m[1] : null);
+        });
+      } else {
+        execFile('ps', ['-p', pidStr, '-o', 'comm='], (err, stdout) => {
+          if (err || !stdout) return resolve(null);
+          resolve(String(stdout).trim().split('/').pop() || null);
+        });
+      }
+    });
+  };
+
+  // Live PIDs (as strings) for a given image name. Name is validated to a plain
+  // image name so it's safe to pass as an argv filter (no shell).
+  const findPidsByName = (name) => {
+    return new Promise(resolve => {
+      if (!name) return resolve([]);
+      if (process.platform === 'win32') {
+        if (!/^[\w .-]+\.exe$/i.test(name)) return resolve([]);
+        execFile('tasklist', ['/FI', `IMAGENAME eq ${name}`, '/FO', 'CSV', '/NH'], { windowsHide: true }, (err, stdout) => {
+          if (err || !stdout) return resolve([]);
+          const pids = [];
+          for (const line of String(stdout).split(/\r?\n/)) {
+            const m = line.match(/^"[^"]+","(\d+)"/); // image name, then PID
+            if (m) pids.push(m[1]);
+          }
+          resolve(pids);
+        });
+      } else {
+        if (!/^[\w.-]+$/.test(name)) return resolve([]);
+        execFile('pgrep', ['-x', name], (err, stdout) => {
+          if (err || !stdout) return resolve([]);
+          resolve(String(stdout).split(/\s+/).filter(s => /^\d+$/.test(s)));
+        });
+      }
+    });
+  };
+
   const generateId = () => Math.random().toString(36).substring(7);
 
     // dev:heal removed — it was a no-op stub (see AUDIT.md COR-05 / ARCH-07).
@@ -84,27 +130,48 @@ module.exports = function initDevWatcher() {
 
   ipcMain.handle('dev:startWatch', async (event, req) => {
     if (req.type !== 'pid') return false;
-    const pid = req.target;
-    if (!/^[0-9]+$/.test(String(pid))) return false; // reject non-numeric targets
+    const pid = String(req.target);
+    if (!/^[0-9]+$/.test(pid)) return false; // reject non-numeric targets
+
+    // Resolve the image name + the same-name PIDs that already exist, so a
+    // later re-spawn (the guarded PID dies and a NEW same-name PID appears) is
+    // recognised and the lock follows it instead of being released silently —
+    // the failure the old PID-only watch had with dev tools (audit B2).
+    const procName = await getProcessName(pid);
+    const knownPids = new Set(procName ? await findPidsByName(procName) : []);
 
     const blockerId = powerSaveBlocker.start('prevent-display-sleep');
     const id = generateId();
-    
+
     const intervalId = setInterval(async () => {
-      const running = await isProcessRunning(pid);
-      if (!running) {
-        clearInterval(activeWatches.get(id).intervalId);
-        powerSaveBlocker.stop(activeWatches.get(id).blockerId);
-        activeWatches.delete(id);
-        
-        new Notification({
-          title: 'Onyx Session Guard',
-          body: `Task finished! Wake lock released for PID ${pid}.`
-        }).show();
+      const w = activeWatches.get(id);
+      if (!w) return;
+      if (await isProcessRunning(w.target)) return; // exact PID still alive
+
+      // The watched PID is gone. If a genuinely new process of the same name
+      // exists, the task re-spawned — adopt it and keep holding the lock.
+      if (procName) {
+        const livePids = await findPidsByName(procName);
+        const fresh = livePids.find(p => !knownPids.has(p));
+        if (fresh) {
+          knownPids.add(fresh);
+          w.target = fresh;
+          w.respawns = (w.respawns || 0) + 1;
+          return;
+        }
       }
+
+      // Genuinely finished — release the lock and notify.
+      clearInterval(w.intervalId);
+      powerSaveBlocker.stop(w.blockerId);
+      activeWatches.delete(id);
+      new Notification({
+        title: 'Onyx Session Guard',
+        body: `${w.name || `PID ${w.target}`} finished — wake lock released.`
+      }).show();
     }, 5000);
 
-    activeWatches.set(id, { id, type: 'pid', target: pid, name: req.name, intervalId, blockerId });
+    activeWatches.set(id, { id, type: 'pid', target: pid, name: req.name, procName, respawns: 0, intervalId, blockerId });
     return true;
   });
 
@@ -119,7 +186,7 @@ module.exports = function initDevWatcher() {
   ipcMain.handle('dev:status', () => {
     const res = [];
     for (const val of activeWatches.values()) {
-       res.push({ id: val.id, type: val.type, target: val.target, name: val.name });
+       res.push({ id: val.id, type: val.type, target: val.target, name: val.name, procName: val.procName, respawns: val.respawns || 0 });
     }
     return res;
   });

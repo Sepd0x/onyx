@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Battery, BatteryCharging, Zap, BrainCircuit, Activity, AlertTriangle } from 'lucide-react';
+import { Battery, BatteryCharging, Zap, BrainCircuit, Activity, AlertTriangle, Loader2 } from 'lucide-react';
 import Switch from '../components/Switch';
 import BatteryGauge from '../components/BatteryGauge';
 import ViewHeader from '../components/ViewHeader';
@@ -18,6 +18,7 @@ function formatBatteryTime(b: any) {
 
 export default function PowerOSView() {
   const [activeProfile, setActiveProfile] = useState('balanced');
+  const [pending, setPending] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [autoNotify, setAutoNotify] = useState(true);
   const [events, setEvents] = useState<any[]>([]);
@@ -80,10 +81,17 @@ export default function PowerOSView() {
     };
   }, []);
 
+  // Switching the power mode spawns PowerShell (~1–2s). Track which profile is
+  // in flight so the buttons show a pending state and can't be spammed — every
+  // extra click would otherwise queue another PS call (audit B3).
   const setProfile = async (p: string) => {
-    if (window.api) {
+    if (!window.api || aiEnabled || pending || p === activeProfile) return;
+    setPending(p);
+    try {
       await window.api.invoke(CH.powerSetProfile, p);
       invalidate('power:');
+    } finally {
+      setPending(null);
     }
   };
 
@@ -156,37 +164,46 @@ export default function PowerOSView() {
             {/* Battery Saver */}
             <button
               onClick={() => setProfile('battery_saver')}
-              disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'battery_saver' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={aiEnabled || pending !== null}
+              aria-busy={pending === 'battery_saver'}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'battery_saver' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled || pending !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Battery className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-accent' : 'text-muted'}`} />
               <div className="text-[13px] font-semibold text-text">Battery saver</div>
               <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows efficiency mode. Less CPU boost &amp; background work.</div>
-              {activeProfile === 'battery_saver' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
+              {pending === 'battery_saver'
+                ? <div className="mt-3 text-[10px] font-medium text-accent flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Switching…</div>
+                : activeProfile === 'battery_saver' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
 
             {/* Balanced */}
             <button
               onClick={() => setProfile('balanced')}
-              disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'balanced' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={aiEnabled || pending !== null}
+              aria-busy={pending === 'balanced'}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'balanced' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled || pending !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Activity className={`w-5 h-5 mb-3 ${activeProfile === 'balanced' ? 'text-accent' : 'text-muted'}`} />
               <div className="text-[13px] font-semibold text-text">Balanced</div>
               <div className="text-[11px] text-muted mt-1 leading-relaxed">Default OS limits. Recommended for mixed usage.</div>
-              {activeProfile === 'balanced' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
+              {pending === 'balanced'
+                ? <div className="mt-3 text-[10px] font-medium text-accent flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Switching…</div>
+                : activeProfile === 'balanced' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
 
             {/* Performance */}
             <button
               onClick={() => setProfile('performance')}
-              disabled={aiEnabled}
-              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'performance' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={aiEnabled || pending !== null}
+              aria-busy={pending === 'performance'}
+              className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'performance' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled || pending !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Zap className={`w-5 h-5 mb-3 ${activeProfile === 'performance' ? 'text-accent' : 'text-muted'}`} />
               <div className="text-[13px] font-semibold text-text">Max performance</div>
               <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows best-performance mode. Full CPU boost.</div>
-              {activeProfile === 'performance' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
+              {pending === 'performance'
+                ? <div className="mt-3 text-[10px] font-medium text-accent flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Switching…</div>
+                : activeProfile === 'performance' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
           </div>
 

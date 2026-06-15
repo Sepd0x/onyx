@@ -148,13 +148,15 @@ export default function SettingsView() {
   };
 
   const checkForUpdates = async () => {
-    setUpdateStatus('Checking for updates...');
+    setUpdateStatus('Checking for updates…');
     const res = await window.api?.invoke(CH.appCheckForUpdates);
-    if (res && res !== 'Error checking' && !res.includes('Dev Mode')) {
-       if (updateStatus === 'Checking for updates...') setUpdateStatus(`Latest or found: ${res}`);
-    } else {
-       setUpdateStatus(res);
-       setTimeout(() => setUpdateStatus(''), 3000);
+    const message = res?.message ?? 'Update check unavailable right now.';
+    setUpdateStatus(message);
+    // When an update is downloading, the update-available/-downloaded events take
+    // over the status (and reveal the Install button). Every other state is a
+    // terminal message, so clear it after a few seconds.
+    if (res?.state !== 'available') {
+      setTimeout(() => setUpdateStatus(''), 5000);
     }
   };
 

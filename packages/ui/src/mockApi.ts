@@ -217,6 +217,8 @@ class MockApi {
           cpu: Math.floor(Math.random() * 20 + 5) + '%',
           ram: (Math.random() * 2 + 4).toFixed(1) + 'GB'
         };
+      case 'app:checkForUpdates':
+        return { state: 'dev', message: 'Updates are disabled in development builds.' };
       case 'settings:export': {
         // No native save dialog in the browser — trigger a real file download so
         // the preview is genuinely functional.
@@ -303,8 +305,8 @@ class MockApi {
       case 'dev:status':
         return this.watchedProcesses;
       case 'dev:startWatch':
-        // Real dev:status returns only {id, type, target, name} — keep the mock identical.
-        this.watchedProcesses.push({ id: Math.random().toString(), type: args[0].type, target: args[0].target, name: args[0].name || 'Process' });
+        // Mirror the real dev:status shape ({id, type, target, name, procName, respawns}).
+        this.watchedProcesses.push({ id: Math.random().toString(), type: args[0].type, target: args[0].target, name: args[0].name || 'Process', procName: args[0].name || null, respawns: 0 });
         return true;
       case 'dev:stopWatch':
         this.watchedProcesses = this.watchedProcesses.filter(p => p.id !== args[0]);
