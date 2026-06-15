@@ -3,7 +3,7 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
-const { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff } = require('./parse');
+const { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff, parseDirtyFiles, parseBranchList, parseCommitLine } = require('./parse');
 const aiStore = require('../ai/store');
 const aiComplete = require('../ai/complete');
 
@@ -99,31 +99,39 @@ module.exports = function initGitPulse() {
 
   async function getRemoteRepo(r) {
     let dirty = 0, pull = 0, push = 0, risk = [], activity = new Array(14).fill(0);
-    let branch = 'main';
+    let branch = 'main', prs = 0, issuesReal = 0, lastCommitAuthor = null, lastCommitDate = null;
     try {
       const hdrs = { 'User-Agent': 'Onyx' };
       if (r.token) { const tok = decryptToken(r.token); if (tok) hdrs['Authorization'] = `token ${tok}`; }
-      
+
       const now = Date.now();
       if (!r._lastCheck || (now - r._lastCheck) > 60000) {
          const res = await fetch(`https://api.github.com/repos/${r.match}`, { headers: hdrs });
          if (!res.ok) throw new Error('API request failed');
          const data = await res.json();
          branch = data.default_branch || 'main';
-         dirty = data.open_issues_count || 0;
-         
+         dirty = data.open_issues_count || 0; // conflates issues + PRs
+
+         // Count open PRs so we can show issues and PRs separately (open_issues_count
+         // includes PRs). per_page=100 is one call; treat 100 as "100+".
+         const prRes = await fetch(`https://api.github.com/repos/${r.match}/pulls?state=open&per_page=100`, { headers: hdrs });
+         if (prRes.ok) { const pd = await prRes.json(); prs = Array.isArray(pd) ? pd.length : 0; }
+         issuesReal = Math.max(0, dirty - prs);
+
          const commitsRes = await fetch(`https://api.github.com/repos/${r.match}/commits?per_page=1`, { headers: hdrs });
          let lastCommit = 'Unknown';
          if (commitsRes.ok) {
             const commitsData = await commitsRes.json();
             if (commitsData && commitsData.length > 0) {
                lastCommit = commitsData[0].commit.message;
+               lastCommitAuthor = commitsData[0].commit.author?.name || null;
+               lastCommitDate = commitsData[0].commit.author?.date || null;
             }
          }
-         r._cachedData = { branch, dirty, lastCommit };
+         r._cachedData = { branch, dirty, prs, issuesReal, lastCommit, lastCommitAuthor, lastCommitDate };
          r.lastCommit = lastCommit;
          r._lastCheck = now;
-         
+
          // Non-blocking save to config
          const cfg = loadCfg();
          const ref = cfg.repos.find(x => x.url === r.url);
@@ -135,17 +143,21 @@ module.exports = function initGitPulse() {
       } else {
          branch = r._cachedData.branch;
          dirty = r._cachedData.dirty;
+         prs = r._cachedData.prs || 0;
+         issuesReal = r._cachedData.issuesReal != null ? r._cachedData.issuesReal : Math.max(0, dirty - prs);
+         lastCommitAuthor = r._cachedData.lastCommitAuthor || null;
+         lastCommitDate = r._cachedData.lastCommitDate || null;
          r.lastCommit = r._cachedData.lastCommit;
       }
-      
+
       let commitWarning = null;
       if (r.lastCommit && r.lastCommit.length < 5) commitWarning = 'Bad commit message detected';
 
       // No cheap per-day history from the REST API; leave the sparkline flat rather
       // than fabricate it (local repos get real 14-day buckets from git log).
-      return { type:'remote', path:r.url, name:r.match, branch, dirty, pull, push, risk, ready:true, activity, lastCommit: r.lastCommit || 'Unknown', commitWarning };
+      return { type:'remote', path:r.url, name:r.match, branch, dirty, prs, issuesReal, pull, push, risk, ready:true, activity, lastCommit: r.lastCommit || 'Unknown', lastCommitAuthor, lastCommitDate, commitWarning };
     } catch (e) {
-      return { type:'remote', path:r.url, name:r.match, branch:'?', dirty:0, pull:0, push:0, risk:['API Error'], ready:false, activity, lastCommit:e.message, commitWarning:'Failed to sync.' };
+      return { type:'remote', path:r.url, name:r.match, branch:'?', dirty:0, prs:0, issuesReal:0, pull:0, push:0, risk:['API Error'], ready:false, activity, lastCommit:e.message, lastCommitAuthor:null, lastCommitDate:null, commitWarning:'Failed to sync.' };
     }
   }
 
@@ -172,8 +184,16 @@ module.exports = function initGitPulse() {
 
     const ready = fs.existsSync(path.join(repoPath, 'README.md')) && fs.existsSync(path.join(repoPath, 'LICENSE'));
 
-    const lastCommit = await git(['log', '-1', '--pretty=%B'], repoPath) || 'No commits';
+    // Last commit with author + relative time (\x1f-separated, single git call).
+    const rawCommit = await git(['log', '-1', '--pretty=%h%x1f%an%x1f%cr%x1f%B'], repoPath);
+    const lastCommitMeta = parseCommitLine(rawCommit) || { hash: '', author: '', relative: '', subject: 'No commits' };
+    const lastCommit = lastCommitMeta.subject;
     const commitWarning = classifyCommitMessage(lastCommit).warning;
+
+    // Per-file dirty preview (capped) + the branch list, so the card can replace a
+    // `git status` / `git branch` trip without leaving Onyx.
+    const { files: dirtyFiles } = parseDirtyFiles(statusStr);
+    const branches = parseBranchList(await git(['branch', '--format=%(refname:short)'], repoPath));
 
     // Real 14-day activity (local-day buckets) — replaces the old Math.random sparkline.
     const logOut = await git(['log', '--since=14 days ago', '--pretty=%cd', '--date=format-local:%Y-%m-%d'], repoPath);
@@ -182,7 +202,7 @@ module.exports = function initGitPulse() {
     // origin slug (if any) — lets getRepos pair this with its tracked GitHub twin.
     const remoteSlug = parseRemoteSlug(await git(['remote', 'get-url', 'origin'], repoPath));
 
-    return { type: 'local', path: repoPath, name: path.basename(repoPath), branch, dirty, pull, push, risk, ready, activity, lastCommit, commitWarning, remoteSlug };
+    return { type: 'local', path: repoPath, name: path.basename(repoPath), branch, dirty, pull, push, risk, ready, activity, lastCommit, lastCommitMeta, commitWarning, dirtyFiles, branches, lastFetched: lastFetchByPath.get(repoPath) || null, remoteSlug };
   }
 
   ipcMain.handle('git:getRepos', async () => {

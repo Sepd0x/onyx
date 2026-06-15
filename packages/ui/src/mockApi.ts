@@ -29,12 +29,24 @@ const DEMO_UNIFIED = {
   ready: true,
   commitWarning: null,
   remoteSlug: 'Sepd0x/onyx',
+  lastCommitMeta: { hash: 'a1b2c3d', author: 'Sepd0x', relative: '2 hours ago', subject: 'feat: premium overhaul — multi-provider AI' },
+  dirtyFiles: [
+    { status: 'M', file: 'src/App.tsx' },
+    { status: '??', file: '.env' },
+    { status: 'M', file: 'package.json' },
+    { status: 'A', file: 'src/views/GitView.tsx' },
+  ],
+  branches: ['main', 'dev', 'feat/git-pulse'],
+  lastFetched: Date.now() - 120000,
   remote: {
     slug: 'Sepd0x/onyx',
     url: 'https://github.com/Sepd0x/onyx',
     branch: 'main',
     openIssues: 3,
+    openPRs: 1,
     lastCommit: 'feat: premium overhaul — multi-provider AI',
+    lastCommitAuthor: 'Sepd0x',
+    lastCommitDate: new Date(Date.now() - 3 * 3600000).toISOString(),
   },
 };
 
@@ -70,8 +82,8 @@ class MockApi {
   private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true, onboarded: true };
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
   private repos: any[] = [
-    { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null },
-    { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null }
+    { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },
+    { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null, lastCommitMeta: { hash: '4c8d0b2', author: 'Sepd0x', relative: 'yesterday', subject: 'feat: pomodoro timer' }, dirtyFiles: [], branches: ['main', 'dev'], lastFetched: Date.now() - 3600000 }
   ];
   private demo = false;
   private listeners: Record<string, Function[]> = {};

@@ -62,8 +62,13 @@ function pairRepoCards(localCards, remoteCards, directives = {}) {
           slug: remote.name,
           url: remote.path,
           branch: remote.branch,
-          openIssues: remote.dirty,
+          // `issuesReal` excludes PRs (GitHub's open_issues_count conflates them);
+          // fall back to the raw count for older payloads that lack the split.
+          openIssues: remote.issuesReal != null ? remote.issuesReal : remote.dirty,
+          openPRs: remote.prs || 0,
           lastCommit: remote.lastCommit,
+          lastCommitAuthor: remote.lastCommitAuthor || null,
+          lastCommitDate: remote.lastCommitDate || null,
         },
       });
     } else {
@@ -131,4 +136,40 @@ function capDiff(diff, maxTotalBytes = 30000, maxPerFileBytes = 8000) {
   return out;
 }
 
-module.exports = { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff };
+// Parse `git status --short` (porcelain v1) into a capped list of changed files.
+// Each line is `XY path` (XY = 2-char status, e.g. " M", "??", "A "). Returns the
+// first `cap` entries plus the true total so the UI can say "+N more".
+// Pure + deterministic so it can be unit-tested without git.
+function parseDirtyFiles(statusShort, cap = 20) {
+  if (typeof statusShort !== 'string' || !statusShort.trim()) return { files: [], total: 0 };
+  const lines = statusShort.split('\n').filter((l) => l.length > 0);
+  const files = lines.slice(0, Math.max(0, cap)).map((l) => ({
+    status: l.slice(0, 2).trim() || '?',
+    // For renames git emits "old -> new"; show the destination path.
+    file: l.slice(3).trim().split(' -> ').pop(),
+  }));
+  return { files, total: lines.length };
+}
+
+// Parse `git branch --format=%(refname:short)` (one branch per line) into a
+// capped, trimmed list. Pure + deterministic.
+function parseBranchList(out, cap = 50) {
+  if (typeof out !== 'string' || !out.trim()) return [];
+  return out.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, Math.max(0, cap));
+}
+
+// Parse a single `git log -1` line formatted with a unit-separator (\x1f) between
+// %h, %an, %cr and %B. The message field keeps its first line only (the subject).
+// Returns null when there is nothing usable. Pure + deterministic.
+function parseCommitLine(raw, sep = '\x1f') {
+  if (typeof raw !== 'string' || !raw) return null;
+  const parts = raw.split(sep);
+  const hash = (parts[0] || '').trim();
+  const author = (parts[1] || '').trim();
+  const relative = (parts[2] || '').trim();
+  const subject = (parts.slice(3).join(sep) || '').split('\n')[0].trim();
+  if (!hash && !subject) return null;
+  return { hash, author, relative, subject };
+}
+
+module.exports = { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff, parseDirtyFiles, parseBranchList, parseCommitLine };
