@@ -4,6 +4,25 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-06-15
+
+### Added
+- **Battery health** in the Power Manager: real wear % (design vs full-charge
+  capacity), detected vendor/model, and per-vendor charge-limit guidance (it
+  points to the right vendor app rather than writing vendor firmware blindly).
+- **Global update banner**: when an update has downloaded, a banner appears in
+  any view with a one-click "Restart & install" — previously this was only
+  visible on the Settings page.
+
+### Changed
+- Tray and taskbar/window icons now use a **transparent gem**; the framed dark
+  tile is kept only for the installer / app tile, so the icon sits lighter
+  beside other apps.
+
+### Fixed
+- The command palette (`Ctrl`/`Cmd`+`K`) search field's top corners now follow
+  the modal's rounded top cleanly (no 1px clipping artifact).
+
 ## [1.1.0] - 2026-06-15
 
 "The tools go deep" — the flagship views now replace a trip to GitHub / Task

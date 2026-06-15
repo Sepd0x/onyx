@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command } from 'lucide-react';
+import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command, Sparkles } from 'lucide-react';
 
 // Views are code-split (React.lazy): each tab's chunk loads on first open, so the
 // initial bundle/first paint only carries the shell + the landing view.
@@ -28,6 +28,9 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [onboardDone, setOnboardDone] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // Global update indicator: the auto-updater fires these from main; show a banner
+  // in any view (not just Settings) so a ready update is impossible to miss.
+  const [update, setUpdate] = useState<{ status: 'available' | 'ready'; version?: string } | null>(null);
 
   // Pause the background polls while the window is hidden (closed to tray /
   // minimised) — no point fetching stats every 2s for a window nobody can see.
@@ -94,6 +97,14 @@ export default function App() {
     window.addEventListener('mock-event', notifHandler);
     return () => window.removeEventListener('mock-event', notifHandler);
   }, []);
+
+  // Auto-updater events from main → drive the global update banner.
+  useEffect(() => {
+    const unsubA = window.api?.on(EV.appUpdateAvailable, (v: string) => setUpdate({ status: 'available', version: v }));
+    const unsubD = window.api?.on(EV.appUpdateDownloaded, () => setUpdate((u) => ({ status: 'ready', version: u?.version })));
+    return () => { unsubA?.(); unsubD?.(); };
+  }, []);
+  const installUpdate = () => window.api?.invoke(CH.appInstallUpdate);
 
   // Command palette (Ctrl/Cmd+K): toggle from anywhere, even inside inputs.
   useEffect(() => {
@@ -197,6 +208,28 @@ export default function App() {
       </div>
       {/* Hairline accent under the titlebar */}
       <div className="h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent relative z-10 flex-shrink-0"></div>
+
+      {/* Global update banner — visible in every view, not just Settings */}
+      {update && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 bg-primary/15 border-b border-primary/30 relative z-10 flex-shrink-0 animate-in slide-in-from-top-1 fade-in duration-200">
+          <span className="text-[12px] text-accent flex items-center gap-2 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">
+              {update.status === 'ready'
+                ? `Update${update.version ? ` ${update.version}` : ''} ready to install.`
+                : `Downloading update${update.version ? ` ${update.version}` : ''}…`}
+            </span>
+          </span>
+          {update.status === 'ready' && (
+            <button
+              onClick={installUpdate}
+              className="text-[11px] font-medium px-3 py-1 rounded-md bg-primary/25 text-accent border border-primary/30 hover:bg-primary/35 transition-colors flex-shrink-0"
+            >
+              Restart &amp; install
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden relative z-10">
         {/* Sidebar */}
