@@ -24,8 +24,11 @@ const SCHEME_GUIDS = {
 };
 
 const PROFILES = Object.keys(OVERLAY_GUIDS);
+// Labelled honestly: these are Windows power-mode overlays, NOT Windows Battery
+// Saver. "Efficiency" reflects what the GUID actually selects (Best power
+// efficiency) — the old "Battery Saver" name implied the OS feature it isn't.
 const PROFILE_LABELS = {
-  battery_saver: 'Battery Saver',
+  battery_saver: 'Efficiency',
   balanced: 'Balanced',
   performance: 'Max Performance',
 };
