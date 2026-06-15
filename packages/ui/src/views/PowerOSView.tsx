@@ -33,6 +33,8 @@ export default function PowerOSView() {
   // Other vendor power tools running ⇒ Onyx's mode switching can fight them.
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
   const powerTools: string[] = conflicts?.powerTools ?? [];
+  // Real battery wear + vendor detection (read-only) for the health card.
+  const battery = useIpc(CH.powerGetBatteryHealth, [], { pollMs: 0 }).data as any;
 
   // Profile + power events poll through the shared cache (5s); apply each payload to
   // local state, keeping the hasBatteryApi merge so the Web Battery API stays the
@@ -211,26 +213,55 @@ export default function PowerOSView() {
             </button>
           </div>
 
-          {/* Battery health + Windows Battery Saver guidance (#5/#6): be honest about
-              what Onyx controls vs. what lives in Windows / the laptop vendor's app. */}
-          <div className="bg-surface/40 border border-border rounded-xl p-5 flex flex-col gap-3">
+          {/* Battery health + charge-limit guidance (#5/#6): real wear %, vendor
+              detection, and honest guidance — Onyx reads, it doesn't write the
+              vendor charge threshold. */}
+          <div className="bg-surface/40 border border-border rounded-xl p-5 flex flex-col gap-4">
             <h3 className="text-[13px] font-semibold text-text flex items-center gap-2">
-              <HeartPulse className="w-4 h-4 text-accent" /> Battery health &amp; Windows Battery Saver
+              <HeartPulse className="w-4 h-4 text-accent" /> Battery health
             </h3>
-            <p className="text-[11px] text-muted leading-relaxed">
-              The modes above are <span className="text-text2">Windows power modes</span> — they cap performance, not charging, and are <span className="text-text2">not</span> the same as <span className="text-text2">Windows Battery Saver</span>, which Windows enables automatically at a low charge.
-            </p>
-            <p className="text-[11px] text-muted leading-relaxed">
-              To protect long-term battery health, cap charging at ~80%.{' '}
-              {powerTools.length > 0 ? (
-                <>Your laptop ships <span className="text-accent">{powerTools.join(', ')}</span> — set the charge limit there.</>
-              ) : (
-                <>Most laptops expose a charge limit in their vendor app (Lenovo Vantage, Dell Power Manager, MyASUS, …) or BIOS.</>
+
+            {battery?.hasBattery ? (
+              <div className="flex items-center gap-4">
+                <div className="relative w-14 h-14 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgb(var(--surface3))" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgb(var(--accent))" strokeWidth="3" strokeLinecap="round"
+                      strokeDasharray={`${(battery.healthPct / 100) * 97.4} 97.4`} />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[12px] font-mono font-bold text-text">{battery.healthPct}%</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[12px] text-text2">{battery.healthPct}% of original capacity{battery.wearPct > 0 ? ` · ${battery.wearPct}% wear` : ''}</div>
+                  {(battery.manufacturer || battery.model) && (
+                    <div className="text-[10px] font-mono text-muted truncate" title={`${battery.manufacturer || ''} ${battery.model || ''}`}>
+                      {[battery.manufacturer, battery.model].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                  {battery.designCapacity && battery.fullCapacity && (
+                    <div className="text-[10px] font-mono text-muted/70">{(battery.fullCapacity / 1000).toFixed(1)} / {(battery.designCapacity / 1000).toFixed(1)} Wh</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted">No battery detected{battery && battery.manufacturer ? ` on this ${battery.manufacturer} system` : ''} — charge-limit settings apply to laptops only.</p>
+            )}
+
+            <div className="border-t border-border/60 pt-3 flex flex-col gap-2">
+              <p className="text-[11px] text-muted leading-relaxed">
+                The modes above are <span className="text-text2">Windows power modes</span> — they cap performance, not charging, and aren't <span className="text-text2">Windows Battery Saver</span> (which Windows enables automatically at a low charge).
+              </p>
+              {battery?.hasBattery && (
+                <p className="text-[11px] text-muted leading-relaxed">
+                  To slow long-term wear, cap charging at ~80% in{' '}
+                  <span className="text-accent">{battery?.vendorApp || powerTools[0] || 'your laptop vendor app'}</span>
+                  {battery?.vendorApp ? '' : ' (Lenovo Vantage, Dell Power Manager, MyASUS, …)'} or your BIOS.
+                </p>
               )}
-            </p>
-            <p className="text-[10px] font-mono text-muted/60 leading-relaxed">
-              Onyx doesn't change your charge threshold itself — that's vendor-specific firmware, and doing it blindly could misreport or fail. It points you to the right place instead.
-            </p>
+              <p className="text-[10px] font-mono text-muted/60 leading-relaxed">
+                Onyx reads battery health but doesn't change the charge threshold itself — that's vendor firmware and isn't reliable to set from a general tool.
+              </p>
+            </div>
           </div>
 
           <AiPanel

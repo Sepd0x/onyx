@@ -33,7 +33,7 @@ const INVOKE_CHANNELS = [
   // Tray
   'tray:openMain', 'tray:resize',
   // Power
-  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
+  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig', 'power:getBatteryHealth',
   // AI (key management; model calls run in main, key never crosses the bridge)
   'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing', 'ai:stream',
 ];

@@ -2,6 +2,7 @@ const { ipcMain, powerMonitor, app, Notification } = require('electron');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { parseBatteryHealth } = require('./battery');
 
 // Windows power-mode overlays — what the Settings "Power mode" slider sets.
 // Applied through the powrprof.dll API: unlike `powercfg /overlaysetactive`,
@@ -331,6 +332,25 @@ module.exports = function initPowerManager() {
       saveCfg();
       return { ...cfg };
     });
+  });
+
+  // Read-only battery health + vendor detection (audit #5). Design-vs-full
+  // capacity gives real wear %; the manufacturer drives the per-vendor charge-
+  // limit guidance. Onyx does NOT write the charge threshold — that needs the
+  // vendor's own driver/service and isn't reliable via standard WMI.
+  ipcMain.handle('power:getBatteryHealth', async () => {
+    if (process.platform !== 'win32') return parseBatteryHealth('');
+    try {
+      const out = await runPs(
+        '$cs = Get-CimInstance Win32_ComputerSystem; ' +
+        '$sd = Get-CimInstance -Namespace root/wmi -ClassName BatteryStaticData -ErrorAction SilentlyContinue | Select-Object -First 1; ' +
+        '$fc = Get-CimInstance -Namespace root/wmi -ClassName BatteryFullChargedCapacity -ErrorAction SilentlyContinue | Select-Object -First 1; ' +
+        'ConvertTo-Json -Compress @{ manufacturer = $cs.Manufacturer; model = $cs.Model; design = $sd.DesignedCapacity; full = $fc.FullChargedCapacity }'
+      );
+      return parseBatteryHealth(out);
+    } catch {
+      return parseBatteryHealth('');
+    }
   });
 
   ipcMain.handle('power:setConfig', (_, patch) => {

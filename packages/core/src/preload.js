@@ -18,7 +18,7 @@ const INVOKE_CHANNELS = [
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
   'settings:export', 'settings:import',
   'tray:openMain', 'tray:resize',
-  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig',
+  'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig', 'power:getBatteryHealth',
   'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing', 'ai:stream',
 ];
 const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
