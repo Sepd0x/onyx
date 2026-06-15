@@ -39,6 +39,6 @@ const INVOKE_CHANNELS = [
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'config:changed', 'ai:streamDelta'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

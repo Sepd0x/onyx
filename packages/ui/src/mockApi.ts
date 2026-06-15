@@ -88,10 +88,13 @@ class MockApi {
   private demo = false;
   private listeners: Record<string, Function[]> = {};
   private watchedProcesses: any[] = [];
-  private cleanerDirs: { path: string; name: string; bytes: number }[] = [
-    { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', bytes: 340 * 1024 * 1024 },
-    { path: '~/Documents/GitHub/test-repo/node_modules', name: 'node_modules', bytes: 512 * 1024 * 1024 },
-    { path: '~/Desktop/temp-js/node_modules', name: 'node_modules', bytes: 120 * 1024 * 1024 },
+  private cleanerDirs: { path: string; name: string; kind: string; bytes: number }[] = [
+    { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', kind: 'Node', bytes: 340 * 1024 * 1024 },
+    { path: '~/Documents/GitHub/test-repo/node_modules', name: 'node_modules', kind: 'Node', bytes: 512 * 1024 * 1024 },
+    { path: '~/dev/rust-cli/target', name: 'target', kind: 'Rust / Java', bytes: 890 * 1024 * 1024 },
+    { path: '~/Projects/next-site/.next', name: '.next', kind: 'Next.js', bytes: 210 * 1024 * 1024 },
+    { path: '~/dev/py-svc/__pycache__', name: '__pycache__', kind: 'Python', bytes: 18 * 1024 * 1024 },
+    { path: '~/Desktop/temp-js/dist', name: 'dist', kind: 'Build output', bytes: 64 * 1024 * 1024 },
   ];
   private fmtSize(bytes: number) {
     if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(1) + ' GB';
@@ -278,7 +281,7 @@ class MockApi {
         return { ok: true };
       case 'cleaner:scan': {
         await delay(600);
-        const dirs = this.cleanerDirs.map(d => ({ path: d.path, name: d.name, size: this.fmtSize(d.bytes) }));
+        const dirs = this.cleanerDirs.map(d => ({ path: d.path, name: d.name, kind: d.kind, size: this.fmtSize(d.bytes), bytes: d.bytes }));
         const total = this.cleanerDirs.reduce((a, d) => a + d.bytes, 0);
         return { dirs, totalSize: this.fmtSize(total) };
       }
