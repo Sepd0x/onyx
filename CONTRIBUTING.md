@@ -9,9 +9,9 @@ branch to a merged PR.
 </div>
 
 > [!TIP]
-> New here? Read [`README.md`](README.md) for what Onyx is, [`ARCHITECTURE.md`](ARCHITECTURE.md)
-> for the security model and IPC boundaries, and [`ARCHITECTURE.md`](ARCHITECTURE.md) for a one-page
-> orientation. This document is the *how to work in the repo* layer on top of those.
+> New here? Read [`README.md`](README.md) for what Onyx is and [`ARCHITECTURE.md`](ARCHITECTURE.md)
+> for the security model and IPC boundaries. This document is the *how to work in the repo*
+> layer on top of those.
 
 ## Table of contents
 
