@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Battery, BatteryCharging, Zap, BrainCircuit, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import { Battery, BatteryCharging, Zap, BrainCircuit, Activity, AlertTriangle, Loader2, HeartPulse, Leaf } from 'lucide-react';
 import Switch from '../components/Switch';
 import BatteryGauge from '../components/BatteryGauge';
 import ViewHeader from '../components/ViewHeader';
@@ -160,17 +160,21 @@ export default function PowerOSView() {
             )}
           </div>
 
+          <div className="flex items-center justify-between">
+            <span className="micro-label">Windows power mode</span>
+            <span className="text-[10px] font-mono text-muted/70">same as the Settings power slider</span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Battery Saver */}
+            {/* Efficiency (Best power efficiency overlay — NOT Windows Battery Saver) */}
             <button
               onClick={() => setProfile('battery_saver')}
               disabled={aiEnabled || pending !== null}
               aria-busy={pending === 'battery_saver'}
               className={`p-5 rounded-xl border text-left transition-colors ${activeProfile === 'battery_saver' ? 'bg-primary/10 border-primary/40' : 'bg-surface/50 border-border hover:bg-surface2'} ${aiEnabled || pending !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <Battery className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-accent' : 'text-muted'}`} />
-              <div className="text-[13px] font-semibold text-text">Battery saver</div>
-              <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows efficiency mode. Less CPU boost &amp; background work.</div>
+              <Leaf className={`w-5 h-5 mb-3 ${activeProfile === 'battery_saver' ? 'text-accent' : 'text-muted'}`} />
+              <div className="text-[13px] font-semibold text-text">Efficiency</div>
+              <div className="text-[11px] text-muted mt-1 leading-relaxed">Windows "Best efficiency" mode — caps CPU boost &amp; background work. Not Windows Battery Saver.</div>
               {pending === 'battery_saver'
                 ? <div className="mt-3 text-[10px] font-medium text-accent flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Switching…</div>
                 : activeProfile === 'battery_saver' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
@@ -205,6 +209,28 @@ export default function PowerOSView() {
                 ? <div className="mt-3 text-[10px] font-medium text-accent flex items-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Switching…</div>
                 : activeProfile === 'performance' && <div className="mt-3 text-[10px] font-medium text-accent">Active</div>}
             </button>
+          </div>
+
+          {/* Battery health + Windows Battery Saver guidance (#5/#6): be honest about
+              what Onyx controls vs. what lives in Windows / the laptop vendor's app. */}
+          <div className="bg-surface/40 border border-border rounded-xl p-5 flex flex-col gap-3">
+            <h3 className="text-[13px] font-semibold text-text flex items-center gap-2">
+              <HeartPulse className="w-4 h-4 text-accent" /> Battery health &amp; Windows Battery Saver
+            </h3>
+            <p className="text-[11px] text-muted leading-relaxed">
+              The modes above are <span className="text-text2">Windows power modes</span> — they cap performance, not charging, and are <span className="text-text2">not</span> the same as <span className="text-text2">Windows Battery Saver</span>, which Windows enables automatically at a low charge.
+            </p>
+            <p className="text-[11px] text-muted leading-relaxed">
+              To protect long-term battery health, cap charging at ~80%.{' '}
+              {powerTools.length > 0 ? (
+                <>Your laptop ships <span className="text-accent">{powerTools.join(', ')}</span> — set the charge limit there.</>
+              ) : (
+                <>Most laptops expose a charge limit in their vendor app (Lenovo Vantage, Dell Power Manager, MyASUS, …) or BIOS.</>
+              )}
+            </p>
+            <p className="text-[10px] font-mono text-muted/60 leading-relaxed">
+              Onyx doesn't change your charge threshold itself — that's vendor-specific firmware, and doing it blindly could misreport or fail. It points you to the right place instead.
+            </p>
           </div>
 
           <AiPanel
