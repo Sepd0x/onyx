@@ -4,9 +4,43 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-06-15
+
+"The tools go deep" — the flagship views now replace a trip to GitHub / Task
+Manager instead of skimming the surface.
+
+### Added
+- **Git Pulse — real repository activity** on every card: the last commit (hash,
+  author, relative time), a "fetched <when>" line, an expandable details panel
+  (changed files + branch list), the 14-day activity sparkline labelled with its
+  commit total, and — on the GitHub side of a unified card — open PRs and open
+  issues shown separately. New "Open on GitHub" quick action.
+- **Port Mapper — premium per-process detail**: a stats strip (total / listening
+  / established / processes), grouping by the owning process with its executable
+  path, PID/ppid and memory, "kill the whole process" to free all its ports at
+  once, the remote peer for live connections, an IPv6 badge, and a wider
+  well-known-service map.
+- **Battery-health guidance** in the Power Manager: explains where a real charge
+  limit lives (the laptop vendor's app / BIOS) and how it differs from Windows
+  Battery Saver.
+
+### Changed
+- **Git Pulse auto-scan** is deeper and faster — a parallel directory walk to 6
+  levels (was 3), more roots (including drive-root dev folders like `C:\dev`),
+  with live progress. It no longer misses obvious or nested repositories.
+- **Dev Cleanser** now sweeps many regenerable artifact types, not just
+  `node_modules` (`dist`, `build`, `.next`, `.nuxt`, `target`, `__pycache__`,
+  `.gradle`, `.turbo`, `coverage`, …), each tagged with its kind, via a parallel
+  walk to 5 levels with real sizes (biggest first) and live progress. Deletion
+  stays guarded by a name whitelist + path containment + a confirmation dialog.
+- The Power Manager's misleading **"Battery saver"** mode is renamed
+  **"Efficiency"**, with copy clarifying it's a Windows power mode — not Windows
+  Battery Saver.
+
 ## [Unreleased]
 
-Phase 6 — quality, intelligence and design. Targets **1.1.0**; not yet tagged.
+Phase 6 baseline (streaming AI, onboarding, command palette, Git Pulse unify,
+backup/restore) shipped in 1.0.0; the depth work above shipped in 1.1.0.
 
 ### Added
 - **Streaming AI responses** — the longer Inspector outputs (daily briefing,
