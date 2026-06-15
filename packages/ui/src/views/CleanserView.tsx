@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Trash2, Search, Skull, FolderX } from 'lucide-react';
-import { CH } from '../ipc';
+import { CH, EV } from '../ipc';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import ViewHeader from '../components/ViewHeader';
@@ -19,12 +19,15 @@ export default function CleanserView() {
   const [cleaning, setCleaning] = useState(false);
   const [scannedSize, setScannedSize] = useState('0 MB');
   const [notice, setNotice] = useState('');
+  const [progress, setProgress] = useState<{ scanned: number; found: number } | null>(null);
 
   const scan = async () => {
     setScanning(true);
     setDirs([]);
     setScannedSize('0 MB');
     setNotice('');
+    setProgress({ scanned: 0, found: 0 });
+    const unsub = window.api?.on(EV.cleanerScanProgress, (p: any) => setProgress({ scanned: p.scanned, found: p.found }));
     try {
       const data: any = await window.api?.invoke(CH.cleanerScan);
       if (data) {
@@ -32,7 +35,9 @@ export default function CleanserView() {
         setScannedSize(data.totalSize || '0 MB');
       }
     } finally {
+      if (typeof unsub === 'function') unsub();
       setScanning(false);
+      setProgress(null);
     }
   };
 
@@ -45,7 +50,7 @@ export default function CleanserView() {
       if (res && !res.cancelled) {
         await scan(); // authoritative refresh from disk (also clears stale notices)
         const problems: string[] = [];
-        if (res.rejected) problems.push(`${res.rejected} skipped (not a safe node_modules path)`);
+        if (res.rejected) problems.push(`${res.rejected} skipped (not a safe cleanable path)`);
         if (res.failed?.length) problems.push(`${res.failed.length} could not be deleted — likely in use`);
         if (problems.length) setNotice(problems.join(' · '));
       }
@@ -60,7 +65,7 @@ export default function CleanserView() {
         <ViewHeader
           icon={Skull}
           title="Dev Cleanser"
-          subtitle="node_modules & target graveyard"
+          subtitle={scanning && progress ? `${progress.scanned} scanned · ${progress.found} found` : 'Build & cache graveyard'}
           actions={
             <button
               onClick={scan}
@@ -86,7 +91,7 @@ export default function CleanserView() {
            <h3 className="text-[13px] font-semibold text-text mb-4">Detected folders</h3>
            <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
              {dirs.length === 0 && !scanning && (
-               <EmptyState compact icon={FolderX} title="Nothing scanned yet" description="Hit Scan system to find heavy node_modules folders eating your SSD — sizes are real, deletion is guarded and confirmed." />
+               <EmptyState compact icon={FolderX} title="Nothing scanned yet" description="Hit Scan system to find heavy build & cache folders (node_modules, dist, target, .next, __pycache__, …) eating your SSD — sizes are real, deletion is guarded and confirmed." />
              )}
              {scanning && dirs.length === 0 && (
                <div className="flex flex-col gap-2" aria-label="Scanning directories">
@@ -101,7 +106,10 @@ export default function CleanserView() {
                 <div key={d.path} style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }} className="flex flex-col p-3.5 bg-background/40 hover:bg-surface2 border border-border rounded-lg transition-colors group animate-in fade-in slide-in-from-bottom-1 fill-mode-backwards">
                    <div className="flex justify-between items-center">
                      <div className="flex flex-col min-w-0 pr-4">
-                       <span className="text-xs font-medium text-text truncate" title={d.path}>{d.name || d.path.split(/[\\/]/).pop()}</span>
+                       <span className="text-xs font-medium text-text truncate flex items-center gap-2" title={d.path}>
+                         {d.name || d.path.split(/[\\/]/).pop()}
+                         {d.kind && <span className="text-[9px] font-mono text-accent bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded flex-shrink-0">{d.kind}</span>}
+                       </span>
                        <span className="text-[10px] font-mono text-muted/70 truncate" title={d.path}>{d.path}</span>
                      </div>
                      <div className="flex items-center gap-4 flex-shrink-0">

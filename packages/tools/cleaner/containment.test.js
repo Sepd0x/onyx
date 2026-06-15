@@ -11,6 +11,7 @@ beforeAll(() => {
   root = join(base, 'root');
   outside = join(base, 'outside');
   mkdirSync(join(root, 'proj', 'node_modules'), { recursive: true });
+  mkdirSync(join(root, 'proj', 'dist'), { recursive: true });
   mkdirSync(join(root, 'proj', 'src'), { recursive: true });
   mkdirSync(join(outside, 'node_modules'), { recursive: true });
 });
@@ -32,7 +33,13 @@ describe('safeDeletePath', () => {
     expect(safeDeletePath(join(outside, 'node_modules'), roots)).toBeNull();
   });
 
-  it('rejects a non-node_modules directory and bad input', () => {
+  it('accepts other whitelisted artifact dirs (e.g. dist) inside a root', () => {
+    const roots = resolveRoots([root]);
+    const out = safeDeletePath(join(root, 'proj', 'dist'), roots);
+    expect(out).toBe(realpathSync.native(join(root, 'proj', 'dist')));
+  });
+
+  it('rejects a non-whitelisted directory (e.g. src) and bad input', () => {
     const roots = resolveRoots([root]);
     expect(safeDeletePath(join(root, 'proj', 'src'), roots)).toBeNull();
     expect(safeDeletePath('', roots)).toBeNull();

@@ -89,6 +89,7 @@ export const EV = {
   appUpdateAvailable: 'app:update-available',
   appUpdateDownloaded: 'app:update-downloaded',
   gitScanProgress: 'git:scanProgress',
+  cleanerScanProgress: 'cleaner:scanProgress',
   configChanged: 'config:changed',
   aiStreamDelta: 'ai:streamDelta',
 } as const;
