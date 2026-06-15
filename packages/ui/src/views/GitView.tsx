@@ -1,9 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, HardDrive, Cpu, X, GitCommit, FolderSearch, FolderPlus, Github, Link2, Unlink } from 'lucide-react';
+import { Plus, FolderGit2, Trash2, Search, AlertTriangle, CheckCircle2, Wand2, HardDrive, Cpu, X, GitCommit, FolderSearch, FolderPlus, Github, Link2, Unlink, GitBranch, FileText, ChevronDown, ExternalLink, GitPullRequest, CircleDot } from 'lucide-react';
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import Sparkline from '../components/Sparkline';
 import ViewHeader from '../components/ViewHeader';
+
+// Compact "x ago" for a ms timestamp (local fetch) or an ISO string (remote commit).
+function timeAgo(input?: number | string | null): string {
+  if (!input) return '';
+  const t = typeof input === 'number' ? input : Date.parse(input);
+  if (!t || isNaN(t)) return '';
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 45) return 'just now';
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24); if (d < 30) return `${d}d ago`;
+  const mo = Math.floor(d / 30); if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(mo / 12)}y ago`;
+}
 
 export default function GitView() {
   // No background poll (repo health is expensive); served from cache instantly on
@@ -20,6 +34,9 @@ export default function GitView() {
   const [ghModal, setGhModal] = useState<any>(null); // { url, token, loading, error }
   const [linkModal, setLinkModal] = useState<any>(null); // { path, name }
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({}); // per-repo details toggle
+
+  const openExternal = (url?: string) => { if (url) window.api?.invoke(CH.windowOpenExternal, url); };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(aiModal.msg);
@@ -186,6 +203,9 @@ export default function GitView() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filtered.map((r: any, i) => {
           const hasRisk = r.risk && r.risk.length > 0;
+          const activityTotal = (r.activity || []).reduce((a: number, b: number) => a + (b || 0), 0);
+          const meta = r.lastCommitMeta;
+          const canExpand = (r.dirtyFiles && r.dirtyFiles.length > 0) || (r.branches && r.branches.length > 1);
           return (
             <div key={i} className={`bg-surface/50 border ${r.commitWarning ? 'border-warning/30' : 'border-border'} rounded-xl p-6 card-lift relative overflow-hidden group flex flex-col gap-5`}>
               <div className="flex justify-between items-start gap-3">
@@ -197,6 +217,16 @@ export default function GitView() {
                   <p className="text-[10px] font-mono text-muted mt-1.5 truncate" title={r.path}>{r.path}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {(r.remote?.url || r.type === 'remote') && (
+                    <button
+                      onClick={() => openExternal(r.remote?.url || r.path)}
+                      title="Open on GitHub"
+                      aria-label={`Open ${r.name} on GitHub`}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-muted hover:text-accent hover:bg-primary/10 rounded-lg transition-all active:scale-90"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  )}
                   {!r.remote && r.type !== 'remote' && remoteOptions.length > 0 && (
                     <button
                       onClick={() => setLinkModal({ path: r.path, name: r.name })}
@@ -236,6 +266,69 @@ export default function GitView() {
                   <span className={`text-base font-mono font-medium ${r.push > 0 ? 'text-accent' : 'text-muted'}`}>{r.push}</span>
                 </div>
               </div>
+
+              {/* Last commit + fetched time + expandable details (local repos) */}
+              {r.type !== 'remote' && (
+                <div className="flex flex-col gap-3">
+                  {meta?.subject && (
+                    <div className="flex items-start gap-2.5">
+                      <GitCommit className="w-3.5 h-3.5 text-muted mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12px] text-text2 truncate" title={meta.subject}>{meta.subject}</p>
+                        <p className="text-[10px] font-mono text-muted mt-0.5 truncate">
+                          {meta.hash && <span className="text-muted2">{meta.hash}</span>}
+                          {meta.author && <> · {meta.author}</>}
+                          {meta.relative && <> · {meta.relative}</>}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-muted">
+                      {r.lastFetched ? `fetched ${timeAgo(r.lastFetched)}` : 'not fetched this session'}
+                    </span>
+                    {canExpand && (
+                      <button
+                        onClick={() => setExpanded(e => ({ ...e, [r.path]: !e[r.path] }))}
+                        className="text-[10px] font-mono text-muted2 hover:text-text inline-flex items-center gap-1 transition-colors"
+                        aria-expanded={!!expanded[r.path]}
+                      >
+                        <ChevronDown className={`w-3 h-3 transition-transform ${expanded[r.path] ? 'rotate-180' : ''}`} /> Details
+                      </button>
+                    )}
+                  </div>
+                  {expanded[r.path] && (
+                    <div className="flex flex-col gap-3 rounded-lg border border-border/50 bg-background/40 p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                      {r.dirtyFiles && r.dirtyFiles.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="micro-label flex items-center gap-1.5"><FileText className="w-3 h-3" /> Changed files</span>
+                          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                            {r.dirtyFiles.map((f: any, fi: number) => (
+                              <div key={fi} className="flex items-center gap-2 text-[10px] font-mono">
+                                <span className="w-6 text-center text-accent flex-shrink-0">{f.status}</span>
+                                <span className="text-muted2 truncate" title={f.file}>{f.file}</span>
+                              </div>
+                            ))}
+                            {r.dirty > r.dirtyFiles.length && (
+                              <span className="text-[10px] font-mono text-muted/70 pl-8">+{r.dirty - r.dirtyFiles.length} more</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {r.branches && r.branches.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="micro-label flex items-center gap-1.5"><GitBranch className="w-3 h-3" /> Branches ({r.branches.length})</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {r.branches.map((b: string) => (
+                              <span key={b} className={`text-[10px] font-mono px-2 py-0.5 rounded border ${b === r.branch ? 'bg-primary/15 text-accent border-primary/25' : 'bg-surface2 text-muted2 border-border'}`}>{b}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Risk & Health Indicators */}
               <div className="flex flex-col gap-2">
@@ -288,17 +381,29 @@ export default function GitView() {
                       <Unlink className="w-3 h-3"/> Unlink
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                    <div className="flex items-center justify-between bg-background/50 rounded px-2 py-1.5">
-                      <span className="text-muted">default</span><span className="text-text2">{r.remote.branch}</span>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono">
+                    <div className="flex flex-col items-center gap-0.5 bg-background/50 rounded px-2 py-1.5">
+                      <span className="text-muted inline-flex items-center gap-1"><GitBranch className="w-3 h-3"/> default</span>
+                      <span className="text-text2 truncate max-w-full" title={r.remote.branch}>{r.remote.branch}</span>
                     </div>
-                    <div className="flex items-center justify-between bg-background/50 rounded px-2 py-1.5">
-                      <span className="text-muted">open issues</span><span className="text-text2">{r.remote.openIssues}</span>
+                    <div className="flex flex-col items-center gap-0.5 bg-background/50 rounded px-2 py-1.5">
+                      <span className="text-muted inline-flex items-center gap-1"><GitPullRequest className="w-3 h-3"/> PRs</span>
+                      <span className={r.remote.openPRs > 0 ? 'text-accent' : 'text-text2'}>{r.remote.openPRs}{r.remote.openPRs >= 100 ? '+' : ''}</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5 bg-background/50 rounded px-2 py-1.5">
+                      <span className="text-muted inline-flex items-center gap-1"><CircleDot className="w-3 h-3"/> issues</span>
+                      <span className={r.remote.openIssues > 0 ? 'text-warning' : 'text-text2'}>{r.remote.openIssues}</span>
                     </div>
                   </div>
                   {r.remote.lastCommit && (
                     <div className="text-[10px] font-mono text-muted truncate" title={r.remote.lastCommit}>
-                      last remote: <span className="text-muted2">{r.remote.lastCommit}</span>
+                      last remote: <span className="text-muted2">{(r.remote.lastCommit || '').split('\n')[0]}</span>
+                      {(r.remote.lastCommitAuthor || r.remote.lastCommitDate) && (
+                        <span className="text-muted/70">
+                          {r.remote.lastCommitAuthor ? ` · ${r.remote.lastCommitAuthor}` : ''}
+                          {r.remote.lastCommitDate ? ` · ${timeAgo(r.remote.lastCommitDate)}` : ''}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -307,7 +412,9 @@ export default function GitView() {
               {/* Activity & AI */}
               <div className="flex justify-between items-end mt-2">
                  <div className="flex-1 pr-6 flex flex-col gap-2.5">
-                   <span className="text-[10px] text-muted">14-day activity</span>
+                   <span className="text-[10px] text-muted">
+                     14-day activity{activityTotal > 0 && <span className="text-muted2"> · {activityTotal} commit{activityTotal > 1 ? 's' : ''}</span>}
+                   </span>
                    <Sparkline data={r.activity || new Array(14).fill(0)} />
                  </div>
                  <button

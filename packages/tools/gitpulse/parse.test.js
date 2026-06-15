@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff } from './parse.js';
+import { parseGithubUrl, parseRemoteSlug, pairRepoCards, classifyCommitMessage, bucketCommitDates, capDiff, parseDirtyFiles, parseBranchList, parseCommitLine } from './parse.js';
 
 describe('parseRemoteSlug', () => {
   it('normalises https and ssh origins to owner/repo, dropping .git', () => {
@@ -25,7 +25,7 @@ describe('pairRepoCards', () => {
     expect(out).toHaveLength(1);
     expect(out[0].type).toBe('unified');
     expect(out[0].path).toBe('C:/dev/onyx');
-    expect(out[0].remote).toEqual({ slug: 'sepd0x/onyx', url: 'https://github.com/sepd0x/onyx', branch: 'main', openIssues: 2, lastCommit: 'feat: x' });
+    expect(out[0].remote).toEqual({ slug: 'sepd0x/onyx', url: 'https://github.com/sepd0x/onyx', branch: 'main', openIssues: 2, openPRs: 0, lastCommit: 'feat: x', lastCommitAuthor: null, lastCommitDate: null });
   });
 
   it('leaves unmatched local and remote cards standalone', () => {
@@ -45,6 +45,67 @@ describe('pairRepoCards', () => {
     expect(out).toHaveLength(1);
     expect(out[0].type).toBe('unified');
     expect(out[0].remote.slug).toBe('me/other');
+  });
+
+  it('carries the PR/issue split and remote commit author through to the unified card', () => {
+    const rich = { type: 'remote', path: 'https://github.com/me/r', name: 'me/r', branch: 'main', dirty: 5, prs: 2, issuesReal: 3, lastCommit: 'feat: y', lastCommitAuthor: 'Sepd0x', lastCommitDate: '2026-06-10T00:00:00Z' };
+    const out = pairRepoCards([local('C:/dev/r', 'me/r')], [rich]);
+    expect(out[0].remote.openPRs).toBe(2);
+    expect(out[0].remote.openIssues).toBe(3); // issuesReal, not the conflated 5
+    expect(out[0].remote.lastCommitAuthor).toBe('Sepd0x');
+    expect(out[0].remote.lastCommitDate).toBe('2026-06-10T00:00:00Z');
+  });
+});
+
+describe('parseDirtyFiles', () => {
+  it('parses status/path pairs and reports the true total', () => {
+    const out = parseDirtyFiles(' M src/a.ts\n?? new.txt\nA  added.js');
+    expect(out.total).toBe(3);
+    expect(out.files).toEqual([
+      { status: 'M', file: 'src/a.ts' },
+      { status: '??', file: 'new.txt' },
+      { status: 'A', file: 'added.js' },
+    ]);
+  });
+
+  it('shows the destination path for renames', () => {
+    expect(parseDirtyFiles('R  old.ts -> new.ts').files[0]).toEqual({ status: 'R', file: 'new.ts' });
+  });
+
+  it('caps the list but keeps the full total', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ` M f${i}.ts`).join('\n');
+    const out = parseDirtyFiles(many, 5);
+    expect(out.files).toHaveLength(5);
+    expect(out.total).toBe(30);
+  });
+
+  it('is empty-safe', () => {
+    expect(parseDirtyFiles('')).toEqual({ files: [], total: 0 });
+    expect(parseDirtyFiles(undefined)).toEqual({ files: [], total: 0 });
+  });
+});
+
+describe('parseBranchList', () => {
+  it('trims, drops blanks and caps', () => {
+    expect(parseBranchList('main\n feature/x \n\ndev')).toEqual(['main', 'feature/x', 'dev']);
+    expect(parseBranchList('a\nb\nc', 2)).toEqual(['a', 'b']);
+  });
+  it('is empty-safe', () => {
+    expect(parseBranchList('')).toEqual([]);
+    expect(parseBranchList(null)).toEqual([]);
+  });
+});
+
+describe('parseCommitLine', () => {
+  it('splits hash/author/relative/subject and keeps only the subject line', () => {
+    expect(parseCommitLine('a1b2c3\x1fSepd0x\x1f2 hours ago\x1ffeat: thing\n\nbody here')).toEqual({
+      hash: 'a1b2c3', author: 'Sepd0x', relative: '2 hours ago', subject: 'feat: thing',
+    });
+  });
+  it('is null-safe and tolerates missing fields', () => {
+    expect(parseCommitLine('')).toBeNull();
+    expect(parseCommitLine(null)).toBeNull();
+    expect(parseCommitLine('h\x1f\x1f\x1f')).toEqual({ hash: 'h', author: '', relative: '', subject: '' });
   });
 });
 
