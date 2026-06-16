@@ -247,6 +247,19 @@ function createWindow() {
     }
   });
 
+  // Renderer-side diagnostics breadcrumb: lets the UI persist what it was doing
+  // (onboarding step reached, a render-boundary catch) into today's main log, so a
+  // user's crash report is reproducible from logs/onyx-<date>.log instead of vague.
+  // Best-effort and bounded; never trusts the renderer to pick a real log level.
+  ipcMain.handle('app:log', (_, data) => {
+    try {
+      const level = ['info', 'warn', 'error', 'debug'].includes(data && data.level) ? data.level : 'info';
+      const message = '[client] ' + String((data && data.message) || '').slice(0, 500);
+      logger[level](message, (data && data.meta) || {});
+    } catch {}
+    return true;
+  });
+
   // Don't auto-download: the user explicitly chooses to download (no silent
   // surprise), then to install. Route updater logs through our logger so a stuck
   // update leaves a trail instead of failing silently.

@@ -41,6 +41,7 @@ export const CH = {
   appDownloadUpdate: 'app:downloadUpdate',
   appInstallUpdate: 'app:installUpdate',
   appGetConflicts: 'app:getConflicts',
+  appLog: 'app:log',
   // Window
   windowClose: 'window:close',
   windowMinimize: 'window:minimize',

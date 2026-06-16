@@ -4,6 +4,22 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Client-side diagnostics breadcrumb.** The renderer can now persist what it was
+  doing into the day's main log (`app:log` channel). The first-run wizard records
+  each step it reaches, and the render-error boundary now logs the failing view's
+  component stack. A crash report (e.g. the onboarding "Continue" crash) is now
+  reproducible from `logs/onyx-<date>.log` instead of leaving no trace.
+
+### Fixed
+- **First-run wizard hardening.** The initial config/AI-status load is wrapped so a
+  failing provider lookup can no longer take down the onboarding screen.
+- **Dev browser mock** now mirrors the real AI status shape (provider list + active
+  provider) and handles `ai:setProvider`/`ai:setModel`/`ai:test`, so the onboarding
+  AI step renders the same in `npm run dev` as in the packaged app.
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed

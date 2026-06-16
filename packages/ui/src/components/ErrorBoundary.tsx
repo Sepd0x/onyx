@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 // Last-resort UI guard: if any view throws during render, show a recovery screen
 // instead of a blank/vanished window (the "app crashed" symptom). Render errors
@@ -11,10 +11,19 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
     return { error };
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: ErrorInfo) {
     // Surface it so it's not silent; best-effort, never throws.
     try { (window as any).api?.invoke('app:notify', { title: 'Onyx hit a UI error', body: String(error?.message || error).slice(0, 200) }); } catch {}
-    try { console.error('[Onyx] render error:', error); } catch {}
+    // Persist to the main log (with the React component stack) so a user's crash is
+    // diagnosable after the fact — which view/step failed, not just "it crashed".
+    try {
+      (window as any).api?.invoke('app:log', {
+        level: 'error',
+        message: 'render error: ' + String(error?.message || error),
+        meta: { stack: String(error?.stack || '').slice(0, 1000), componentStack: String(info?.componentStack || '').slice(0, 1000) },
+      });
+    } catch {}
+    try { console.error('[Onyx] render error:', error, info?.componentStack); } catch {}
   }
 
   render() {

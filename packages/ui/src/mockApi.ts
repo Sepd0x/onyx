@@ -374,12 +374,31 @@ class MockApi {
         return pc;
       }
         
-      case 'ai:getStatus':
+      case 'ai:getStatus': {
+        // Mirror the real backend shape (providers[] + active provider) so the
+        // onboarding AI step and Settings render the same way in the browser mock.
+        const configured = this.demo || localStorage.getItem('onyx-ai-configured') === '1';
+        const provider = localStorage.getItem('onyx-ai-provider') || 'anthropic';
+        const providerMeta = [
+          { key: 'anthropic', label: 'Anthropic (Claude)', placeholder: 'sk-ant-...', keyUrl: 'console.anthropic.com', defaultModel: 'claude-haiku-4-5', presets: ['claude-haiku-4-5', 'claude-sonnet-4-6'] },
+          { key: 'openai', label: 'OpenAI (ChatGPT)', placeholder: 'sk-...', keyUrl: 'platform.openai.com/api-keys', defaultModel: 'gpt-4o-mini', presets: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o'] },
+          { key: 'google', label: 'Google (Gemini)', placeholder: 'AIza...', keyUrl: 'aistudio.google.com/app/apikey', defaultModel: 'gemini-2.5-flash', presets: ['gemini-2.5-flash', 'gemini-2.5-flash-lite'] },
+        ];
         return {
-          configured: this.demo || localStorage.getItem('onyx-ai-configured') === '1',
+          provider,
+          configured,
           encryptionAvailable: true,
           model: 'claude-haiku-4-5',
+          providers: providerMeta.map((m) => ({ ...m, configured: configured && m.key === provider, model: m.defaultModel })),
         };
+      }
+      case 'ai:setProvider':
+        localStorage.setItem('onyx-ai-provider', typeof args[0] === 'string' ? args[0] : 'anthropic');
+        return { ok: true };
+      case 'ai:setModel':
+        return { ok: true };
+      case 'ai:test':
+        return { ok: this.demo || localStorage.getItem('onyx-ai-configured') === '1', error: 'no-key' };
       case 'ai:setKey': {
         // Never store a real key in the browser mock — just track configured state.
         const has = typeof args[0] === 'string' && args[0].trim().length > 0;
@@ -409,6 +428,9 @@ class MockApi {
         await delay(22 * chunks.length + 120);
         return { text: full, usage: { input: 1200, output: 180 }, cached: false };
       }
+
+      case 'app:log':
+        return true;
 
       case 'app:notify':
         if (this.config.enableNotifications !== false) {
