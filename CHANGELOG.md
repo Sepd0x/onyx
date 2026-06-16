@@ -4,6 +4,24 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-06-15
+
+### Fixed
+- **Auto-updater could never install (download loop).** Installer filenames had
+  spaces, so `latest.yml` referenced a hyphenated name while GitHub served a
+  dotted one — the updater 404'd and retried forever. Installers now build with
+  space-free `artifactName`s, so the manifest and the published asset match.
+- **Command palette (Ctrl/Cmd+K)** now shows the search field as a fully bordered
+  box (all four sides) instead of an open-topped outline.
+- The Settings "About" version is read from the running build instead of a
+  hard-coded `v1.0.0`.
+
+### Changed
+- **Updates are no longer auto-downloaded.** Onyx checks on launch and, if an
+  update exists, shows it in the banner with an explicit **Download** button;
+  download progress and any error are surfaced (it no longer downloads silently
+  or fails without a trace). After download, **Restart & install**.
+
 ## [1.1.1] - 2026-06-15
 
 ### Added

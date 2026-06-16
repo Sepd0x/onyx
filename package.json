@@ -1,6 +1,6 @@
 {
   "name": "onyx",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A centralized power toolkit and system guard for developers",
   "author": "Sepd0x",
   "repository": {
@@ -45,7 +45,11 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "files": [
       "packages/core/**/*",

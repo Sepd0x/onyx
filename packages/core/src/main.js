@@ -247,10 +247,14 @@ function createWindow() {
     }
   });
 
-  // Returns a structured result so the renderer never has to string-match
-  // magic phrases, and the message is honest about each state (audit B4):
-  // there is no published release yet (private repo, no tags), so a failed
-  // check is "no channel yet", not a scary "Error checking".
+  // Don't auto-download: the user explicitly chooses to download (no silent
+  // surprise), then to install. Route updater logs through our logger so a stuck
+  // update leaves a trail instead of failing silently.
+  autoUpdater.autoDownload = false;
+  autoUpdater.logger = logger;
+  const sendToWin = (channel, payload) => { try { win && !win.isDestroyed() && win.webContents.send(channel, payload); } catch {} };
+
+  // Check only — returns a structured result; download is a separate, explicit step.
   ipcMain.handle('app:checkForUpdates', async () => {
     if (!app.isPackaged) {
       return { state: 'dev', message: 'Updates are disabled in development builds.' };
@@ -260,14 +264,12 @@ function createWindow() {
       const result = await autoUpdater.checkForUpdates();
       const latest = result?.updateInfo?.version;
       if (latest && latest !== current) {
-        return { state: 'available', version: latest, message: `Update ${latest} found — downloading…` };
+        return { state: 'available', version: latest, message: `Update ${latest} available.` };
       }
       return { state: 'latest', version: current, message: `You're on the latest version (${current}).` };
     } catch (err) {
       logger.error('Update check failed:', err);
       const msg = String((err && err.message) || err);
-      // A missing feed/release is the expected state until the first release is
-      // published — treat it as "up to date", not a failure.
       if (/404|latest\.yml|No published|ENOENT|Unable to find|Cannot find/i.test(msg)) {
         return { state: 'no-feed', message: `No update channel yet — you're on the latest build (${current}).` };
       }
@@ -275,18 +277,24 @@ function createWindow() {
     }
   });
 
+  // Explicit download (after the user opts in). Errors surface to the UI.
+  ipcMain.handle('app:downloadUpdate', async () => {
+    if (!app.isPackaged) return { ok: false };
+    try { await autoUpdater.downloadUpdate(); return { ok: true }; }
+    catch (err) { logger.error('Update download failed:', err); return { ok: false, error: String((err && err.message) || err) }; }
+  });
+
   ipcMain.handle('app:installUpdate', () => {
-    if (app.isPackaged) {
-      autoUpdater.quitAndInstall();
-    }
+    if (app.isPackaged) autoUpdater.quitAndInstall();
   });
 
-  autoUpdater.on('update-available', (info) => {
-    win.webContents.send('app:update-available', info.version);
-  });
-
-  autoUpdater.on('update-downloaded', () => {
-    win.webContents.send('app:update-downloaded');
+  autoUpdater.on('update-available', (info) => sendToWin('app:update-available', info.version));
+  autoUpdater.on('update-not-available', () => sendToWin('app:update-none'));
+  autoUpdater.on('download-progress', (p) => sendToWin('app:update-progress', Math.round(p.percent || 0)));
+  autoUpdater.on('update-downloaded', () => sendToWin('app:update-downloaded'));
+  autoUpdater.on('error', (err) => {
+    logger.error('Auto-updater error:', err);
+    sendToWin('app:update-error', String((err && err.message) || err));
   });
 
   ipcMain.handle('tray:openMain', () => {
@@ -379,8 +387,8 @@ if (!gotTheLock) {
         openAtLogin: true,
         path: app.getPath('exe')
       });
-      // Check for updates
-      autoUpdater.checkForUpdatesAndNotify();
+      // Check for updates on launch (download is user-initiated; autoDownload=false).
+      autoUpdater.checkForUpdates().catch((e) => logger.error('Startup update check failed:', e));
     }
     
     logger.info('Onyx application initialized successfully.');
