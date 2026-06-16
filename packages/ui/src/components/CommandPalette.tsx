@@ -86,21 +86,21 @@ export default function CommandPalette({
         role="dialog"
         aria-label="Command palette"
       >
-        <div className="p-2.5">
-          <div className="flex items-center gap-3 px-3.5 rounded-xl border border-border2 bg-background/40 focus-within:border-primary/50 transition-colors">
-            <Search className="w-4 h-4 text-muted flex-shrink-0" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Jump to a view or switch theme…"
-              className="flex-1 bg-transparent py-3 text-sm text-text placeholder:text-muted focus:outline-none"
-            />
-            <kbd className="text-[10px] font-mono text-muted border border-border rounded px-1.5 py-0.5">ESC</kbd>
-          </div>
+        {/* Integrated search row — one outline (the modal's); a hairline divides it
+            from the results. No inner box, so no double border. */}
+        <div className="flex items-center gap-3 px-4 border-b border-border">
+          <Search className="w-4 h-4 text-muted flex-shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Jump to a view or switch theme…"
+            className="flex-1 bg-transparent py-4 text-sm text-text placeholder:text-muted focus:outline-none"
+          />
+          <kbd className="text-[10px] font-mono text-muted border border-border rounded px-1.5 py-0.5">ESC</kbd>
         </div>
 
-        <div ref={listRef} className="max-h-[52vh] overflow-y-auto custom-scrollbar pb-2 border-t border-border">
+        <div ref={listRef} className="max-h-[52vh] overflow-y-auto custom-scrollbar py-2">
           {filtered.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted">No matching commands.</div>
           ) : (
