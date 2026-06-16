@@ -6,6 +6,12 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Rebindable global hotkey.** The system-wide show/hide shortcut (was a fixed
+  Ctrl+Alt+D) can now be changed in Settings → click and press your combo. If the
+  one you pick is already taken by another app, Onyx logs it and falls back to the
+  default so the shortcut never silently dies.
+
 ### Fixed
 - **Battery wrongly reported as "not detected"** on laptops (notably Lenovo) whose
   `root\wmi` capacity classes come back empty. Battery *presence* is now read from

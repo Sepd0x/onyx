@@ -372,14 +372,7 @@ if (!gotTheLock) {
       setTimeout(() => { gitPulse.runAutoScan().catch((err) => logger.error('Auto-scan failed:', err)); }, 5000);
     }
     
-    if (appConfig.enableGlobalHotkey !== false) {
-      globalShortcut.register('CommandOrControl+Alt+D', () => {
-        if (win) {
-          if (win.isVisible()) win.hide();
-          else showWindow();
-        }
-      });
-    }
+    applyGlobalHotkey();
 
     // Enable Auto Start on Boot
     if (app.isPackaged) {
@@ -395,19 +388,31 @@ if (!gotTheLock) {
   });
 }
 
+// The system-wide show/hide hotkey is user-configurable (Settings → Shortcuts).
+// Default matches what shipped before this became editable. Registration can fail
+// if the user's combo is already taken by another app — we log it and fall back to
+// the default so the feature never silently dies.
+const DEFAULT_GLOBAL_HOTKEY = 'CommandOrControl+Alt+D';
+function applyGlobalHotkey() {
+  globalShortcut.unregisterAll();
+  if (appConfig.enableGlobalHotkey === false) return;
+  const toggle = () => { if (win) { if (win.isVisible()) win.hide(); else showWindow(); } };
+  const accel = (typeof appConfig.globalHotkey === 'string' && appConfig.globalHotkey.trim()) || DEFAULT_GLOBAL_HOTKEY;
+  try {
+    if (!globalShortcut.register(accel, toggle)) throw new Error('combo already in use');
+  } catch (e) {
+    logger.error(`Global hotkey "${accel}" failed to register:`, (e && e.message) || e);
+    if (accel !== DEFAULT_GLOBAL_HOTKEY) {
+      try { globalShortcut.register(DEFAULT_GLOBAL_HOTKEY, toggle); } catch {}
+    }
+  }
+}
+
 app.on('config:changed', (config) => {
   appConfig = config;
 
-  // Hotkeys
-  globalShortcut.unregisterAll();
-  if (config.enableGlobalHotkey !== false) {
-    globalShortcut.register('CommandOrControl+Alt+D', () => {
-      if (win) {
-        if (win.isVisible()) win.hide();
-        else showWindow();
-      }
-    });
-  }
+  // Hotkeys — re-applied from the (possibly edited) config.
+  applyGlobalHotkey();
 
   // Tray
   if (config.enableTrayDashboard === false && tray) {
