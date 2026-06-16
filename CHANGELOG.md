@@ -4,6 +4,18 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-06-16
+
+### Fixed
+- **Command palette (Ctrl/Cmd+K) double outline** — the search field is now
+  integrated (one rounded outline from the modal + a hairline divider above the
+  results) instead of a box-inside-a-box.
+- A render error in any view now shows a **recovery screen** ("Reload Onyx")
+  instead of a blank/vanished window.
+
+### Changed
+- `npm run build` cleans `dist/` first, so old installers no longer pile up.
+
 ## [1.1.2] - 2026-06-15
 
 ### Fixed
