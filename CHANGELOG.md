@@ -4,6 +4,17 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **AI output renders as formatted Markdown** (#10). The AI panels (daily briefing,
+  insights, power explanation, log analysis) now show real headings, lists, bold,
+  inline code, code blocks, quotes and links instead of a flat text block — with a
+  tiny, dependency-free, XSS-safe renderer (no `dangerouslySetInnerHTML`; parsing is
+  pure and unit-tested). Links are styled but non-clickable, since AI output is
+  display-only. Copy-oriented outputs (Git Pulse commit messages / PR descriptions)
+  deliberately stay raw so "Copy" yields exactly what you see.
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed
