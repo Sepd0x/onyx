@@ -4,6 +4,16 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **Pinned-taskbar icon had a dark background.** The running window already used the
+  transparent gem, but a *pinned* Onyx used the `.exe`'s embedded icon, which was
+  the framed dark tile. The `.ico` is now built from the same transparent gem, and
+  the gem is scaled up (~1.16×) to fill the icon bounds — without the tile's padding
+  it otherwise read small next to neighbouring taskbar icons. (Regenerate with
+  `npm run generate:icon`, then rebuild, for the new `.exe` icon to take effect.)
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed

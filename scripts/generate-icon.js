@@ -7,8 +7,8 @@ const pngToIcoMod = require('png-to-ico');
 const pngToIco = pngToIcoMod.default || pngToIcoMod;
 
 const ASSETS = path.join(__dirname, '..', 'assets');
-const SVG = path.join(ASSETS, 'icon.svg');           // framed dark tile (installer / app tile)
-const SVG_BARE = path.join(ASSETS, 'icon-bare.svg'); // transparent gem (tray / taskbar)
+const SVG = path.join(ASSETS, 'icon.svg');           // framed dark tile (kept for reference; no longer rasterized)
+const SVG_BARE = path.join(ASSETS, 'icon-bare.svg'); // transparent gem — tray, window, .exe/taskbar, .ico
 
 async function render(svg, size) {
   // High density gives crisp downscaling for small sizes.
@@ -24,13 +24,15 @@ async function main() {
   fs.writeFileSync(path.join(ASSETS, 'icon.png'), await render(SVG_BARE, 256));
   fs.writeFileSync(path.join(ASSETS, 'tray.png'), await render(SVG_BARE, 32));
 
-  // The installer + .exe icon keeps the framed dark tile (looks right as an app
-  // tile / in the installer chrome). Multi-resolution Windows .ico.
+  // The .exe / pinned-taskbar / shortcut icon now uses the SAME transparent gem,
+  // so a *pinned* Onyx matches the running window. The framed dark tile (icon.svg)
+  // showed a heavy square background only when pinned (the .exe's embedded icon),
+  // which is the inconsistency the gem fixes. Multi-resolution Windows .ico.
   const sizes = [16, 24, 32, 48, 64, 128, 256];
-  const buffers = await Promise.all(sizes.map((s) => render(SVG, s)));
+  const buffers = await Promise.all(sizes.map((s) => render(SVG_BARE, s)));
   fs.writeFileSync(path.join(ASSETS, 'icon.ico'), await pngToIco(buffers));
 
-  console.log('Generated assets/icon.png + tray.png (transparent), assets/icon.ico (framed)');
+  console.log('Generated assets/icon.png + tray.png + icon.ico (all transparent gem)');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

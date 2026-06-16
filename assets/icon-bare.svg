@@ -24,16 +24,22 @@
     </linearGradient>
   </defs>
 
-  <!-- Brand glow behind the gem (subtle halo on transparency) -->
-  <ellipse cx="128" cy="124" rx="104" ry="104" fill="url(#glow)"/>
+  <!-- The gem geometry is shared with the framed icon.svg, where it sits inside a
+       padded tile. With no tile (taskbar/tray/pinned), that padding read as a small
+       gem next to neighbours, so scale the whole mark ~1.16x about its centre
+       (128,126) to fill the icon bounds. -->
+  <g transform="translate(128 126) scale(1.16) translate(-128 -126)">
+    <!-- Brand glow behind the gem (subtle halo on transparency) -->
+    <ellipse cx="128" cy="124" rx="104" ry="104" fill="url(#glow)"/>
 
-  <!-- Isometric "Onyx" gem -->
-  <g stroke-linejoin="round">
-    <path d="M44 78 L128 126 L128 224 L44 176 Z" fill="url(#face-left)"/>
-    <path d="M212 78 L128 126 L128 224 L212 176 Z" fill="url(#face-right)"/>
-    <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="url(#face-top)"/>
-    <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="none" stroke="#f7efff" stroke-width="3" stroke-opacity="0.9"/>
-    <path d="M128 126 L128 224" fill="none" stroke="#c4b5fd" stroke-width="2.5" stroke-opacity="0.5"/>
-    <path d="M44 78 L44 176 L128 224" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-opacity="0.4"/>
+    <!-- Isometric "Onyx" gem -->
+    <g stroke-linejoin="round">
+      <path d="M44 78 L128 126 L128 224 L44 176 Z" fill="url(#face-left)"/>
+      <path d="M212 78 L128 126 L128 224 L212 176 Z" fill="url(#face-right)"/>
+      <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="url(#face-top)"/>
+      <path d="M128 28 L212 78 L128 126 L44 78 Z" fill="none" stroke="#f7efff" stroke-width="3" stroke-opacity="0.9"/>
+      <path d="M128 126 L128 224" fill="none" stroke="#c4b5fd" stroke-width="2.5" stroke-opacity="0.5"/>
+      <path d="M44 78 L44 176 L128 224" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-opacity="0.4"/>
+    </g>
   </g>
 </svg>
