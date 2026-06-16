@@ -44,18 +44,29 @@ describe('computeWearPct', () => {
 
 describe('parseBatteryHealth', () => {
   it('builds a full payload for a Lenovo with a worn battery', () => {
-    const out = parseBatteryHealth(JSON.stringify({ manufacturer: 'LENOVO', model: 'ThinkPad X1', design: 57000, full: 49000 }));
+    const out = parseBatteryHealth(JSON.stringify({ manufacturer: 'LENOVO', model: 'ThinkPad X1', present: true, charge: 73, design: 57000, full: 49000 }));
     expect(out).toMatchObject({
       manufacturer: 'LENOVO', model: 'ThinkPad X1', vendor: 'lenovo',
       vendorApp: 'Lenovo Vantage', canControlChargeLimit: false,
-      designCapacity: 57000, fullCapacity: 49000, wearPct: 14, healthPct: 86, hasBattery: true,
+      designCapacity: 57000, fullCapacity: 49000, wearPct: 14, healthPct: 86,
+      chargePercent: 73, wearKnown: true, hasBattery: true,
     });
   });
+  it('detects a battery that is present even when capacity classes are empty (Lenovo WMI gap)', () => {
+    // The exact #-bug repro: a real battery whose root\wmi design/full come back null.
+    const out = parseBatteryHealth(JSON.stringify({ manufacturer: 'LENOVO', model: 'ThinkPad', present: true, charge: 88, design: null, full: null }));
+    expect(out.hasBattery).toBe(true);   // present → detected
+    expect(out.wearKnown).toBe(false);   // but wear can't be computed
+    expect(out.wearPct).toBeNull();
+    expect(out.healthPct).toBeNull();
+    expect(out.chargePercent).toBe(88);
+  });
   it('flags a desktop / no-battery machine and a non-controllable vendor', () => {
-    const out = parseBatteryHealth(JSON.stringify({ manufacturer: 'Dell Inc.', model: 'OptiPlex', design: 0, full: 0 }));
+    const out = parseBatteryHealth(JSON.stringify({ manufacturer: 'Dell Inc.', model: 'OptiPlex', present: false, design: 0, full: 0 }));
     expect(out.vendor).toBe('dell');
     expect(out.canControlChargeLimit).toBe(false);
     expect(out.hasBattery).toBe(false);
+    expect(out.wearKnown).toBe(false);
     expect(out.wearPct).toBeNull();
   });
   it('is safe on empty / bad JSON', () => {

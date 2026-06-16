@@ -4,6 +4,19 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **Battery wrongly reported as "not detected"** on laptops (notably Lenovo) whose
+  `root\wmi` capacity classes come back empty. Battery *presence* is now read from
+  `Win32_Battery` (reliable) and is no longer tied to whether wear % could be
+  computed: the card shows "Battery detected" (with charge %, when wear data isn't
+  exposed) instead of "No battery detected".
+- **Command palette (Ctrl/Cmd+K) selection & outline.** The always-focused search
+  field no longer shows the harsh full-width focus box (the global focus ring is
+  suppressed just for that field), and the highlighted row is now a smoothly
+  rounded, inset pill instead of an edge-to-edge band — clean on all sides.
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed
