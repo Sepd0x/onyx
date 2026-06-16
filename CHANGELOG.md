@@ -14,6 +14,12 @@ All notable changes to Onyx are documented here. The format follows
   reproducible from `logs/onyx-<date>.log` instead of leaving no trace.
 
 ### Fixed
+- **Renderer-crash resilience.** If the renderer process itself dies (OOM/GPU/native
+  — the case the React error boundary can't catch), the main process now logs the
+  reason and reloads the window instead of leaving it vanished. Renderer
+  `unresponsive`/`responsive` transitions are logged too (the "Not responding"
+  window in #29). Async / unhandled-rejection errors in the renderer (e.g. the
+  onboarding's IPC handlers) are also captured to the log.
 - **First-run wizard hardening.** The initial config/AI-status load is wrapped so a
   failing provider lookup can no longer take down the onboarding screen.
 - **Dev browser mock** now mirrors the real AI status shape (provider list + active

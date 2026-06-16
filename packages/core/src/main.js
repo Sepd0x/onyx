@@ -185,6 +185,17 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '../../ui/dist/index.html'));
   }
 
+  // If the renderer process itself dies (OOM/GPU/native — NOT a JS error the
+  // renderer ErrorBoundary can catch), the window just vanishes. Log the reason so
+  // a "the app crashed" report (e.g. issue #30) leaves a trace, and reload once so
+  // the user isn't left staring at a dead window.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    try { logger.error('Renderer process gone:', JSON.stringify(details)); } catch {}
+    try { if (details && details.reason !== 'clean-exit' && win && !win.isDestroyed()) win.reload(); } catch {}
+  });
+  win.webContents.on('unresponsive', () => { try { logger.warn('Renderer became unresponsive'); } catch {} });
+  win.webContents.on('responsive', () => { try { logger.info('Renderer responsive again'); } catch {} });
+
   ipcMain.handle('window:minimize', () => win.minimize());
   ipcMain.handle('window:close', () => win.hide());
   ipcMain.handle('window:openExternal', (_, url) => {
