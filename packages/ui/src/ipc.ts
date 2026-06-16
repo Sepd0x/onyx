@@ -38,6 +38,7 @@ export const CH = {
   appGetStats: 'app:getStats',
   appNotify: 'app:notify',
   appCheckForUpdates: 'app:checkForUpdates',
+  appDownloadUpdate: 'app:downloadUpdate',
   appInstallUpdate: 'app:installUpdate',
   appGetConflicts: 'app:getConflicts',
   // Window
@@ -88,7 +89,10 @@ export const EV = {
   refreshData: 'refresh-data',
   devNotification: 'dev:notification',
   appUpdateAvailable: 'app:update-available',
+  appUpdateNone: 'app:update-none',
+  appUpdateProgress: 'app:update-progress',
   appUpdateDownloaded: 'app:update-downloaded',
+  appUpdateError: 'app:update-error',
   gitScanProgress: 'git:scanProgress',
   cleanerScanProgress: 'cleaner:scanProgress',
   configChanged: 'config:changed',

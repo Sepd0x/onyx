@@ -17,7 +17,7 @@ const INVOKE_CHANNELS = [
   // Dev watcher
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   // App / settings / updates
-  'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:installUpdate', 'app:getConflicts',
+  'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:downloadUpdate', 'app:installUpdate', 'app:getConflicts',
   // Window
   'window:close', 'window:minimize', 'window:openExternal',
   // Environment
@@ -39,6 +39,6 @@ const INVOKE_CHANNELS = [
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-downloaded', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-none', 'app:update-progress', 'app:update-downloaded', 'app:update-error', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

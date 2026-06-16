@@ -9,6 +9,8 @@ import { ACCENTS, applyAccent } from '../lib/accents';
 export default function SettingsView() {
   const [config, setConfig] = useState<any>({ launchOnStartup: false, startMinimized: false, autoScanGit: false, autoHideCursorOnStart: false, theme: 'midnight' });
   const [updateStatus, setUpdateStatus] = useState<string>('');
+  // Update flow state for the buttons (string above is the human message).
+  const [updatePhase, setUpdatePhase] = useState<'idle' | 'available' | 'downloading' | 'ready'>('idle');
   const [aiStatus, setAiStatus] = useState<any>({ provider: 'anthropic', configured: false, encryptionAvailable: true, model: 'claude-haiku-4-5', providers: [] });
   const [aiKey, setAiKey] = useState('');
   const [aiModel, setAiModel] = useState('');
@@ -53,10 +55,21 @@ export default function SettingsView() {
       });
       loadAiStatus();
       window.api.on(EV.appUpdateAvailable, (version: string) => {
-        setUpdateStatus(`Downloading update ${version}...`);
+        setUpdatePhase('available');
+        setUpdateStatus(`Update ${version} available.`);
+      });
+      window.api.on(EV.appUpdateProgress, (pct: number) => {
+        setUpdatePhase('downloading');
+        setUpdateStatus(`Downloading… ${pct}%`);
       });
       window.api.on(EV.appUpdateDownloaded, () => {
+        setUpdatePhase('ready');
         setUpdateStatus('Update ready to install');
+      });
+      window.api.on(EV.appUpdateError, (m: string) => {
+        setUpdatePhase('idle');
+        setUpdateStatus(`Update failed: ${m}`);
+        setTimeout(() => setUpdateStatus(''), 6000);
       });
     }
   }, []);
@@ -150,14 +163,19 @@ export default function SettingsView() {
   const checkForUpdates = async () => {
     setUpdateStatus('Checking for updates…');
     const res = await window.api?.invoke(CH.appCheckForUpdates);
-    const message = res?.message ?? 'Update check unavailable right now.';
-    setUpdateStatus(message);
-    // When an update is downloading, the update-available/-downloaded events take
-    // over the status (and reveal the Install button). Every other state is a
-    // terminal message, so clear it after a few seconds.
-    if (res?.state !== 'available') {
-      setTimeout(() => setUpdateStatus(''), 5000);
+    if (res?.state === 'available') {
+      // The update-available event sets the phase + Download button; keep the message.
+      setUpdateStatus(res.message);
+      return;
     }
+    setUpdateStatus(res?.message ?? 'Update check unavailable right now.');
+    setTimeout(() => setUpdateStatus(''), 5000);
+  };
+
+  const downloadUpdate = () => {
+    setUpdatePhase('downloading');
+    setUpdateStatus('Downloading… 0%');
+    window.api?.invoke(CH.appDownloadUpdate);
   };
 
   const installUpdate = () => {
@@ -506,7 +524,7 @@ export default function SettingsView() {
         <div className="mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center">
            <div>
              <h4 className="text-sm font-medium text-text tracking-tight flex items-center gap-2">
-              Onyx <span className="px-2 py-0.5 text-[9px] font-mono bg-surface2 text-muted2 border border-border rounded-md">v1.0.0</span>
+              Onyx <span className="px-2 py-0.5 text-[9px] font-mono bg-surface2 text-muted2 border border-border rounded-md">v{config.appVersion || '—'}</span>
              </h4>
              <p className="text-[11px] font-mono text-muted mt-1.5 leading-relaxed">
                Centralized power toolkit &amp; system guard.
@@ -518,7 +536,15 @@ export default function SettingsView() {
                >
                  Check updates
                </button>
-               {updateStatus === 'Update ready to install' && (
+               {updatePhase === 'available' && (
+                 <button
+                   onClick={downloadUpdate}
+                   className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+                 >
+                   Download update
+                 </button>
+               )}
+               {updatePhase === 'ready' && (
                  <button
                    onClick={installUpdate}
                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 text-accent border border-primary/25 hover:bg-primary/25 text-xs font-medium rounded-lg transition-colors cursor-pointer"
@@ -526,8 +552,8 @@ export default function SettingsView() {
                    Restart & install
                  </button>
                )}
-               {updateStatus && updateStatus !== 'Update ready to install' && (
-                 <span className="text-[11px] font-mono text-primary/80 animate-pulse">{updateStatus}</span>
+               {updateStatus && updatePhase !== 'ready' && (
+                 <span className="text-[11px] font-mono text-primary/80">{updateStatus}</span>
                )}
              </div>
            </div>

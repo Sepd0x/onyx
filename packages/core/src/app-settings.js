@@ -15,7 +15,8 @@ module.exports = function initAppSettings() {
     });
   }
 
-  ipcMain.handle('app:getConfig', () => config);
+  // appVersion is read-only metadata (not persisted); the UI shows it as the build version.
+  ipcMain.handle('app:getConfig', () => ({ ...config, appVersion: app.getVersion() }));
   
   ipcMain.handle('app:setConfig', (_, newConfig) => {
     config = { ...config, ...newConfig };

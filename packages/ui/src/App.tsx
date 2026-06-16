@@ -29,8 +29,8 @@ export default function App() {
   const [onboardDone, setOnboardDone] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   // Global update indicator: the auto-updater fires these from main; show a banner
-  // in any view (not just Settings) so a ready update is impossible to miss.
-  const [update, setUpdate] = useState<{ status: 'available' | 'ready'; version?: string } | null>(null);
+  // in any view (not just Settings) so an update is impossible to miss.
+  const [update, setUpdate] = useState<{ status: 'available' | 'downloading' | 'ready' | 'error'; version?: string; pct?: number; message?: string } | null>(null);
 
   // Pause the background polls while the window is hidden (closed to tray /
   // minimised) — no point fetching stats every 2s for a window nobody can see.
@@ -100,10 +100,15 @@ export default function App() {
 
   // Auto-updater events from main → drive the global update banner.
   useEffect(() => {
-    const unsubA = window.api?.on(EV.appUpdateAvailable, (v: string) => setUpdate({ status: 'available', version: v }));
-    const unsubD = window.api?.on(EV.appUpdateDownloaded, () => setUpdate((u) => ({ status: 'ready', version: u?.version })));
-    return () => { unsubA?.(); unsubD?.(); };
+    const subs = [
+      window.api?.on(EV.appUpdateAvailable, (v: string) => setUpdate({ status: 'available', version: v })),
+      window.api?.on(EV.appUpdateProgress, (pct: number) => setUpdate((u) => ({ ...(u || {}), status: 'downloading', pct }))),
+      window.api?.on(EV.appUpdateDownloaded, () => setUpdate((u) => ({ ...(u || {}), status: 'ready' }))),
+      window.api?.on(EV.appUpdateError, (m: string) => setUpdate({ status: 'error', message: m })),
+    ];
+    return () => subs.forEach((u) => u?.());
   }, []);
+  const downloadUpdate = () => { setUpdate((u) => ({ ...(u || {}), status: 'downloading', pct: 0 })); window.api?.invoke(CH.appDownloadUpdate); };
   const installUpdate = () => window.api?.invoke(CH.appInstallUpdate);
 
   // Command palette (Ctrl/Cmd+K): toggle from anywhere, even inside inputs.
@@ -211,23 +216,27 @@ export default function App() {
 
       {/* Global update banner — visible in every view, not just Settings */}
       {update && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2 bg-primary/15 border-b border-primary/30 relative z-10 flex-shrink-0 animate-in slide-in-from-top-1 fade-in duration-200">
-          <span className="text-[12px] text-accent flex items-center gap-2 min-w-0">
+        <div className={`flex items-center justify-between gap-3 px-4 py-2 border-b relative z-10 flex-shrink-0 animate-in slide-in-from-top-1 fade-in duration-200 ${update.status === 'error' ? 'bg-danger/10 border-danger/30' : 'bg-primary/15 border-primary/30'}`}>
+          <span className={`text-[12px] flex items-center gap-2 min-w-0 ${update.status === 'error' ? 'text-danger' : 'text-accent'}`}>
             <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
             <span className="truncate">
-              {update.status === 'ready'
-                ? `Update${update.version ? ` ${update.version}` : ''} ready to install.`
-                : `Downloading update${update.version ? ` ${update.version}` : ''}…`}
+              {update.status === 'available' && `Update${update.version ? ` ${update.version}` : ''} available.`}
+              {update.status === 'downloading' && `Downloading update… ${update.pct ?? 0}%`}
+              {update.status === 'ready' && `Update${update.version ? ` ${update.version}` : ''} ready to install.`}
+              {update.status === 'error' && `Update failed: ${update.message || 'unknown error'}`}
             </span>
           </span>
-          {update.status === 'ready' && (
-            <button
-              onClick={installUpdate}
-              className="text-[11px] font-medium px-3 py-1 rounded-md bg-primary/25 text-accent border border-primary/30 hover:bg-primary/35 transition-colors flex-shrink-0"
-            >
-              Restart &amp; install
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {update.status === 'available' && (
+              <button onClick={downloadUpdate} className="text-[11px] font-medium px-3 py-1 rounded-md bg-primary/25 text-accent border border-primary/30 hover:bg-primary/35 transition-colors">Download</button>
+            )}
+            {update.status === 'ready' && (
+              <button onClick={installUpdate} className="text-[11px] font-medium px-3 py-1 rounded-md bg-primary/25 text-accent border border-primary/30 hover:bg-primary/35 transition-colors">Restart &amp; install</button>
+            )}
+            {(update.status === 'available' || update.status === 'error') && (
+              <button onClick={() => setUpdate(null)} aria-label="Dismiss update banner" className="text-muted hover:text-text transition-colors"><X className="w-3.5 h-3.5" /></button>
+            )}
+          </div>
         </div>
       )}
 
