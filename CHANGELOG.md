@@ -4,6 +4,13 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] - 2026-06-16
+
+### Fixed
+- **Command palette outline** — the modal now has a clean, evenly-rounded border
+  on all four sides (a more visible translucent hairline). Earlier builds could
+  look like the top edge was missing.
+
 ## [1.1.3] - 2026-06-16
 
 ### Fixed

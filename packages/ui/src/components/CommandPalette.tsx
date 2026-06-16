@@ -80,7 +80,7 @@ export default function CommandPalette({
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-xl bg-surface/95 border border-border2 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150"
+        className="w-full max-w-xl bg-surface/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
         role="dialog"
