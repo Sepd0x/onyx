@@ -4,6 +4,16 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Clipboard history** (#7) — a new tool that keeps your recent copies (text and
+  images) so you can paste something from a few clips ago. Search, one-click
+  re-copy, pin items to keep them, delete individually or clear all, and a pause
+  toggle to stop capture. **Privacy: history is in-memory only — it is never
+  written to disk and clears when Onyx quits.** The list logic (dedup, cap, pin)
+  is pure and unit-tested.
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed

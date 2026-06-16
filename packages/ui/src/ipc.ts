@@ -54,6 +54,13 @@ export const CH = {
   // Snippets
   snippetsGet: 'snippets:get',
   snippetsSave: 'snippets:save',
+  // Clipboard history
+  clipboardGet: 'clipboard:get',
+  clipboardCopy: 'clipboard:copy',
+  clipboardTogglePin: 'clipboard:togglePin',
+  clipboardDelete: 'clipboard:delete',
+  clipboardClear: 'clipboard:clear',
+  clipboardSetPaused: 'clipboard:setPaused',
   // Launchers
   launchersGet: 'launchers:get',
   launchersSave: 'launchers:save',

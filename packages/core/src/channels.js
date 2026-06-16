@@ -26,6 +26,8 @@ const INVOKE_CHANNELS = [
   'cleaner:scan', 'cleaner:delete',
   // Snippets
   'snippets:get', 'snippets:save',
+  // Clipboard history (in-memory in main; never persisted)
+  'clipboard:get', 'clipboard:copy', 'clipboard:togglePin', 'clipboard:delete', 'clipboard:clear', 'clipboard:setPaused',
   // Launchers
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
   // Settings backup / restore (config + snippets + launchers; never secrets)

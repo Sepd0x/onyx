@@ -15,6 +15,7 @@ const INVOKE_CHANNELS = [
   'env:keepAwake', 'env:focusMode',
   'cleaner:scan', 'cleaner:delete',
   'snippets:get', 'snippets:save',
+  'clipboard:get', 'clipboard:copy', 'clipboard:togglePin', 'clipboard:delete', 'clipboard:clear', 'clipboard:setPaused',
   'launchers:get', 'launchers:save', 'launchers:start', 'launchers:stop', 'launchers:status',
   'settings:export', 'settings:import',
   'tray:openMain', 'tray:resize',

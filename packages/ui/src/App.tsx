@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command, Sparkles } from 'lucide-react';
+import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command, Sparkles, ClipboardList } from 'lucide-react';
 
 // Views are code-split (React.lazy): each tab's chunk loads on first open, so the
 // initial bundle/first paint only carries the shell + the landing view.
@@ -10,6 +10,7 @@ const DevWatcherView = lazy(() => import('./views/DevWatcherView'));
 const SettingsView = lazy(() => import('./views/SettingsView'));
 const CleanserView = lazy(() => import('./views/CleanserView'));
 const SnippetsView = lazy(() => import('./views/SnippetsView'));
+const ClipboardView = lazy(() => import('./views/ClipboardView'));
 const LaunchersView = lazy(() => import('./views/LaunchersView'));
 const TrayView = lazy(() => import('./views/TrayView'));
 const AIAuditorView = lazy(() => import('./views/AIAuditorView'));
@@ -139,6 +140,7 @@ export default function App() {
       { id: 'cleaner', label: 'Dev Cleanser', icon: Activity },
       { id: 'launchers', label: 'Launchers', icon: Rocket },
       { id: 'snippets', label: 'Snippets', icon: TerminalSquare },
+      { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
       { id: 'power', label: 'OS Power Manager', icon: Zap },
       { id: 'settings', label: 'Settings', icon: Settings },
     ];
@@ -255,12 +257,13 @@ export default function App() {
             <Tab idx={5} icon={<Activity className="w-4 h-4" />} label="Dev Cleanser" isActive={activeTab === 'cleaner'} onClick={() => setActiveTab('cleaner')} />
             <Tab idx={6} icon={<Rocket className="w-4 h-4" />} label="Launchers" isActive={activeTab === 'launchers'} onClick={() => setActiveTab('launchers')} />
             <Tab idx={7} icon={<TerminalSquare className="w-4 h-4" />} label="Snippets" isActive={activeTab === 'snippets'} onClick={() => setActiveTab('snippets')} />
-            <Tab idx={8} icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />
+            <Tab idx={8} icon={<ClipboardList className="w-4 h-4" />} label="Clipboard" isActive={activeTab === 'clipboard'} onClick={() => setActiveTab('clipboard')} />
+            <Tab idx={9} icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />
           </div>
           
           <div className="flex flex-col gap-2">
             <div className="h-px w-full bg-border my-2"></div>
-            <Tab idx={9} icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+            <Tab idx={10} icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
           </div>
         </aside>
 
@@ -277,6 +280,7 @@ export default function App() {
               {activeTab === 'cleaner' && <CleanserView />}
               {activeTab === 'launchers' && <LaunchersView />}
               {activeTab === 'snippets' && <SnippetsView />}
+              {activeTab === 'clipboard' && <ClipboardView />}
               {activeTab === 'settings' && <SettingsView />}
               {activeTab === 'power' && <PowerOSView />}
             </Suspense>
