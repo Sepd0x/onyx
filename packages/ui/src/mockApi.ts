@@ -158,9 +158,12 @@ class MockApi {
 
     switch (channel) {
       case 'app:getConfig': return this.config;
-      case 'app:setConfig': 
+      case 'app:setConfig':
         this.config = { ...this.config, ...args[0] };
         this.save();
+        // Mirror main: broadcast config:changed so live-config consumers (theme,
+        // accent, enabled tools) update immediately instead of waiting for a poll.
+        this.emit('config:changed', this.config);
         return this.config;
         
       case 'cursor:getConfig': return this.cursorConfig;

@@ -22,6 +22,7 @@ import Onboarding from './components/Onboarding';
 import { CH, EV } from './ipc';
 import { useIpc, invalidate } from './lib/ipcCache';
 import { applyAccent } from './lib/accents';
+import { TOOLS, isToolEnabled } from './lib/tools';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
@@ -131,17 +132,9 @@ export default function App() {
   };
 
   const paletteCommands = useMemo<PaletteCommand[]>(() => {
+    // Only the user's active tools show up, plus Settings (always available).
     const views: { id: string; label: string; icon: any }[] = [
-      { id: 'watcher', label: 'Session Guard', icon: ShieldAlert },
-      ...((appConfig.enableAIFeatures ?? true) ? [{ id: 'aiauditor', label: 'Inspector', icon: BrainCircuit }] : []),
-      { id: 'cursor', label: 'Focus Mode', icon: MousePointer2 },
-      { id: 'ports', label: 'Port Mapper', icon: Network },
-      { id: 'git', label: 'Git Pulse', icon: GitBranch },
-      { id: 'cleaner', label: 'Dev Cleanser', icon: Activity },
-      { id: 'launchers', label: 'Launchers', icon: Rocket },
-      { id: 'snippets', label: 'Snippets', icon: TerminalSquare },
-      { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
-      { id: 'power', label: 'OS Power Manager', icon: Zap },
+      ...TOOLS.filter((t) => isToolEnabled(t.id, appConfig)).map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
       { id: 'settings', label: 'Settings', icon: Settings },
     ];
     const nav: PaletteCommand[] = views.map((v) => ({
@@ -165,7 +158,17 @@ export default function App() {
       run: () => setTheme(t.id.split(':')[1]),
     }));
     return [...nav, ...themes];
-  }, [appConfig.enableAIFeatures]);
+  }, [appConfig.enableAIFeatures, appConfig.disabledTools]);
+
+  // If the active tool gets disabled (or AI turned off for the Inspector), fall
+  // back to the first enabled tool so the main area never shows a hidden view.
+  useEffect(() => {
+    if (activeTab === 'settings') return;
+    if (!isToolEnabled(activeTab, appConfig)) {
+      const firstEnabled = TOOLS.find((t) => isToolEnabled(t.id, appConfig));
+      setActiveTab(firstEnabled ? firstEnabled.id : 'settings');
+    }
+  }, [activeTab, appConfig.disabledTools, appConfig.enableAIFeatures]);
 
   const closeWindow = () => window.api?.invoke(CH.windowClose);
   const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
@@ -247,18 +250,18 @@ export default function App() {
         <aside className="w-56 bg-surface/40 backdrop-blur-sm border-r border-border p-4 flex flex-col justify-between">
           <div className="flex flex-col gap-2">
             <div className="text-[10px] font-mono font-bold tracking-widest text-muted uppercase mb-2 pl-2">Tools</div>
-            <Tab idx={0} icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />
-            {(appConfig.enableAIFeatures ?? true) && (
+            {isToolEnabled('watcher', appConfig) && <Tab idx={0} icon={<ShieldAlert className="w-4 h-4" />} label="Session Guard" isActive={activeTab === 'watcher'} onClick={() => setActiveTab('watcher')} />}
+            {isToolEnabled('aiauditor', appConfig) && (
               <Tab idx={1} icon={<BrainCircuit className="w-4 h-4" />} label="Inspector" isActive={activeTab === 'aiauditor'} onClick={() => setActiveTab('aiauditor')} />
             )}
-            <Tab idx={2} icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />
-            <Tab idx={3} icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />
-            <Tab idx={4} icon={<GitBranch className="w-4 h-4" />} label="Git Pulse" isActive={activeTab === 'git'} onClick={() => setActiveTab('git')} />
-            <Tab idx={5} icon={<Activity className="w-4 h-4" />} label="Dev Cleanser" isActive={activeTab === 'cleaner'} onClick={() => setActiveTab('cleaner')} />
-            <Tab idx={6} icon={<Rocket className="w-4 h-4" />} label="Launchers" isActive={activeTab === 'launchers'} onClick={() => setActiveTab('launchers')} />
-            <Tab idx={7} icon={<TerminalSquare className="w-4 h-4" />} label="Snippets" isActive={activeTab === 'snippets'} onClick={() => setActiveTab('snippets')} />
-            <Tab idx={8} icon={<ClipboardList className="w-4 h-4" />} label="Clipboard" isActive={activeTab === 'clipboard'} onClick={() => setActiveTab('clipboard')} />
-            <Tab idx={9} icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />
+            {isToolEnabled('cursor', appConfig) && <Tab idx={2} icon={<MousePointer2 className="w-4 h-4" />} label="Focus Mode" isActive={activeTab === 'cursor'} onClick={() => setActiveTab('cursor')} />}
+            {isToolEnabled('ports', appConfig) && <Tab idx={3} icon={<Network className="w-4 h-4" />} label="Port Mapper" isActive={activeTab === 'ports'} onClick={() => setActiveTab('ports')} />}
+            {isToolEnabled('git', appConfig) && <Tab idx={4} icon={<GitBranch className="w-4 h-4" />} label="Git Pulse" isActive={activeTab === 'git'} onClick={() => setActiveTab('git')} />}
+            {isToolEnabled('cleaner', appConfig) && <Tab idx={5} icon={<Activity className="w-4 h-4" />} label="Dev Cleanser" isActive={activeTab === 'cleaner'} onClick={() => setActiveTab('cleaner')} />}
+            {isToolEnabled('launchers', appConfig) && <Tab idx={6} icon={<Rocket className="w-4 h-4" />} label="Launchers" isActive={activeTab === 'launchers'} onClick={() => setActiveTab('launchers')} />}
+            {isToolEnabled('snippets', appConfig) && <Tab idx={7} icon={<TerminalSquare className="w-4 h-4" />} label="Snippets" isActive={activeTab === 'snippets'} onClick={() => setActiveTab('snippets')} />}
+            {isToolEnabled('clipboard', appConfig) && <Tab idx={8} icon={<ClipboardList className="w-4 h-4" />} label="Clipboard" isActive={activeTab === 'clipboard'} onClick={() => setActiveTab('clipboard')} />}
+            {isToolEnabled('power', appConfig) && <Tab idx={9} icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 12 3.3 17"/></svg>} label="OS Power Manager" isActive={activeTab === 'power'} onClick={() => setActiveTab('power')} />}
           </div>
           
           <div className="flex flex-col gap-2">
