@@ -4,6 +4,18 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Pick your tools** (first step of #28). A new "Tools" section in Settings lets
+  you turn each tool on or off; disabled tools are hidden from the sidebar and the
+  command palette, so Onyx shows only what you use. Choices persist and apply live.
+  (The full plugin/community-extension system stays on the v2.0 roadmap.)
+
+### Fixed
+- Dev browser mock now broadcasts `config:changed` on save, mirroring the main
+  process, so theme/accent/enabled-tools changes apply live in `npm run dev`.
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed
