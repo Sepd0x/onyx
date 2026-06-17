@@ -4,6 +4,17 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Pomodoro timer in Focus Mode** (#9, timers). A focus/break timer with a progress
+  ring, start/pause/reset/skip, editable durations (focus, short & long break, and
+  the long-break cadence), and a per-day focus-session count. It's timestamp-based
+  and persisted, so it keeps running when you switch views and catches up correctly
+  after the app sleeps; a notification fires at each phase change. The timer logic is
+  pure and unit-tested. (Focus Mode's other planned parts — app blockers and
+  window-layout save/restore — remain on the roadmap.)
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed
