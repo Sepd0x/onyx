@@ -5,6 +5,11 @@ import { invalidate } from '../lib/ipcCache';
 import { ACCENTS, applyAccent } from '../lib/accents';
 import Logo from './Logo';
 
+const STEP_NAMES = ['Welcome', 'Appearance', 'AI assistant', 'All set'];
+// Best-effort breadcrumb into the main log, so a first-run crash report can be
+// traced to the exact step the user reached (see issue #30). Never throws.
+const logStep = (message: string) => { try { window.api?.invoke(CH.appLog, { level: 'info', message: `onboarding: ${message}` }); } catch {} };
+
 // First-run wizard: appearance → optional AI key → a couple of tips. Each choice
 // is applied + persisted as you go, so finishing (or skipping) just flips the
 // `onboarded` flag. Shown by App until config.onboarded === true.
@@ -22,15 +27,23 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
   const activeMeta: any = providers.find((p) => p.key === provider) || { label: 'AI provider', placeholder: 'API key', keyUrl: '' };
 
   useEffect(() => {
+    logStep('opened (first-run wizard mounted)');
     (async () => {
       if (!window.api) return;
-      const cfg: any = await window.api.invoke(CH.appGetConfig);
-      if (cfg?.theme) setThemeState(cfg.theme);
-      if (cfg?.accent) setAccentState(cfg.accent);
-      const s: any = await window.api.invoke(CH.aiGetStatus);
-      if (s?.providers) { setProviders(s.providers); setProvider(s.provider || 'anthropic'); }
+      try {
+        const cfg: any = await window.api.invoke(CH.appGetConfig);
+        if (cfg?.theme) setThemeState(cfg.theme);
+        if (cfg?.accent) setAccentState(cfg.accent);
+        const s: any = await window.api.invoke(CH.aiGetStatus);
+        if (s?.providers) { setProviders(s.providers); setProvider(s.provider || 'anthropic'); }
+      } catch (e: any) {
+        logStep(`init failed: ${String(e?.message || e)}`);
+      }
     })();
   }, []);
+
+  // Breadcrumb each step the user reaches — the last line before a crash localizes it.
+  useEffect(() => { logStep(`reached step ${step} (${STEP_NAMES[step] || step})`); }, [step]);
 
   const setTheme = (t: string) => {
     setThemeState(t);
@@ -68,12 +81,13 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
   };
 
   const finish = async () => {
+    logStep(`finished (from step ${step})`);
     await window.api?.invoke(CH.appSetConfig, { onboarded: true });
     invalidate('app:getConfig');
     onFinish();
   };
 
-  const steps = ['Welcome', 'Appearance', 'AI assistant', 'All set'];
+  const steps = STEP_NAMES;
 
   return (
     <div className="absolute inset-0 z-[70] flex items-center justify-center bg-background/85 backdrop-blur-md p-4 animate-in fade-in duration-200">

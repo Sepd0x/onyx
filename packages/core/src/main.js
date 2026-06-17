@@ -185,6 +185,17 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '../../ui/dist/index.html'));
   }
 
+  // If the renderer process itself dies (OOM/GPU/native — NOT a JS error the
+  // renderer ErrorBoundary can catch), the window just vanishes. Log the reason so
+  // a "the app crashed" report (e.g. issue #30) leaves a trace, and reload once so
+  // the user isn't left staring at a dead window.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    try { logger.error('Renderer process gone:', JSON.stringify(details)); } catch {}
+    try { if (details && details.reason !== 'clean-exit' && win && !win.isDestroyed()) win.reload(); } catch {}
+  });
+  win.webContents.on('unresponsive', () => { try { logger.warn('Renderer became unresponsive'); } catch {} });
+  win.webContents.on('responsive', () => { try { logger.info('Renderer responsive again'); } catch {} });
+
   ipcMain.handle('window:minimize', () => win.minimize());
   ipcMain.handle('window:close', () => win.hide());
   ipcMain.handle('window:openExternal', (_, url) => {
@@ -245,6 +256,19 @@ function createWindow() {
     if (appConfig.enableNotifications !== false) {
       new Notification({ title: data.title, body: data.body }).show();
     }
+  });
+
+  // Renderer-side diagnostics breadcrumb: lets the UI persist what it was doing
+  // (onboarding step reached, a render-boundary catch) into today's main log, so a
+  // user's crash report is reproducible from logs/onyx-<date>.log instead of vague.
+  // Best-effort and bounded; never trusts the renderer to pick a real log level.
+  ipcMain.handle('app:log', (_, data) => {
+    try {
+      const level = ['info', 'warn', 'error', 'debug'].includes(data && data.level) ? data.level : 'info';
+      const message = '[client] ' + String((data && data.message) || '').slice(0, 500);
+      logger[level](message, (data && data.meta) || {});
+    } catch {}
+    return true;
   });
 
   // Don't auto-download: the user explicitly chooses to download (no silent
