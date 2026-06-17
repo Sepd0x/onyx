@@ -11,6 +11,7 @@ const initGitPulse = require('../../tools/gitpulse/index');
 const initDevWatcher = require('../../tools/dev-watcher/index');
 const initCleaner = require('../../tools/cleaner/index');
 const initSnippets = require('../../tools/snippets/index');
+const initClipboard = require('../../tools/clipboard/index');
 const initLaunchers = require('../../tools/launchers/index');
 const initPowerManager = require('../../tools/power-manager/index');
 const initAI = require('../../tools/ai/index');
@@ -380,6 +381,7 @@ if (!gotTheLock) {
     initDevWatcher();
     initCleaner();
     initSnippets();
+    initClipboard();
     initLaunchers();
     initPowerManager();
     initAI();

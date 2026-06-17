@@ -88,6 +88,9 @@ class MockApi {
   private demo = false;
   private listeners: Record<string, Function[]> = {};
   private watchedProcesses: any[] = [];
+  // Clipboard history (in-memory in the real backend too — never persisted).
+  private clipboard: any[] = [];
+  private clipboardPaused = false;
   private cleanerDirs: { path: string; name: string; kind: string; bytes: number }[] = [
     { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', kind: 'Node', bytes: 340 * 1024 * 1024 },
     { path: '~/Documents/GitHub/test-repo/node_modules', name: 'node_modules', kind: 'Node', bytes: 512 * 1024 * 1024 },
@@ -121,6 +124,13 @@ class MockApi {
       this.watchedProcesses = [
         { id: 'demo-g1', type: 'pid', target: '18420', name: 'vite build · onyx-ui' },
         { id: 'demo-g2', type: 'pid', target: '22107', name: 'next dev · storefront' },
+      ];
+      const now = 1_700_000_000_000;
+      this.clipboard = [
+        { id: 'demo-c1', type: 'text', text: 'npx kill-port 3000', preview: 'npx kill-port 3000', bytes: 18, at: now, pinned: true },
+        { id: 'demo-c2', type: 'text', text: 'git rebase -i HEAD~3', preview: 'git rebase -i HEAD~3', bytes: 20, at: now - 60000, pinned: false },
+        { id: 'demo-c3', type: 'text', text: 'https://github.com/Sepd0x/onyx/pull/32', preview: 'https://github.com/Sepd0x/onyx/pull/32', bytes: 38, at: now - 180000, pinned: false },
+        { id: 'demo-c4', type: 'text', text: 'const ports = await window.api.invoke(CH.portsGet)', preview: 'const ports = await window.api.invoke(CH.portsGet)', bytes: 50, at: now - 600000, pinned: false },
       ];
     }
   }
@@ -306,6 +316,27 @@ class MockApi {
       case 'snippets:save':
         localStorage.setItem('onyx-snippets', JSON.stringify(args[0]));
         return true;
+
+      case 'clipboard:get':
+        return { paused: this.clipboardPaused, items: this.clipboard };
+      case 'clipboard:copy': {
+        const id = args[0]?.id;
+        const item = this.clipboard.find((c) => c.id === id);
+        if (item) this.clipboard = [{ ...item, at: Date.now() }, ...this.clipboard.filter((c) => c.id !== id)];
+        return true;
+      }
+      case 'clipboard:togglePin':
+        this.clipboard = this.clipboard.map((c) => (c.id === args[0]?.id ? { ...c, pinned: !c.pinned } : c));
+        return true;
+      case 'clipboard:delete':
+        this.clipboard = this.clipboard.filter((c) => c.id !== args[0]?.id);
+        return true;
+      case 'clipboard:clear':
+        this.clipboard = this.clipboard.filter((c) => c.pinned);
+        return true;
+      case 'clipboard:setPaused':
+        this.clipboardPaused = !!args[0]?.paused;
+        return this.clipboardPaused;
       case 'launchers:get': {
         const lp = localStorage.getItem('onyx-launchers');
         if (lp) return JSON.parse(lp);
