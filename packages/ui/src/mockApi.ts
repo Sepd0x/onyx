@@ -339,7 +339,7 @@ class MockApi {
         
       case 'power:getBatteryHealth':
         // Mirrors parseBatteryHealth's shape (a worn Lenovo laptop, for the demo).
-        return { manufacturer: 'LENOVO', model: 'ThinkPad X1 Carbon', vendor: 'lenovo', vendorApp: 'Lenovo Vantage', canControlChargeLimit: false, designCapacity: 57000, fullCapacity: 49100, wearPct: 14, healthPct: 86, hasBattery: true };
+        return { manufacturer: 'LENOVO', model: 'ThinkPad X1 Carbon', vendor: 'lenovo', vendorApp: 'Lenovo Vantage', canControlChargeLimit: false, designCapacity: 57000, fullCapacity: 49100, chargePercent: 73, wearPct: 14, healthPct: 86, wearKnown: true, hasBattery: true };
       case 'power:get': {
         // Mirrors the real handler shape (incl. batteryState + config fields).
         const defaults = { activeProfile: 'balanced', aiEnabled: false, events: [{time: new Date().toLocaleTimeString(), type: 'INFO', msg: 'Power Manager initialized.'}], lastUserProfile: 'balanced', autoNotify: true, preserveBrightness: true };

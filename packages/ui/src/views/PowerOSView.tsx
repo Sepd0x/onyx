@@ -221,7 +221,7 @@ export default function PowerOSView() {
               <HeartPulse className="w-4 h-4 text-accent" /> Battery health
             </h3>
 
-            {battery?.hasBattery ? (
+            {battery?.hasBattery && battery?.wearKnown ? (
               <div className="flex items-center gap-4">
                 <div className="relative w-14 h-14 flex-shrink-0">
                   <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
@@ -241,6 +241,23 @@ export default function PowerOSView() {
                   {battery.designCapacity && battery.fullCapacity && (
                     <div className="text-[10px] font-mono text-muted/70">{(battery.fullCapacity / 1000).toFixed(1)} / {(battery.designCapacity / 1000).toFixed(1)} Wh</div>
                   )}
+                </div>
+              </div>
+            ) : battery?.hasBattery ? (
+              // Battery present, but this system doesn't expose design/full capacity
+              // (common on Lenovo) — show it's detected instead of "no battery".
+              <div className="flex items-center gap-4">
+                <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center">
+                  <Battery className="w-7 h-7 text-accent" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[12px] text-text2">Battery detected{typeof battery.chargePercent === 'number' ? ` · ${battery.chargePercent}% charge` : ''}</div>
+                  {(battery.manufacturer || battery.model) && (
+                    <div className="text-[10px] font-mono text-muted truncate" title={`${battery.manufacturer || ''} ${battery.model || ''}`}>
+                      {[battery.manufacturer, battery.model].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                  <div className="text-[10px] font-mono text-muted/70">Wear % unavailable — this system doesn't report design capacity.</div>
                 </div>
               </div>
             ) : (

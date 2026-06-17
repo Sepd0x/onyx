@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload } from 'lucide-react';
 import Switch from '../components/Switch';
+import KeyCapture from '../components/KeyCapture';
 import ViewHeader from '../components/ViewHeader';
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
@@ -200,6 +201,13 @@ export default function SettingsView() {
     }
   };
 
+  const DEFAULT_HOTKEY = 'CommandOrControl+Alt+D';
+  const setGlobalHotkey = async (accel: string) => {
+    const newConfig = { ...config, globalHotkey: accel };
+    setConfig(newConfig);
+    if (window.api) await window.api.invoke(CH.appSetConfig, newConfig);
+  };
+
   const setTheme = async (theme: string) => {
     const newConfig = { ...config, theme };
     setConfig(newConfig);
@@ -268,16 +276,29 @@ export default function SettingsView() {
             </div>
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
-                <h3 className="font-medium text-[13px] text-text">Enable Global Hotkey (Ctrl+Alt+D)</h3>
+                <h3 className="font-medium text-[13px] text-text">Enable Global Hotkey</h3>
                 <p className="text-[11px] text-muted mt-1 leading-relaxed">Toggle Onyx visibility from anywhere in the OS.</p>
                 {conflicts && conflicts.hotkeyRegistered === false && (config.enableGlobalHotkey ?? true) && (
                   <p className="text-[10px] text-warning mt-1.5 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3 h-3 flex-shrink-0" /> Ctrl+Alt+D is already used by another app — the shortcut is inactive.
+                    <AlertTriangle className="w-3 h-3 flex-shrink-0" /> The current combo is already used by another app — pick a different one below.
                   </p>
                 )}
               </div>
               <Switch active={config.enableGlobalHotkey ?? true} onClick={() => toggle('enableGlobalHotkey')} />
             </div>
+            {(config.enableGlobalHotkey ?? true) && (
+              <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors gap-4">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Show/hide shortcut</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">Click, then press your combo (a modifier is required). Change it if another app already uses it.</p>
+                </div>
+                <KeyCapture
+                  value={config.globalHotkey || DEFAULT_HOTKEY}
+                  onChange={setGlobalHotkey}
+                  onReset={config.globalHotkey && config.globalHotkey !== DEFAULT_HOTKEY ? () => setGlobalHotkey(DEFAULT_HOTKEY) : undefined}
+                />
+              </div>
+            )}
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
                 <h3 className="font-medium text-[13px] text-text">Enable System Notifications</h3>

@@ -343,9 +343,12 @@ module.exports = function initPowerManager() {
     try {
       const out = await runPs(
         '$cs = Get-CimInstance Win32_ComputerSystem; ' +
+        // Win32_Battery is the reliable presence signal — it returns an object on
+        // any laptop with a battery, even when the root\wmi capacity classes don't.
+        '$bat = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue | Select-Object -First 1; ' +
         '$sd = Get-CimInstance -Namespace root/wmi -ClassName BatteryStaticData -ErrorAction SilentlyContinue | Select-Object -First 1; ' +
         '$fc = Get-CimInstance -Namespace root/wmi -ClassName BatteryFullChargedCapacity -ErrorAction SilentlyContinue | Select-Object -First 1; ' +
-        'ConvertTo-Json -Compress @{ manufacturer = $cs.Manufacturer; model = $cs.Model; design = $sd.DesignedCapacity; full = $fc.FullChargedCapacity }'
+        'ConvertTo-Json -Compress @{ manufacturer = $cs.Manufacturer; model = $cs.Model; present = [bool]$bat; charge = $bat.EstimatedChargeRemaining; design = $sd.DesignedCapacity; full = $fc.FullChargedCapacity }'
       );
       return parseBatteryHealth(out);
     } catch {
