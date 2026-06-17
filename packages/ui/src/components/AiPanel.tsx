@@ -1,5 +1,6 @@
 import { useState, type ComponentType } from 'react';
 import { Sparkles, Loader2, KeyRound, RotateCw } from 'lucide-react';
+import Markdown from './Markdown';
 
 type AiResult = { text?: string; error?: string; detail?: string; usage?: { input: number; output: number } | null; cached?: boolean };
 
@@ -105,9 +106,9 @@ export default function AiPanel({
 
       {state.text && (
         <div className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
-          <div className="text-[12px] text-text/90 leading-relaxed whitespace-pre-wrap bg-background/50 border border-border rounded-lg p-4">
-            {state.text}
-            {state.loading && <span className="inline-block w-1.5 h-3.5 ml-0.5 -mb-0.5 bg-primary/70 animate-pulse" aria-hidden />}
+          <div className="bg-background/50 border border-border rounded-lg p-4">
+            <Markdown source={state.text || ''} />
+            {state.loading && <span className="inline-block w-1.5 h-3.5 mt-0.5 bg-primary/70 animate-pulse" aria-hidden />}
           </div>
           {!state.loading && (
             <div className="mt-2 flex items-center justify-between text-[9px] font-mono text-muted/70">
