@@ -177,8 +177,12 @@ export default function SettingsView() {
     setUpdateStatus('Checking for updates…');
     const res = await window.api?.invoke(CH.appCheckForUpdates);
     if (res?.state === 'available') {
-      // The update-available event sets the phase + Download button; keep the message.
-      setUpdateStatus(res.message);
+      // Drive the Download button straight from the result. The update-available event
+      // doesn't re-fire when electron-updater returns a cached check (e.g. the startup
+      // check already ran), so relying on it left the button hidden even though an
+      // update was found — "available, but no way to update".
+      setUpdatePhase('available');
+      setUpdateStatus(res.message || `Update ${res.version} available.`);
       return;
     }
     setUpdateStatus(res?.message ?? 'Update check unavailable right now.');
