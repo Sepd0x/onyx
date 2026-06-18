@@ -33,6 +33,13 @@ All notable changes to Onyx are documented here. The format follows
   command palette (re-enable any of them later). The same tool catalog — cards with
   an icon, description and an "Official · by Onyx" credit — now powers Settings →
   Tools, ready for community-contributed tools to be credited the same way.
+- **Plugins — signed & curated** (#28) — the foundation of an extension system. Onyx
+  loads only plugins **signed with the Onyx key**; an unsigned or tampered bundle is
+  rejected before any of its code runs (verification fails closed). Each plugin
+  declares the capabilities it needs from a closed catalog, is limited to exactly
+  those, and is credited to its author. A new **Extensions** view lists what's
+  installed, with enable/disable and uninstall. Plugins are distributed from a curated
+  registry ([`Sepd0x/onyx-plugins`](https://github.com/Sepd0x/onyx-plugins)).
 
 ### Changed
 - **Settings are organised into categories** — General, Appearance, Surfaces, Tools,
