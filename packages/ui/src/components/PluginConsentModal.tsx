@@ -6,11 +6,13 @@ import { describePermission, RISK_CLASS, type PermRisk } from '../lib/pluginPerm
 
 // Install-time permission consent — the gate between a verified bundle and it running. By
 // the time this opens, the main process has already signature-checked the bundle (an
-// unsigned/tampered one never gets here), so the trust story is "verified · and here is
-// exactly what it can touch". Each requested capability has its own toggle (all on by
-// default, so one tap still grants the lot); the user can withhold any of them, and only
-// the ones left on are sent as `granted` — the backend then narrows to that subset and the
-// plugin's host exposes nothing more.
+// unsigned/tampered one never gets here). The REAL trust boundary is that signature: Onyx
+// only signs plugins it has reviewed. The capability toggles below are a transparency +
+// least-privilege layer over the host API (declared → granted), not a hard sandbox — a
+// signed plugin still runs in-process. So the copy here promises "reviewed & signed +
+// here's what it declares", never "it can only ever touch this". All toggles default on
+// (one tap grants the lot); withheld ones are dropped from `granted` and the host won't
+// expose them.
 
 export interface PluginPreview {
   id: string;
@@ -98,10 +100,10 @@ export default function PluginConsentModal({
           </div>
         </div>
 
-        {/* Verified trust line */}
+        {/* Verified trust line — the signature/review is the real guarantee. */}
         <div className="flex items-center gap-2 mt-4 text-[11px] text-success">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-          <span>Signature verified — signed by the Onyx key.</span>
+          <span>Reviewed &amp; signed by Onyx — signature verified on this device.</span>
         </div>
 
         {/* The consent itself — one toggle per requested capability */}
@@ -114,8 +116,8 @@ export default function PluginConsentModal({
           </div>
           {perms.length === 0 ? (
             <p className="text-[12px] text-muted mt-2 leading-relaxed">
-              Runs with <span className="text-text">no special capabilities</span> — it can't read your data,
-              network, or files.
+              Declares <span className="text-text">no special capabilities</span> — it asks for nothing
+              beyond running.
             </p>
           ) : (
             <ul className="mt-2.5 space-y-1">
