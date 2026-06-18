@@ -60,6 +60,10 @@ All notable changes to Onyx are documented here. The format follows
   auto-start on at every launch, so turning the setting off now sticks.
 - **Clean uninstall** — the uninstaller removes the auto-start registry entry and offers
   to delete your settings, snippets and installed plugins (kept by default for reinstalls).
+- **Settings survive updates cleanly** — the config file is now schema-versioned and
+  migrated on launch: a file written by an older version gets any new options filled in
+  with safe defaults (and your existing choices are never changed), so an update can't
+  leave you with half-applied or missing settings.
 
 ## [1.2.0] - 2026-06-18
 
