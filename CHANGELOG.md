@@ -11,6 +11,8 @@ All notable changes to Onyx are documented here. The format follows
   your windows with live CPU / RAM / listening-ports / clock tiles. Toggle it from
   the tray menu or Settings → Desktop overlay; pick which tiles show, set its
   opacity, and its position is remembered. Its own frameless, transparent window.
+  **Click to expand** into a richer panel — recent clipboard with one-click re-copy
+  plus a quick "Open Onyx" action — and collapse back to the compact strip.
 - **App blocker in Focus Mode** (#9) — list distraction apps (e.g. `Discord.exe`,
   `Steam.exe`) and, while the blocker is active, Onyx force-closes them in the
   background so you stay in flow, with a per-session "closed" count. Opt-in and

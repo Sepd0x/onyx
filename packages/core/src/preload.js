@@ -8,7 +8,7 @@ const INVOKE_CHANNELS = [
   'ports:get', 'ports:kill',
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
   'blocker:get', 'blocker:set', 'blocker:toggle',
-  'overlay:get', 'overlay:set', 'overlay:toggle',
+  'overlay:get', 'overlay:set', 'overlay:toggle', 'overlay:resize',
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
   'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot', 'git:linkRepo', 'git:unlinkRepo', 'git:aiRepoAction',
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',

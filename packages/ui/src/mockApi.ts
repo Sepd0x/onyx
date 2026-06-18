@@ -205,6 +205,9 @@ class MockApi {
       case 'overlay:toggle':
         this.overlay.enabled = typeof args[0] === 'boolean' ? args[0] : !this.overlay.enabled;
         return this.overlay.enabled;
+      case 'overlay:resize':
+        // No real window in the browser preview — accept and no-op.
+        return true;
         
       case 'git:getRepos': return this.demo ? [DEMO_UNIFIED, ...this.repos] : this.repos;
       case 'git:linkRepo':

@@ -1,4 +1,4 @@
-const { app, ipcMain, BrowserWindow } = require('electron');
+const { app, ipcMain, BrowserWindow, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -93,6 +93,27 @@ module.exports = function initOverlay(opts) {
     save();
     apply();
     return config.enabled;
+  });
+
+  // Renderer-driven resize for the compact ⇄ expanded transition. Anchors the
+  // top-left corner and clamps the new rectangle into the current display's work
+  // area, so expanding near a screen edge shifts the widget back on-screen instead
+  // of spilling off it. Persists the new bounds so the size sticks.
+  ipcMain.handle('overlay:resize', (_, size) => {
+    if (!overlay || overlay.isDestroyed()) return false;
+    const w = Math.max(180, Math.min(540, Math.round(Number(size && size.width)) || 232));
+    const h = Math.max(120, Math.min(680, Math.round(Number(size && size.height)) || 152));
+    const b = overlay.getBounds();
+    let x = b.x, y = b.y;
+    try {
+      const wa = screen.getDisplayMatching(b).workArea;
+      if (x + w > wa.x + wa.width) x = Math.max(wa.x, wa.x + wa.width - w);
+      if (y + h > wa.y + wa.height) y = Math.max(wa.y, wa.y + wa.height - h);
+    } catch {}
+    overlay.setBounds({ x, y, width: w, height: h });
+    config.bounds = overlay.getBounds();
+    save();
+    return true;
   });
 
   return {

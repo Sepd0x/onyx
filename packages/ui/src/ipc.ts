@@ -22,6 +22,7 @@ export const CH = {
   overlayGet: 'overlay:get',
   overlaySet: 'overlay:set',
   overlayToggle: 'overlay:toggle',
+  overlayResize: 'overlay:resize',
   // Git
   gitGetRepos: 'git:getRepos',
   gitAddRepo: 'git:addRepo',

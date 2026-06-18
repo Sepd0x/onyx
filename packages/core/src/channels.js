@@ -14,7 +14,7 @@ const INVOKE_CHANNELS = [
   // Focus-Mode app blocker (closes user-listed distraction apps while active)
   'blocker:get', 'blocker:set', 'blocker:toggle',
   // Desktop overlay (always-on-top widget)
-  'overlay:get', 'overlay:set', 'overlay:toggle',
+  'overlay:get', 'overlay:set', 'overlay:toggle', 'overlay:resize',
   // Git
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
   'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot', 'git:linkRepo', 'git:unlinkRepo', 'git:aiRepoAction',
