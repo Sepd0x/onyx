@@ -47,6 +47,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "runAfterFinish": true,
+      "include": "packaging/installer.nsh",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "portable": {

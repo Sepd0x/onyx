@@ -434,12 +434,11 @@ if (!gotTheLock) {
     
     applyGlobalHotkey();
 
-    // Enable Auto Start on Boot
+    // Auto-start on boot is owned by app-settings.js, synced from the user's
+    // "Launch on OS Startup" toggle. We deliberately DON'T force it here — doing so
+    // overrode that setting to always-on in packaged builds, so it could never be
+    // turned off. The toggle is now the single source of truth.
     if (app.isPackaged) {
-      app.setLoginItemSettings({
-        openAtLogin: true,
-        path: app.getPath('exe')
-      });
       // Check for updates on launch (download is user-initiated; autoDownload=false).
       autoUpdater.checkForUpdates().catch((e) => logger.error('Startup update check failed:', e));
     }

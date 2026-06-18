@@ -1,4 +1,4 @@
-param([int]$Seconds = 5, [int]$DeadZone = 4, [string]$StopFile = "$env:TEMP\cursor_stop.txt")
+param([int]$Seconds = 5, [int]$DeadZone = 4, [string]$StopFile = "$env:TEMP\cursor_stop.txt", [int]$ParentPid = 0)
 
 Add-Type -TypeDefinition @"
 using System;
@@ -23,29 +23,52 @@ public class CursorMgr {
 }
 "@ -ErrorAction Stop
 
+# Defensive restore on every start: if a previous run was hard-killed mid-hide, the
+# system cursor could still be blank. Reload it before we begin our own hide/show cycle.
+[CursorMgr]::Show()
+
 $hidden = $false
 $lastPos = [CursorMgr]::GetPos()
 $lastMove = [DateTime]::Now
 
 if (Test-Path $StopFile) { Remove-Item $StopFile -Force }
 
-while (-not (Test-Path $StopFile)) {
-    Start-Sleep -Milliseconds 100
-    $pos = [CursorMgr]::GetPos()
-    $dx = [Math]::Abs($pos.X - $lastPos.X)
-    $dy = [Math]::Abs($pos.Y - $lastPos.Y)
-
-    if ($dx -gt $DeadZone -or $dy -gt $DeadZone) {
-        $lastPos = $pos
-        $lastMove = [DateTime]::Now
-        if ($hidden) { [CursorMgr]::Show(); $hidden = $false }
-    }
-
-    if (-not $hidden -and ([DateTime]::Now - $lastMove).TotalSeconds -ge $Seconds) {
-        [CursorMgr]::Hide()
-        $hidden = $true
-    }
+# The watchdog: true unless we were handed a parent PID and that process is now gone. If
+# Onyx crashes or is killed, we notice within one check and restore the cursor — instead
+# of leaving the whole system without a pointer until the next reboot.
+function Test-ParentAlive {
+    if ($ParentPid -le 0) { return $true }
+    try { Get-Process -Id $ParentPid -ErrorAction Stop | Out-Null; return $true } catch { return $false }
 }
 
-[CursorMgr]::Show()
-Remove-Item $StopFile -Force
+try {
+    $tick = 0
+    while (-not (Test-Path $StopFile)) {
+        Start-Sleep -Milliseconds 100
+        # Check the parent ~every 500 ms (cheaper than every tick) — fast enough that a
+        # blank cursor never outlives a crash by more than half a second.
+        if ((++$tick % 5) -eq 0 -and -not (Test-ParentAlive)) { break }
+
+        $pos = [CursorMgr]::GetPos()
+        $dx = [Math]::Abs($pos.X - $lastPos.X)
+        $dy = [Math]::Abs($pos.Y - $lastPos.Y)
+
+        if ($dx -gt $DeadZone -or $dy -gt $DeadZone) {
+            $lastPos = $pos
+            $lastMove = [DateTime]::Now
+            if ($hidden) { [CursorMgr]::Show(); $hidden = $false }
+        }
+
+        if (-not $hidden -and ([DateTime]::Now - $lastMove).TotalSeconds -ge $Seconds) {
+            [CursorMgr]::Hide()
+            $hidden = $true
+        }
+    }
+}
+finally {
+    # However we leave the loop — stop file, parent gone, or a catchable termination —
+    # always hand the user back a visible cursor. (A hard TerminateProcess can't run this;
+    # the parent-PID watchdog above is what covers that case.)
+    [CursorMgr]::Show()
+    if (Test-Path $StopFile) { Remove-Item $StopFile -Force }
+}
