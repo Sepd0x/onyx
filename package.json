@@ -1,6 +1,6 @@
 {
   "name": "onyx",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "A centralized power toolkit and system guard for developers",
   "author": "Sepd0x",
   "repository": {
@@ -58,7 +58,8 @@
       "!packages/**/*.test.js",
       "packages/ui/dist/**/*",
       "packages/tools/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "!assets/screenshots/**"
     ]
   },
   "devDependencies": {

@@ -22,11 +22,13 @@ const H = 820;
 const VIEWS = [
   ['Session Guard', 'session-guard'],
   ['Inspector', 'inspector'],
+  ['Focus Mode', 'focus-mode'],
   ['Git Pulse', 'git-pulse'],
   ['Port Mapper', 'port-mapper'],
   ['Dev Cleanser', 'dev-cleanser'],
   ['Launchers', 'launchers'],
   ['Snippets', 'snippets'],
+  ['Clipboard', 'clipboard'],
   ['OS Power Manager', 'power'],
   ['Settings', 'settings'],
 ];

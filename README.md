@@ -44,25 +44,28 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
 | **Session Guard** | Hold a system wake-lock tied to a build/PID so the OS won't sleep mid-task, then auto-release and notify when it exits. |
 | **Git Pulse** | Track local & GitHub repos at a glance: branch, dirty files, ahead/behind, risk flags, 14-day activity. A local repo and its GitHub twin auto-merge into one card (or link/unlink by hand); optional per-repo AI actions — commit message, explain the diff, draft a PR description, summarise history. |
 | **Dev Cleanser** | Scan common dev folders for heavy `node_modules` and reclaim the space, with a guarded, confirmed delete. |
-| **OS Power Manager** | Switch Windows power modes (optionally auto, on AC/battery) without touching brightness. |
-| **Focus Mode** | Cursor auto-hide and distraction-free window rules. |
+| **OS Power Manager** | Switch Windows power modes (optionally auto, on AC/battery) without touching brightness; read-only battery-health with per-vendor charge-limit guidance. |
+| **Focus Mode** | A **Pomodoro timer** (focus/break with a progress ring, editable durations, session count), plus cursor auto-hide and distraction-free window rules. |
 | **Launchers** | Start a whole local stack (frontend, API, database…) as one named profile. |
 | **Snippets** | Keep the shell one-liners you keep retyping, one click to copy. |
+| **Clipboard** | Recent copies (text & images) you can search, pin and re-copy — in-memory only, never written to disk. |
 | **Inspector** | A unified, local read-out of repo sync state and detected dev processes, with an optional one-glance **daily AI briefing** (repos + processes + power + logs) and focused insights. |
 | **System Tray** | A customisable mini-dashboard (CPU, RAM, ports, guards) next to the clock. |
 
-**Optional AI** — bring your own key for **Anthropic (Claude)**, **OpenAI (ChatGPT)** or **Google (Gemini)**. Keys are encrypted at rest in the OS keychain and never leave your machine except for the call you trigger; longer answers stream in as they're written.
+**Optional AI** — bring your own key for **Anthropic (Claude)**, **OpenAI (ChatGPT)** or **Google (Gemini)**. Keys are encrypted at rest in the OS keychain and never leave your machine except for the call you trigger; longer answers stream in as they're written and render as formatted Markdown.
+
+**Pick your tools** — enable only the modules you use; the rest stay out of the sidebar and command palette.
 
 **First-run setup** — a short guided onboarding picks your theme, accent and (optional) AI provider on first launch.
 
-**Command palette** — press `Ctrl`/`Cmd`+`K` from anywhere to jump to any view or switch theme without the mouse.
+**Command palette** — press `Ctrl`/`Cmd`+`K` from anywhere to jump to any view or switch theme without the mouse, plus a **rebindable** system-wide show/hide shortcut.
 
 **Backup & restore** — export your preferences, snippets and launcher profiles to a JSON file and restore them on another machine (secrets are never included).
 
 **Themes** — Midnight, Pure OLED and Dracula, plus a pickable accent colour.
 
 > [!NOTE]
-> **Status — approaching the first tagged release.** Core modules work end-to-end; see [`CHANGELOG.md`](CHANGELOG.md) for what's landed.
+> **Status — v1.2.0 released.** All modules work end-to-end; the auto-updater keeps installed copies current. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed and the [latest release](https://github.com/Sepd0x/onyx/releases/latest) for the installer.
 
 ## Screenshots
 
@@ -92,6 +95,10 @@ It runs entirely on your machine. There's no account and no telemetry; the optio
   <tr>
     <td width="50%"><img src="assets/screenshots/launchers.png" alt="Launchers — one-click local dev stacks"><br><sub><b>Launchers</b> — start a whole local stack (frontend, API, database) as one profile.</sub></td>
     <td width="50%"><img src="assets/screenshots/dev-cleanser.png" alt="Dev Cleanser — reclaim disk from heavy node_modules"><br><sub><b>Dev Cleanser</b> — find heavy <code>node_modules</code> and reclaim the space, guarded.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/focus-mode.png" alt="Focus Mode — Pomodoro timer plus cursor auto-hide"><br><sub><b>Focus Mode</b> — a Pomodoro timer (focus/break) on top of cursor auto-hide and DND rules.</sub></td>
+    <td width="50%"><img src="assets/screenshots/clipboard.png" alt="Clipboard history — recent copies you can search, pin and re-copy"><br><sub><b>Clipboard</b> — recent copies you can search, pin and re-copy; in-memory only.</sub></td>
   </tr>
 </table>
 

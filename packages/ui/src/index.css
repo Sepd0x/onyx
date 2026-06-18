@@ -172,6 +172,13 @@
   outline-offset: 2px;
 }
 
+/* The command palette IS the focus context — its always-focused search field
+   shouldn't also carry the global 2px outline (it read as a harsh purple box
+   with square corners). Higher specificity + !important beats the rule above. */
+.cmdk-field:focus-visible {
+  outline: none !important;
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background: transparent;

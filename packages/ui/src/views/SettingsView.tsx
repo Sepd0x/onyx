@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload } from 'lucide-react';
 import Switch from '../components/Switch';
+import KeyCapture from '../components/KeyCapture';
 import ViewHeader from '../components/ViewHeader';
+import { TOOLS } from '../lib/tools';
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import { ACCENTS, applyAccent } from '../lib/accents';
@@ -200,6 +202,24 @@ export default function SettingsView() {
     }
   };
 
+  const DEFAULT_HOTKEY = 'CommandOrControl+Alt+D';
+  const setGlobalHotkey = async (accel: string) => {
+    const newConfig = { ...config, globalHotkey: accel };
+    setConfig(newConfig);
+    if (window.api) await window.api.invoke(CH.appSetConfig, newConfig);
+  };
+
+  // Tool enable/disable (#28 MVP): a disabled tool is hidden from the sidebar +
+  // command palette. Stored as an exclusion list so new tools default to enabled.
+  const toolEnabled = (id: string) => !(Array.isArray(config.disabledTools) ? config.disabledTools : []).includes(id);
+  const toggleTool = async (id: string) => {
+    const disabled: string[] = Array.isArray(config.disabledTools) ? config.disabledTools : [];
+    const next = disabled.includes(id) ? disabled.filter((d) => d !== id) : [...disabled, id];
+    const newConfig = { ...config, disabledTools: next };
+    setConfig(newConfig);
+    if (window.api) await window.api.invoke(CH.appSetConfig, newConfig);
+  };
+
   const setTheme = async (theme: string) => {
     const newConfig = { ...config, theme };
     setConfig(newConfig);
@@ -268,16 +288,29 @@ export default function SettingsView() {
             </div>
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
-                <h3 className="font-medium text-[13px] text-text">Enable Global Hotkey (Ctrl+Alt+D)</h3>
+                <h3 className="font-medium text-[13px] text-text">Enable Global Hotkey</h3>
                 <p className="text-[11px] text-muted mt-1 leading-relaxed">Toggle Onyx visibility from anywhere in the OS.</p>
                 {conflicts && conflicts.hotkeyRegistered === false && (config.enableGlobalHotkey ?? true) && (
                   <p className="text-[10px] text-warning mt-1.5 flex items-center gap-1.5">
-                    <AlertTriangle className="w-3 h-3 flex-shrink-0" /> Ctrl+Alt+D is already used by another app — the shortcut is inactive.
+                    <AlertTriangle className="w-3 h-3 flex-shrink-0" /> The current combo is already used by another app — pick a different one below.
                   </p>
                 )}
               </div>
               <Switch active={config.enableGlobalHotkey ?? true} onClick={() => toggle('enableGlobalHotkey')} />
             </div>
+            {(config.enableGlobalHotkey ?? true) && (
+              <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors gap-4">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Show/hide shortcut</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">Click, then press your combo (a modifier is required). Change it if another app already uses it.</p>
+                </div>
+                <KeyCapture
+                  value={config.globalHotkey || DEFAULT_HOTKEY}
+                  onChange={setGlobalHotkey}
+                  onReset={config.globalHotkey && config.globalHotkey !== DEFAULT_HOTKEY ? () => setGlobalHotkey(DEFAULT_HOTKEY) : undefined}
+                />
+              </div>
+            )}
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
               <div>
                 <h3 className="font-medium text-[13px] text-text">Enable System Notifications</h3>
@@ -342,6 +375,28 @@ export default function SettingsView() {
             </div>
            </div>
            <p className="text-[10px] text-muted/70 -mt-1">Tray layout updates the next time you open the popup.</p>
+        </div>
+
+        <div className="flex flex-col gap-4">
+           <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tools <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Pick what you use</span></h3>
+           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            {TOOLS.map((t, i) => {
+              const Icon = t.icon;
+              return (
+                <div key={t.id} className={`px-6 py-4 flex items-center justify-between hover:bg-surface2 transition-colors ${i < TOOLS.length - 1 ? 'border-b border-border/50' : ''}`}>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="p-1.5 rounded-lg bg-surface2 border border-border text-accent shrink-0 mt-0.5"><Icon className="w-4 h-4" /></span>
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-[13px] text-text">{t.label}</h3>
+                      <p className="text-[11px] text-muted mt-0.5 leading-relaxed">{t.description}{t.requiresAI ? ' Also needs the AI assistant on.' : ''}</p>
+                    </div>
+                  </div>
+                  <Switch active={toolEnabled(t.id)} onClick={() => toggleTool(t.id)} />
+                </div>
+              );
+            })}
+           </div>
+           <p className="text-[10px] text-muted/70 -mt-1">Disabled tools are hidden from the sidebar and command palette — turn them back on any time.</p>
         </div>
 
         <div className="flex flex-col gap-4">

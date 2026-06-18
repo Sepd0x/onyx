@@ -42,8 +42,12 @@ function computeWearPct(design, full) {
 }
 
 // Build the battery-health payload from the JSON the PowerShell probe emits:
-//   { manufacturer, model, design, full }
-// design/full are mWh from root\wmi BatteryStaticData / BatteryFullChargedCapacity.
+//   { manufacturer, model, present, charge, design, full }
+// `present`/`charge` come from Win32_Battery (reliable presence signal);
+// design/full are mWh from root\wmi BatteryStaticData / BatteryFullChargedCapacity,
+// which many laptops (notably Lenovo) leave EMPTY even with a battery present.
+// hasBattery must therefore reflect PRESENCE, not whether wear could be computed —
+// otherwise a perfectly real battery reads as "no battery detected".
 function parseBatteryHealth(jsonStr) {
   let d = {};
   if (typeof jsonStr === 'string' && jsonStr.trim()) {
@@ -51,6 +55,9 @@ function parseBatteryHealth(jsonStr) {
   }
   const vendor = normalizeVendor(d.manufacturer);
   const wearPct = computeWearPct(d.design, d.full);
+  const present = d.present === true || d.present === 1 || d.present === 'true';
+  const chargeN = Number(d.charge);
+  const chargePercent = Number.isFinite(chargeN) && chargeN >= 0 && chargeN <= 100 ? Math.round(chargeN) : null;
   return {
     manufacturer: d.manufacturer ? String(d.manufacturer).trim() : null,
     model: d.model ? String(d.model).trim() : null,
@@ -59,9 +66,12 @@ function parseBatteryHealth(jsonStr) {
     canControlChargeLimit: canControlChargeLimit(vendor),
     designCapacity: Number.isFinite(Number(d.design)) && Number(d.design) > 0 ? Number(d.design) : null,
     fullCapacity: Number.isFinite(Number(d.full)) && Number(d.full) > 0 ? Number(d.full) : null,
+    chargePercent,
     wearPct,
     healthPct: wearPct == null ? null : 100 - wearPct,
-    hasBattery: wearPct != null,
+    // Wear figures need both capacities; presence does not.
+    wearKnown: wearPct != null,
+    hasBattery: present || wearPct != null,
   };
 }
 

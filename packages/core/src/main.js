@@ -11,6 +11,7 @@ const initGitPulse = require('../../tools/gitpulse/index');
 const initDevWatcher = require('../../tools/dev-watcher/index');
 const initCleaner = require('../../tools/cleaner/index');
 const initSnippets = require('../../tools/snippets/index');
+const initClipboard = require('../../tools/clipboard/index');
 const initLaunchers = require('../../tools/launchers/index');
 const initPowerManager = require('../../tools/power-manager/index');
 const initAI = require('../../tools/ai/index');
@@ -185,6 +186,17 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '../../ui/dist/index.html'));
   }
 
+  // If the renderer process itself dies (OOM/GPU/native — NOT a JS error the
+  // renderer ErrorBoundary can catch), the window just vanishes. Log the reason so
+  // a "the app crashed" report (e.g. issue #30) leaves a trace, and reload once so
+  // the user isn't left staring at a dead window.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    try { logger.error('Renderer process gone:', JSON.stringify(details)); } catch {}
+    try { if (details && details.reason !== 'clean-exit' && win && !win.isDestroyed()) win.reload(); } catch {}
+  });
+  win.webContents.on('unresponsive', () => { try { logger.warn('Renderer became unresponsive'); } catch {} });
+  win.webContents.on('responsive', () => { try { logger.info('Renderer responsive again'); } catch {} });
+
   ipcMain.handle('window:minimize', () => win.minimize());
   ipcMain.handle('window:close', () => win.hide());
   ipcMain.handle('window:openExternal', (_, url) => {
@@ -245,6 +257,19 @@ function createWindow() {
     if (appConfig.enableNotifications !== false) {
       new Notification({ title: data.title, body: data.body }).show();
     }
+  });
+
+  // Renderer-side diagnostics breadcrumb: lets the UI persist what it was doing
+  // (onboarding step reached, a render-boundary catch) into today's main log, so a
+  // user's crash report is reproducible from logs/onyx-<date>.log instead of vague.
+  // Best-effort and bounded; never trusts the renderer to pick a real log level.
+  ipcMain.handle('app:log', (_, data) => {
+    try {
+      const level = ['info', 'warn', 'error', 'debug'].includes(data && data.level) ? data.level : 'info';
+      const message = '[client] ' + String((data && data.message) || '').slice(0, 500);
+      logger[level](message, (data && data.meta) || {});
+    } catch {}
+    return true;
   });
 
   // Don't auto-download: the user explicitly chooses to download (no silent
@@ -356,6 +381,7 @@ if (!gotTheLock) {
     initDevWatcher();
     initCleaner();
     initSnippets();
+    initClipboard();
     initLaunchers();
     initPowerManager();
     initAI();
@@ -372,14 +398,7 @@ if (!gotTheLock) {
       setTimeout(() => { gitPulse.runAutoScan().catch((err) => logger.error('Auto-scan failed:', err)); }, 5000);
     }
     
-    if (appConfig.enableGlobalHotkey !== false) {
-      globalShortcut.register('CommandOrControl+Alt+D', () => {
-        if (win) {
-          if (win.isVisible()) win.hide();
-          else showWindow();
-        }
-      });
-    }
+    applyGlobalHotkey();
 
     // Enable Auto Start on Boot
     if (app.isPackaged) {
@@ -395,19 +414,31 @@ if (!gotTheLock) {
   });
 }
 
+// The system-wide show/hide hotkey is user-configurable (Settings → Shortcuts).
+// Default matches what shipped before this became editable. Registration can fail
+// if the user's combo is already taken by another app — we log it and fall back to
+// the default so the feature never silently dies.
+const DEFAULT_GLOBAL_HOTKEY = 'CommandOrControl+Alt+D';
+function applyGlobalHotkey() {
+  globalShortcut.unregisterAll();
+  if (appConfig.enableGlobalHotkey === false) return;
+  const toggle = () => { if (win) { if (win.isVisible()) win.hide(); else showWindow(); } };
+  const accel = (typeof appConfig.globalHotkey === 'string' && appConfig.globalHotkey.trim()) || DEFAULT_GLOBAL_HOTKEY;
+  try {
+    if (!globalShortcut.register(accel, toggle)) throw new Error('combo already in use');
+  } catch (e) {
+    logger.error(`Global hotkey "${accel}" failed to register:`, (e && e.message) || e);
+    if (accel !== DEFAULT_GLOBAL_HOTKEY) {
+      try { globalShortcut.register(DEFAULT_GLOBAL_HOTKEY, toggle); } catch {}
+    }
+  }
+}
+
 app.on('config:changed', (config) => {
   appConfig = config;
 
-  // Hotkeys
-  globalShortcut.unregisterAll();
-  if (config.enableGlobalHotkey !== false) {
-    globalShortcut.register('CommandOrControl+Alt+D', () => {
-      if (win) {
-        if (win.isVisible()) win.hide();
-        else showWindow();
-      }
-    });
-  }
+  // Hotkeys — re-applied from the (possibly edited) config.
+  applyGlobalHotkey();
 
   // Tray
   if (config.enableTrayDashboard === false && tray) {

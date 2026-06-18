@@ -69,10 +69,10 @@ const DEMO_LAUNCHERS = [
 
 // Canned AI outputs for the browser mock, shared by the one-shot and streaming paths.
 const AI_DEMO: Record<string, string> = {
-  'ai:briefing': 'Repos:\n• onyx — a .env file is tracked (security risk): add it to .gitignore now.\n• onyx — 4 uncommitted files + 2 unpushed commits: commit & push before they grow stale.\n• Focus-Tools — 2 commits behind origin: pull to avoid a divergent history.\nProcesses & power:\n• 2 dev servers running (claude.exe, code.exe) — guard them so the machine stays awake.\n• On AC in Balanced mode — sensible for this workload.\nLog:\n• A few startup "Invalid IPC channel" warnings; harmless but worth ordering. Otherwise healthy.',
-  'ai:insights': '• onyx-core: 4 uncommitted files and 2 unpushed commits — commit & push before they grow stale.\n• onyx-core: a .env file is tracked as a risk — add it to .gitignore.\n• Focus-Tools: 2 commits behind origin — pull to avoid a divergent history.\n• 2 dev servers (claude.exe, code.exe) are running — guard them in Session Guard so the machine stays awake.',
-  'ai:explainPower': 'You are on AC power in Balanced mode. The auto-planner switched to Battery Saver twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',
-  'ai:analyzeLogs': '• Repeated "Invalid IPC channel" warnings around startup — likely a renderer calling a channel before the handler registered; harmless but worth ordering. \n• One unhandled promise rejection in the updater check — wrap the network call. \n• Otherwise the logs look healthy.',
+  'ai:briefing': '**Repos**\n- **onyx** — a `.env` file is tracked (security risk): add it to `.gitignore` now.\n- **onyx** — 4 uncommitted files + 2 unpushed commits: commit & push before they grow stale.\n- **Focus-Tools** — 2 commits behind `origin`: pull to avoid a divergent history.\n\n**Processes & power**\n- 2 dev servers running (`claude.exe`, `code.exe`) — guard them so the machine stays awake.\n- On AC in Balanced mode — sensible for this workload.\n\n**Log**\n- A few startup `Invalid IPC channel` warnings; harmless but worth ordering. Otherwise healthy.',
+  'ai:insights': '- **onyx-core** — 4 uncommitted files and 2 unpushed commits: commit & push before they grow stale.\n- **onyx-core** — a `.env` file is tracked as a risk: add it to `.gitignore`.\n- **Focus-Tools** — 2 commits behind `origin`: pull to avoid a divergent history.\n- 2 dev servers (`claude.exe`, `code.exe`) are running — guard them in Session Guard so the machine stays awake.',
+  'ai:explainPower': 'You are on **AC power** in Balanced mode. The auto-planner switched to **Efficiency** twice earlier when unplugged, then restored Balanced on reconnect — exactly the intended conservative behaviour. Nothing here needs changing for a laptop dev workload.',
+  'ai:analyzeLogs': '- Repeated `Invalid IPC channel` warnings around startup — likely a renderer calling a channel before the handler registered; harmless but worth ordering.\n- One **unhandled promise rejection** in the updater check — wrap the network call.\n- Otherwise the logs look healthy.',
 };
 const AI_FEATURE_CHANNEL: Record<string, string> = {
   briefing: 'ai:briefing', insights: 'ai:insights', power: 'ai:explainPower', logs: 'ai:analyzeLogs',
@@ -88,6 +88,9 @@ class MockApi {
   private demo = false;
   private listeners: Record<string, Function[]> = {};
   private watchedProcesses: any[] = [];
+  // Clipboard history (in-memory in the real backend too — never persisted).
+  private clipboard: any[] = [];
+  private clipboardPaused = false;
   private cleanerDirs: { path: string; name: string; kind: string; bytes: number }[] = [
     { path: '~/Projects/old-react-app/node_modules', name: 'node_modules', kind: 'Node', bytes: 340 * 1024 * 1024 },
     { path: '~/Documents/GitHub/test-repo/node_modules', name: 'node_modules', kind: 'Node', bytes: 512 * 1024 * 1024 },
@@ -122,6 +125,13 @@ class MockApi {
         { id: 'demo-g1', type: 'pid', target: '18420', name: 'vite build · onyx-ui' },
         { id: 'demo-g2', type: 'pid', target: '22107', name: 'next dev · storefront' },
       ];
+      const now = Date.now();
+      this.clipboard = [
+        { id: 'demo-c1', type: 'text', text: 'npx kill-port 3000', preview: 'npx kill-port 3000', bytes: 18, at: now - 45000, pinned: true },
+        { id: 'demo-c2', type: 'text', text: 'git rebase -i HEAD~3', preview: 'git rebase -i HEAD~3', bytes: 20, at: now - 240000, pinned: false },
+        { id: 'demo-c3', type: 'text', text: 'https://github.com/Sepd0x/onyx', preview: 'https://github.com/Sepd0x/onyx', bytes: 30, at: now - 1500000, pinned: false },
+        { id: 'demo-c4', type: 'text', text: 'const ports = await window.api.invoke(CH.portsGet)', preview: 'const ports = await window.api.invoke(CH.portsGet)', bytes: 50, at: now - 5400000, pinned: false },
+      ];
     }
   }
 
@@ -148,9 +158,12 @@ class MockApi {
 
     switch (channel) {
       case 'app:getConfig': return this.config;
-      case 'app:setConfig': 
+      case 'app:setConfig':
         this.config = { ...this.config, ...args[0] };
         this.save();
+        // Mirror main: broadcast config:changed so live-config consumers (theme,
+        // accent, enabled tools) update immediately instead of waiting for a poll.
+        this.emit('config:changed', this.config);
         return this.config;
         
       case 'cursor:getConfig': return this.cursorConfig;
@@ -306,6 +319,27 @@ class MockApi {
       case 'snippets:save':
         localStorage.setItem('onyx-snippets', JSON.stringify(args[0]));
         return true;
+
+      case 'clipboard:get':
+        return { paused: this.clipboardPaused, items: this.clipboard };
+      case 'clipboard:copy': {
+        const id = args[0]?.id;
+        const item = this.clipboard.find((c) => c.id === id);
+        if (item) this.clipboard = [{ ...item, at: Date.now() }, ...this.clipboard.filter((c) => c.id !== id)];
+        return true;
+      }
+      case 'clipboard:togglePin':
+        this.clipboard = this.clipboard.map((c) => (c.id === args[0]?.id ? { ...c, pinned: !c.pinned } : c));
+        return true;
+      case 'clipboard:delete':
+        this.clipboard = this.clipboard.filter((c) => c.id !== args[0]?.id);
+        return true;
+      case 'clipboard:clear':
+        this.clipboard = this.clipboard.filter((c) => c.pinned);
+        return true;
+      case 'clipboard:setPaused':
+        this.clipboardPaused = !!args[0]?.paused;
+        return this.clipboardPaused;
       case 'launchers:get': {
         const lp = localStorage.getItem('onyx-launchers');
         if (lp) return JSON.parse(lp);
@@ -339,7 +373,7 @@ class MockApi {
         
       case 'power:getBatteryHealth':
         // Mirrors parseBatteryHealth's shape (a worn Lenovo laptop, for the demo).
-        return { manufacturer: 'LENOVO', model: 'ThinkPad X1 Carbon', vendor: 'lenovo', vendorApp: 'Lenovo Vantage', canControlChargeLimit: false, designCapacity: 57000, fullCapacity: 49100, wearPct: 14, healthPct: 86, hasBattery: true };
+        return { manufacturer: 'LENOVO', model: 'ThinkPad X1 Carbon', vendor: 'lenovo', vendorApp: 'Lenovo Vantage', canControlChargeLimit: false, designCapacity: 57000, fullCapacity: 49100, chargePercent: 73, wearPct: 14, healthPct: 86, wearKnown: true, hasBattery: true };
       case 'power:get': {
         // Mirrors the real handler shape (incl. batteryState + config fields).
         const defaults = { activeProfile: 'balanced', aiEnabled: false, events: [{time: new Date().toLocaleTimeString(), type: 'INFO', msg: 'Power Manager initialized.'}], lastUserProfile: 'balanced', autoNotify: true, preserveBrightness: true };
@@ -374,12 +408,31 @@ class MockApi {
         return pc;
       }
         
-      case 'ai:getStatus':
+      case 'ai:getStatus': {
+        // Mirror the real backend shape (providers[] + active provider) so the
+        // onboarding AI step and Settings render the same way in the browser mock.
+        const configured = this.demo || localStorage.getItem('onyx-ai-configured') === '1';
+        const provider = localStorage.getItem('onyx-ai-provider') || 'anthropic';
+        const providerMeta = [
+          { key: 'anthropic', label: 'Anthropic (Claude)', placeholder: 'sk-ant-...', keyUrl: 'console.anthropic.com', defaultModel: 'claude-haiku-4-5', presets: ['claude-haiku-4-5', 'claude-sonnet-4-6'] },
+          { key: 'openai', label: 'OpenAI (ChatGPT)', placeholder: 'sk-...', keyUrl: 'platform.openai.com/api-keys', defaultModel: 'gpt-4o-mini', presets: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o'] },
+          { key: 'google', label: 'Google (Gemini)', placeholder: 'AIza...', keyUrl: 'aistudio.google.com/app/apikey', defaultModel: 'gemini-2.5-flash', presets: ['gemini-2.5-flash', 'gemini-2.5-flash-lite'] },
+        ];
         return {
-          configured: this.demo || localStorage.getItem('onyx-ai-configured') === '1',
+          provider,
+          configured,
           encryptionAvailable: true,
           model: 'claude-haiku-4-5',
+          providers: providerMeta.map((m) => ({ ...m, configured: configured && m.key === provider, model: m.defaultModel })),
         };
+      }
+      case 'ai:setProvider':
+        localStorage.setItem('onyx-ai-provider', typeof args[0] === 'string' ? args[0] : 'anthropic');
+        return { ok: true };
+      case 'ai:setModel':
+        return { ok: true };
+      case 'ai:test':
+        return { ok: this.demo || localStorage.getItem('onyx-ai-configured') === '1', error: 'no-key' };
       case 'ai:setKey': {
         // Never store a real key in the browser mock — just track configured state.
         const has = typeof args[0] === 'string' && args[0].trim().length > 0;
@@ -409,6 +462,9 @@ class MockApi {
         await delay(22 * chunks.length + 120);
         return { text: full, usage: { input: 1200, output: 180 }, cached: false };
       }
+
+      case 'app:log':
+        return true;
 
       case 'app:notify':
         if (this.config.enableNotifications !== false) {

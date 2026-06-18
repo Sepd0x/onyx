@@ -4,6 +4,48 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-06-18
+
+"New pillars & polish".
+
+### Added
+- **Clipboard history** (#7) — a tool that keeps recent copies (text + images):
+  search, one-click re-copy, pin, delete, clear, and a pause toggle. History is
+  in-memory only (never written to disk, cleared on quit).
+- **AI output renders as Markdown** (#10) — the AI panels show headings, lists,
+  bold, inline code, code blocks, quotes and links via a tiny, dependency-free,
+  XSS-safe renderer (links styled but non-clickable). The prompts now emit concise
+  Markdown to match.
+- **Pick your tools** (#28 MVP) — a "Tools" section in Settings turns each tool on
+  or off; disabled tools are hidden from the sidebar and command palette.
+- **Pomodoro timer in Focus Mode** (#9) — focus/break timer with a progress ring,
+  start/pause/reset/skip, editable durations and a per-day session count;
+  timestamp-based so it survives view switches and catches up after sleep.
+- **Rebindable global hotkey** — the show/hide shortcut (was a fixed Ctrl+Alt+D) is
+  now editable in Settings, with a fallback if the chosen combo is already taken.
+- **Client-side diagnostics breadcrumb** (`app:log`) — the renderer persists what it
+  was doing (onboarding step, render-boundary catches) into the day's main log so a
+  crash report is reproducible (#29/#30).
+
+### Fixed
+- **Battery wrongly reported as "not detected"** on laptops (notably Lenovo) whose
+  `root\wmi` capacity classes come back empty. Presence is now read from
+  `Win32_Battery` and decoupled from wear %; the card shows "Battery detected" (with
+  charge %) when wear data isn't exposed.
+- **Command palette (Ctrl/Cmd+K)** — the always-focused search field no longer shows
+  the harsh full-width focus box, and the highlighted row is a smoothly rounded,
+  inset pill (clean on all sides).
+- **Pinned-taskbar icon had a dark background** — the `.exe`/pinned icon is now built
+  from the transparent gem (regenerated assets included), scaled to fill the bounds.
+- **Renderer-crash resilience** — a dead renderer (OOM/GPU/native) is logged and the
+  window reloaded instead of vanishing; `unresponsive`/`responsive` and async/
+  unhandled-rejection errors are logged too.
+- **First-run wizard hardening** — the initial config/AI-status load is wrapped so a
+  failing provider lookup can't take down onboarding.
+- **Dev browser mock** mirrors the real AI status shape, handles the clipboard +
+  `ai:setProvider`/`setModel`/`test` channels, and broadcasts `config:changed` on
+  save (live theme/accent/enabled-tools updates in `npm run dev`).
+
 ## [1.1.4] - 2026-06-16
 
 ### Fixed

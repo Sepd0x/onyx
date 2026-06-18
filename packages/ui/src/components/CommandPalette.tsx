@@ -80,7 +80,7 @@ export default function CommandPalette({
       onMouseDown={onClose}
     >
       <div
-        className="w-full max-w-xl bg-surface/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150"
+        className="w-full max-w-xl bg-surface/95 border border-white/15 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150 ring-1 ring-black/40"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
         role="dialog"
@@ -95,7 +95,7 @@ export default function CommandPalette({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Jump to a view or switch theme…"
-            className="flex-1 bg-transparent py-4 text-sm text-text placeholder:text-muted focus:outline-none"
+            className="cmdk-field flex-1 bg-transparent py-4 text-sm text-text placeholder:text-muted focus:outline-none"
           />
           <kbd className="text-[10px] font-mono text-muted border border-border rounded px-1.5 py-0.5">ESC</kbd>
         </div>
@@ -115,8 +115,8 @@ export default function CommandPalette({
                     data-idx={i}
                     onMouseEnter={() => setActive(i)}
                     onClick={() => run(i)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      i === active ? 'bg-surface3 text-text' : 'text-muted2 hover:text-text'
+                    className={`w-[calc(100%-1rem)] mx-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                      i === active ? 'bg-surface3 text-text ring-1 ring-white/10' : 'text-muted2 hover:text-text hover:bg-surface2/50'
                     }`}
                   >
                     {Icon && (
