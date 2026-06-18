@@ -4,7 +4,7 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
-## [1.2.0] - 2026-06-17
+## [1.2.0] - 2026-06-18
 
 "New pillars & polish".
 
