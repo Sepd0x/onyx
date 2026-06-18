@@ -21,6 +21,10 @@ All notable changes to Onyx are documented here. The format follows
   instead of the default 980×680 every launch. Bounds are validated and clamped to a
   connected display, so a window saved on an unplugged monitor can't open off-screen.
 
+### Changed
+- **Settings are organised into categories** — General, Appearance, Surfaces, Tools,
+  AI, Data and About — shown one at a time instead of one ever-growing scroll.
+
 ## [1.2.0] - 2026-06-18
 
 "New pillars & polish".

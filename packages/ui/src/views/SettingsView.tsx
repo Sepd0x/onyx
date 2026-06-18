@@ -21,6 +21,10 @@ export default function SettingsView() {
   const [backupMsg, setBackupMsg] = useState('');
   // Desktop overlay state lives in its own backend (overlay:*), not appConfig.
   const [overlay, setOverlay] = useState<{ enabled: boolean; opacity: number; tiles: Record<string, boolean> }>({ enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } });
+  // Settings are grouped into categories (the page grew too long as one scroll).
+  // One category shows at a time; sections keep their place in the tree and are
+  // hidden via a class when their category isn't active (no remount, no churn).
+  const [cat, setCat] = useState('general');
   // Conflict surface: whether the global hotkey actually registered (another app
   // may have grabbed Ctrl+Alt+D first).
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
@@ -260,6 +264,19 @@ export default function SettingsView() {
   const providers: any[] = aiStatus.providers || [];
   const activeMeta: any = providers.find((p) => p.key === aiStatus.provider) || { label: 'AI provider', placeholder: 'API key', keyUrl: '' };
 
+  // Category nav. A section's wrapper uses sectionCls(id) so only the active
+  // category renders; everything else collapses to `hidden`.
+  const CATS: { id: string; label: string; icon: any }[] = [
+    { id: 'general', label: 'General', icon: Power },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'surfaces', label: 'Surfaces', icon: LayoutGrid },
+    { id: 'tools', label: 'Tools', icon: LayoutGrid },
+    { id: 'ai', label: 'AI', icon: BrainCircuit },
+    { id: 'data', label: 'Data', icon: Download },
+    { id: 'about', label: 'About', icon: ShieldCheck },
+  ];
+  const sectionCls = (c: string) => (cat === c ? 'flex flex-col gap-4' : 'hidden');
+
   return (
     <div className="h-full flex flex-col bg-transparent relative">
       <div className="flex-shrink-0 px-10 pt-10 pb-6 border-b border-border/60 z-20 bg-background/50 backdrop-blur-sm">
@@ -268,8 +285,24 @@ export default function SettingsView() {
 
       <div className="flex-1 overflow-y-auto p-10 pt-8 no-scrollbar pb-24">
         <div className="max-w-2xl mx-auto flex flex-col gap-8">
-        
-        <div className="flex flex-col gap-4">
+
+        {/* Category nav — one settings group at a time, instead of one long scroll. */}
+        <div className="flex flex-wrap gap-1.5 -mb-2">
+          {CATS.map((c) => {
+            const Icon = c.icon;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setCat(c.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${cat === c.id ? 'bg-surface2 text-text border-border2' : 'text-muted2 border-border hover:bg-surface2 hover:text-text'}`}
+              >
+                <Icon className="w-3.5 h-3.5" /> {c.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={sectionCls('general')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Power className="w-4 h-4 text-accent"/> Core run state</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -289,7 +322,7 @@ export default function SettingsView() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('general')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-accent"/> Module automation</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -362,7 +395,7 @@ export default function SettingsView() {
           </div>
         </div>
         
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('surfaces')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tray dashboard</h3>
            <div className={`bg-surface border border-border rounded-xl overflow-hidden shadow-sm transition-opacity ${(config.enableTrayDashboard ?? true) ? '' : 'opacity-50 pointer-events-none'}`}>
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -397,7 +430,7 @@ export default function SettingsView() {
            <p className="text-[10px] text-muted/70 -mt-1">Tray layout updates the next time you open the popup.</p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('surfaces')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><PictureInPicture2 className="w-4 h-4 text-accent"/> Desktop overlay <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Always on top</span></h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -446,7 +479,7 @@ export default function SettingsView() {
            <p className="text-[10px] text-muted/70 -mt-1">Drag the widget anywhere; its position is remembered. Also toggleable from the tray menu.</p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('tools')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tools <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Pick what you use</span></h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             {TOOLS.map((t, i) => {
@@ -468,7 +501,7 @@ export default function SettingsView() {
            <p className="text-[10px] text-muted/70 -mt-1">Disabled tools are hidden from the sidebar and command palette — turn them back on any time.</p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('ai')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-accent"/> AI assistant <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Opt-in</span></h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm p-6 flex flex-col gap-4">
              {/* Provider picker — Anthropic / OpenAI / Google. Each keeps its own key. */}
@@ -583,7 +616,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('appearance')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Palette className="w-4 h-4 text-accent"/> Visual identity</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden grid grid-cols-3 gap-[1px] bg-border p-[1px]">
              <button onClick={() => setTheme('midnight')} className={`p-4 flex flex-col items-center justify-center gap-2 transition-colors ${config.theme === 'midnight' || !config.theme ? 'bg-surface2 text-text' : 'bg-surface text-muted hover:bg-surface2/50'}`}>
@@ -627,7 +660,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('data')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Download className="w-4 h-4 text-accent"/> Backup &amp; restore</h3>
            <div className="bg-surface border border-border rounded-xl shadow-sm p-6 flex flex-col gap-4">
              <p className="text-[11px] text-muted leading-relaxed">
@@ -645,7 +678,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center">
+        <div className={`mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center ${cat === 'about' ? '' : 'hidden'}`}>
            <div>
              <h4 className="text-sm font-medium text-text tracking-tight flex items-center gap-2">
               Onyx <span className="px-2 py-0.5 text-[9px] font-mono bg-surface2 text-muted2 border border-border rounded-md">v{config.appVersion || '—'}</span>
@@ -692,7 +725,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="p-5 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-4">
+        <div className={`p-5 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-4 ${cat === 'about' ? '' : 'hidden'}`}>
            <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0" />
            <div>
              <h4 className="text-sm font-medium text-primary tracking-tight">Secure Context Enforced</h4>
