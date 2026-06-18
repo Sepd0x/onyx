@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { Blocks, BadgeCheck, Users, ShieldCheck, ExternalLink, AlertTriangle } from 'lucide-react';
+import Switch from './Switch';
 import { CH } from '../ipc';
 import { describePermission, RISK_CLASS, type PermRisk } from '../lib/pluginPermissions';
 
 // Install-time permission consent — the gate between a verified bundle and it running. By
 // the time this opens, the main process has already signature-checked the bundle (an
 // unsigned/tampered one never gets here), so the trust story is "verified · and here is
-// exactly what it can touch". The user approves the full declared capability set or cancels;
-// the backend never grants more than what's listed below.
+// exactly what it can touch". Each requested capability has its own toggle (all on by
+// default, so one tap still grants the lot); the user can withhold any of them, and only
+// the ones left on are sent as `granted` — the backend then narrows to that subset and the
+// plugin's host exposes nothing more.
 
 export interface PluginPreview {
   id: string;
@@ -37,6 +41,19 @@ export default function PluginConsentModal({
   const perms = [...preview.permissions].sort(
     (a, b) => RISK_ORDER[describePermission(b).risk] - RISK_ORDER[describePermission(a).risk],
   );
+
+  // Which capabilities the user is granting. All on by default — the common path stays a
+  // single "Trust & install" tap — but any can be withheld before installing.
+  const [grantedSet, setGrantedSet] = useState<Set<string>>(() => new Set(preview.permissions));
+  const toggle = (perm: string) =>
+    setGrantedSet((prev) => {
+      const next = new Set(prev);
+      next.has(perm) ? next.delete(perm) : next.add(perm);
+      return next;
+    });
+  // Preserve the manifest's declared order in what we send back.
+  const granted = preview.permissions.filter((p) => grantedSet.has(p));
+  const withheldCount = preview.permissions.length - granted.length;
 
   return (
     <div
@@ -87,28 +104,41 @@ export default function PluginConsentModal({
           <span>Signature verified — signed by the Onyx key.</span>
         </div>
 
-        {/* The consent itself */}
+        {/* The consent itself — one toggle per requested capability */}
         <div className="mt-4 rounded-xl border border-border bg-surface/40 p-4">
-          <span className="micro-label">{perms.length > 0 ? 'This extension will be able to' : 'Capabilities'}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="micro-label">{perms.length > 0 ? 'Allow this extension to' : 'Capabilities'}</span>
+            {perms.length > 0 && (
+              <span className="text-[10px] font-mono text-muted2">{granted.length}/{perms.length} allowed</span>
+            )}
+          </div>
           {perms.length === 0 ? (
             <p className="text-[12px] text-muted mt-2 leading-relaxed">
               Runs with <span className="text-text">no special capabilities</span> — it can't read your data,
               network, or files.
             </p>
           ) : (
-            <ul className="mt-2.5 space-y-1.5">
+            <ul className="mt-2.5 space-y-1">
               {perms.map((perm) => {
                 const { label, risk } = describePermission(perm);
+                const on = grantedSet.has(perm);
                 return (
-                  <li key={perm} className="flex items-center gap-2.5">
+                  <li key={perm} className={`flex items-center gap-2.5 py-1 transition-opacity ${on ? '' : 'opacity-45'}`}>
                     <span className={`text-[9px] font-mono font-bold tracking-wide rounded px-1 py-0.5 border uppercase shrink-0 ${RISK_CLASS[risk]}`}>
                       {risk}
                     </span>
-                    <span className="text-[12px] text-text leading-snug">{label}</span>
+                    <span className="text-[12px] text-text leading-snug flex-1">{label}</span>
+                    <Switch active={on} onClick={() => !busy && toggle(perm)} label={`Allow: ${label}`} />
                   </li>
                 );
               })}
             </ul>
+          )}
+          {withheldCount > 0 && (
+            <p className="text-[10px] text-muted/70 mt-2.5 leading-relaxed">
+              {withheldCount} withheld — the extension installs without {withheldCount === 1 ? 'it' : 'them'} and
+              may have reduced functionality. You can change this later by reinstalling.
+            </p>
           )}
         </div>
 
@@ -128,11 +158,11 @@ export default function PluginConsentModal({
             CANCEL
           </button>
           <button
-            onClick={() => onConfirm(preview.permissions)}
+            onClick={() => onConfirm(granted)}
             disabled={busy}
             className="px-4 py-2 text-[11px] font-mono font-bold tracking-widest text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           >
-            {busy ? 'INSTALLING…' : 'TRUST & INSTALL'}
+            {busy ? 'INSTALLING…' : withheldCount > 0 ? 'INSTALL WITH SELECTED' : 'TRUST & INSTALL'}
           </button>
         </div>
       </div>
