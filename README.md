@@ -51,10 +51,14 @@ It runs entirely on your machine. There's no account, and usage telemetry is **o
 | **Clipboard** | Recent copies (text & images) you can search, pin and re-copy — in-memory only, never written to disk. |
 | **Inspector** | A unified, local read-out of repo sync state and detected dev processes, with an optional one-glance **daily AI briefing** (repos + processes + power + logs) and focused insights. |
 | **System Tray** | A customisable mini-dashboard (CPU, RAM, ports, guards) next to the clock. |
+| **Desktop overlay** | An always-on-top, draggable widget with live CPU / RAM / ports / clock tiles; click to expand into recent clipboard + quick actions. |
+| **Extensions** | Install signed, reviewed plugins to add your own tools — each declares the capabilities it uses and is credited to its author. |
 
 **Optional AI** — bring your own key for **Anthropic (Claude)**, **OpenAI (ChatGPT)** or **Google (Gemini)**. Keys are encrypted at rest in the OS keychain and never leave your machine except for the call you trigger; longer answers stream in as they're written and render as formatted Markdown.
 
 **Pick your tools** — enable only the modules you use; the rest stay out of the sidebar and command palette.
+
+**Extensions** — add your own tools as **signed, reviewed plugins**. Onyx only runs plugins signed with the Onyx key (an unsigned or tampered one never loads), each one declares the capabilities it uses, and you consent to them on install. Want to build one? See [`docs/PLUGINS.md`](docs/PLUGINS.md).
 
 **First-run setup** — a short guided onboarding picks your theme, accent and (optional) AI provider on first launch.
 
@@ -65,7 +69,7 @@ It runs entirely on your machine. There's no account, and usage telemetry is **o
 **Themes** — Midnight, Pure OLED and Dracula, plus a pickable accent colour.
 
 > [!NOTE]
-> **Status — v1.2.0 released.** All modules work end-to-end; the auto-updater keeps installed copies current. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed and the [latest release](https://github.com/Sepd0x/onyx/releases/latest) for the installer.
+> **Status — v1.3.0 ("Extensions & lifecycle").** All modules work end-to-end; the auto-updater keeps installed copies current. Headline: a signed, capability-scoped plugin system with install-time consent. See [`CHANGELOG.md`](CHANGELOG.md) for what's landed and the [latest release](https://github.com/Sepd0x/onyx/releases/latest) for the installer.
 
 ## Screenshots
 
@@ -148,7 +152,7 @@ packages/
   ui/      React + Vite renderer
 ```
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the security model and IPC boundaries, and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the security model and IPC boundaries, [`docs/PLUGINS.md`](docs/PLUGINS.md) to build an extension, and [`CONTRIBUTING.md`](CONTRIBUTING.md) to get involved.
 
 ## Contributing & security
 
