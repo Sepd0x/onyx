@@ -119,9 +119,10 @@ export default function ExtensionsView() {
       <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface/40">
         <ShieldCheck className="w-4 h-4 text-success shrink-0 mt-0.5" />
         <p className="text-[12px] text-muted leading-relaxed">
-          Onyx only loads plugins <span className="text-text">signed by the Onyx key</span>. An unsigned or
-          tampered plugin is rejected before any of its code runs. Each plugin can use only the capabilities
-          you see listed on its card — nothing more.
+          Onyx only runs plugins <span className="text-text">reviewed and signed by the Onyx key</span> — an
+          unsigned or tampered one is rejected before any of its code runs. That review is the real
+          guarantee; the capabilities on each card are what the plugin <span className="text-text">declares
+          it uses</span>, shown up front so there are no surprises.
         </p>
       </div>
 
