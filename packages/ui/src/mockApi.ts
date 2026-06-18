@@ -125,12 +125,12 @@ class MockApi {
         { id: 'demo-g1', type: 'pid', target: '18420', name: 'vite build · onyx-ui' },
         { id: 'demo-g2', type: 'pid', target: '22107', name: 'next dev · storefront' },
       ];
-      const now = 1_700_000_000_000;
+      const now = Date.now();
       this.clipboard = [
-        { id: 'demo-c1', type: 'text', text: 'npx kill-port 3000', preview: 'npx kill-port 3000', bytes: 18, at: now, pinned: true },
-        { id: 'demo-c2', type: 'text', text: 'git rebase -i HEAD~3', preview: 'git rebase -i HEAD~3', bytes: 20, at: now - 60000, pinned: false },
-        { id: 'demo-c3', type: 'text', text: 'https://github.com/Sepd0x/onyx/pull/32', preview: 'https://github.com/Sepd0x/onyx/pull/32', bytes: 38, at: now - 180000, pinned: false },
-        { id: 'demo-c4', type: 'text', text: 'const ports = await window.api.invoke(CH.portsGet)', preview: 'const ports = await window.api.invoke(CH.portsGet)', bytes: 50, at: now - 600000, pinned: false },
+        { id: 'demo-c1', type: 'text', text: 'npx kill-port 3000', preview: 'npx kill-port 3000', bytes: 18, at: now - 45000, pinned: true },
+        { id: 'demo-c2', type: 'text', text: 'git rebase -i HEAD~3', preview: 'git rebase -i HEAD~3', bytes: 20, at: now - 240000, pinned: false },
+        { id: 'demo-c3', type: 'text', text: 'https://github.com/Sepd0x/onyx', preview: 'https://github.com/Sepd0x/onyx', bytes: 30, at: now - 1500000, pinned: false },
+        { id: 'demo-c4', type: 'text', text: 'const ports = await window.api.invoke(CH.portsGet)', preview: 'const ports = await window.api.invoke(CH.portsGet)', bytes: 50, at: now - 5400000, pinned: false },
       ];
     }
   }

@@ -58,7 +58,8 @@
       "!packages/**/*.test.js",
       "packages/ui/dist/**/*",
       "packages/tools/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "!assets/screenshots/**"
     ]
   },
   "devDependencies": {
