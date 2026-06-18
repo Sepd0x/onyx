@@ -4,9 +4,9 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] - 2026-06-17
 
-"New pillars & polish" (v1.2.0 batch).
+"New pillars & polish".
 
 ### Added
 - **Clipboard history** (#7) — a tool that keeps recent copies (text + images):
