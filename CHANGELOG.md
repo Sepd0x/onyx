@@ -50,6 +50,17 @@ All notable changes to Onyx are documented here. The format follows
   AI, Data and About — shown one at a time instead of one ever-growing scroll.
 - **Tools in Settings** are shown as a richer catalog (shared with onboarding).
 
+### Fixed
+- **The hidden cursor always comes back** — the cursor auto-hide tool now restores the
+  system cursor on a graceful stop *and* if Onyx crashes or is killed (a watchdog in the
+  worker notices the app is gone and reloads the cursor within half a second), plus a
+  defensive restore on every start. Previously an abrupt exit while the cursor was hidden
+  could leave the whole desktop without a pointer until reboot.
+- **"Launch on OS Startup" is actually respected** — packaged builds no longer force
+  auto-start on at every launch, so turning the setting off now sticks.
+- **Clean uninstall** — the uninstaller removes the auto-start registry entry and offers
+  to delete your settings, snippets and installed plugins (kept by default for reinstalls).
+
 ## [1.2.0] - 2026-06-18
 
 "New pillars & polish".

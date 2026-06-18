@@ -25,7 +25,10 @@ module.exports = function initCursorAutoHide() {
       '-File', script,
       '-Seconds', String(seconds),
       '-DeadZone', String(deadzone),
-      '-StopFile', stopFile
+      '-StopFile', stopFile,
+      // The worker watches this PID; if Onyx dies without a graceful stop, it restores
+      // the system cursor on its own rather than leaving it hidden until reboot.
+      '-ParentPid', String(process.pid)
     ], { windowsHide: true });
     psProcess.on('error', () => { psProcess = null; });
     psProcess.on('exit', () => { psProcess = null; });
@@ -59,4 +62,8 @@ module.exports = function initCursorAutoHide() {
     else stopWorker();
     return config.active;
   });
+
+  // Graceful stop on app exit — signals the worker to restore the cursor before we go.
+  // (The worker's parent-PID watchdog is the backstop for a crash that skips this.)
+  app.on('will-quit', () => { try { stopWorker(); } catch {} });
 };
