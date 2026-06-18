@@ -16,7 +16,7 @@ Free a stuck port, keep your machine awake until a build finishes, see which rep
   <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License">
 </p>
 
-<sub>Local-first · no account · no telemetry · Windows 10/11</sub>
+<sub>Local-first · no account · no telemetry by default · Windows 10/11</sub>
 
 <br>
 
@@ -34,7 +34,7 @@ Free a stuck port, keep your machine awake until a build finishes, see which rep
 
 Every local project leaks the same small tasks across a dozen tools and terminal tabs: *what's on port 3000?*, *don't sleep mid-build*, *which repos did I forget to push?*, *where did my SSD go?*. Onyx pulls those into one fast, native panel with a consistent design and a quick-access tray — so the busywork takes a click instead of a context switch.
 
-It runs entirely on your machine. There's no account and no telemetry; the optional AI features only run when you add your own API key, and only on the data shown in that panel.
+It runs entirely on your machine. There's no account, and usage telemetry is **opt-in and off by default** (anonymous, aggregate-only — see [`PRIVACY.md`](PRIVACY.md)); the optional AI features only run when you add your own API key, and only on the data shown in that panel.
 
 ## What's inside
 
