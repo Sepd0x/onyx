@@ -1,0 +1,4 @@
+# Signed plugin bundles must never have their bytes altered (line endings included),
+# or their Ed25519 signature stops verifying after a checkout on autocrlf platforms.
+# Treat the example plugin's files as binary so git leaves their bytes exactly as signed.
+examples/plugins/** -text
