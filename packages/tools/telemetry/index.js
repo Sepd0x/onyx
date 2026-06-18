@@ -8,10 +8,10 @@ const { buildPayload, assertNoPii } = require('./payload');
 // Opt-in, anonymous telemetry (#27). OFF by default — nothing is collected OR sent
 // unless the user explicitly enables it (config.telemetryEnabled), and never in dev.
 // Decision + privacy model: vault/15 + PRIVACY.md. The collector is a self-owned
-// endpoint (Cloudflare Worker) that drops the IP at the edge; until it's deployed
-// the endpoint below is empty, so the toggle + batching work end-to-end but nothing
-// is transmitted. Set TELEMETRY_ENDPOINT after `wrangler deploy` to go live.
-const TELEMETRY_ENDPOINT = '';
+// Cloudflare Worker (infra/telemetry-worker) that drops the IP at the edge and stores
+// aggregate counters only. Live endpoint below; if blanked, the toggle + batching
+// still work end-to-end but nothing is transmitted.
+const TELEMETRY_ENDPOINT = 'https://onyx-telemetry.onyx-dev.workers.dev';
 const FLUSH_MS = 10 * 60 * 1000;
 
 module.exports = function initTelemetry(opts) {
