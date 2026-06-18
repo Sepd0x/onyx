@@ -11,6 +11,7 @@ const initBlocker = require('../../tools/blocker/index');
 const initOverlay = require('../../tools/overlay/index');
 const initWindowState = require('../../tools/window-state/index');
 const initTelemetry = require('../../tools/telemetry/index');
+const initPlugins = require('../../tools/plugins/index');
 const initGitPulse = require('../../tools/gitpulse/index');
 const initDevWatcher = require('../../tools/dev-watcher/index');
 const initCleaner = require('../../tools/cleaner/index');
@@ -417,6 +418,9 @@ if (!gotTheLock) {
     initPortability();
     // Opt-in, anonymous telemetry — reads the live config for consent; off by default.
     initTelemetry({ getConfig: () => appConfig, appVersion: app.getVersion() });
+    // Signed/curated plugins (Fase 2) — only owner-signed bundles load; nothing until a
+    // plugin is installed into userData/plugins. Verification fails closed.
+    initPlugins({ getConfig: () => appConfig, appVersion: app.getVersion() });
 
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {

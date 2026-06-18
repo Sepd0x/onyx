@@ -84,6 +84,13 @@ class MockApi {
   private blocker: any = { enabled: false, apps: [], blockedCount: 0 };
   private overlay: any = { enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } };
   private telemetryId = 'mock-1a2b3c4d';
+  // Installed plugins (Fase 2). In the real backend these are signature-verified bundles
+  // under userData/plugins; the mock seeds one official + one community plugin so the
+  // Extensions view shows a realistic populated state in the browser preview.
+  private plugins: any[] = [
+    { id: 'onyx.hello', name: 'Hello World', version: '1.0.0', description: 'Reference plugin showing the Onyx plugin format end-to-end.', author: { handle: 'onyx', url: 'https://github.com/Sepd0x/onyx' }, official: true, permissions: ['notify'], channels: ['greet'], granted: ['notify'], enabled: true, error: null },
+    { id: 'acme.netcheck', name: 'Net Check', version: '0.3.1', description: 'Pings your endpoints and notifies you the moment one goes down.', author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' }, official: false, permissions: ['net:fetch', 'notify'], channels: ['ping'], granted: ['net:fetch', 'notify'], enabled: false, error: null },
+  ];
   private repos: any[] = [
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null, lastCommitMeta: { hash: '4c8d0b2', author: 'Sepd0x', relative: 'yesterday', subject: 'feat: pomodoro timer' }, dirtyFiles: [], branches: ['main', 'dev'], lastFetched: Date.now() - 3600000 }
@@ -496,6 +503,30 @@ class MockApi {
         await delay(22 * chunks.length + 120);
         return { text: full, usage: { input: 1200, output: 180 }, cached: false };
       }
+
+      case 'plugin:list':
+        return this.plugins;
+      case 'plugin:setEnabled': {
+        const pl = this.plugins.find((x) => x.id === args[0]?.id);
+        if (!pl) return false;
+        pl.enabled = !!args[0]?.enabled;
+        return true;
+      }
+      case 'plugin:uninstall':
+        this.plugins = this.plugins.filter((x) => x.id !== args[0]?.id);
+        return true;
+      case 'plugin:invoke': {
+        // Mirror the gated dispatch: only an enabled plugin's declared method runs.
+        const pl = this.plugins.find((x) => x.id === args[0]?.id);
+        if (!pl || !pl.enabled || !pl.channels.includes(args[0]?.method)) return { ok: false, error: 'not allowed' };
+        if (pl.id === 'onyx.hello' && args[0]?.method === 'greet') {
+          return { ok: true, result: { message: `Hello, ${args[0]?.args?.name || 'world'}! — from onyx.hello` } };
+        }
+        return { ok: true, result: null };
+      }
+      case 'plugin:install':
+        // No signed-bundle picker in the browser preview.
+        return { ok: false, error: 'Install is available in the desktop app.' };
 
       case 'app:log':
         return true;

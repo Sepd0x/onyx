@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command, Sparkles, ClipboardList } from 'lucide-react';
+import { Network, GitBranch, MousePointer2, ShieldAlert, Minus, X, Settings, Activity, TerminalSquare, Rocket, BrainCircuit, Zap, Palette, Command, Sparkles, ClipboardList, Blocks } from 'lucide-react';
 
 // Views are code-split (React.lazy): each tab's chunk loads on first open, so the
 // initial bundle/first paint only carries the shell + the landing view.
@@ -16,6 +16,7 @@ const TrayView = lazy(() => import('./views/TrayView'));
 const AIAuditorView = lazy(() => import('./views/AIAuditorView'));
 const PowerOSView = lazy(() => import('./views/PowerOSView'));
 const OverlayView = lazy(() => import('./views/OverlayView'));
+const ExtensionsView = lazy(() => import('./views/ExtensionsView'));
 
 import Logo from './components/Logo';
 import CommandPalette, { type Command as PaletteCommand } from './components/CommandPalette';
@@ -139,6 +140,7 @@ export default function App() {
     // Only the user's active tools show up, plus Settings (always available).
     const views: { id: string; label: string; icon: any }[] = [
       ...TOOLS.filter((t) => isToolEnabled(t.id, appConfig)).map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
+      { id: 'extensions', label: 'Extensions', icon: Blocks },
       { id: 'settings', label: 'Settings', icon: Settings },
     ];
     const nav: PaletteCommand[] = views.map((v) => ({
@@ -167,7 +169,7 @@ export default function App() {
   // If the active tool gets disabled (or AI turned off for the Inspector), fall
   // back to the first enabled tool so the main area never shows a hidden view.
   useEffect(() => {
-    if (activeTab === 'settings') return;
+    if (activeTab === 'settings' || activeTab === 'extensions') return;
     if (!isToolEnabled(activeTab, appConfig)) {
       const firstEnabled = TOOLS.find((t) => isToolEnabled(t.id, appConfig));
       setActiveTab(firstEnabled ? firstEnabled.id : 'settings');
@@ -177,7 +179,7 @@ export default function App() {
   // Anonymous tool-open count (opt-in telemetry #27). No-op in main unless the user
   // turned telemetry on; only the tool id is sent, never any content.
   useEffect(() => {
-    if (activeTab && activeTab !== 'settings') window.api?.invoke(CH.telemetryTrack, { tool: activeTab });
+    if (activeTab && activeTab !== 'settings' && activeTab !== 'extensions') window.api?.invoke(CH.telemetryTrack, { tool: activeTab });
   }, [activeTab]);
 
   const closeWindow = () => window.api?.invoke(CH.windowClose);
@@ -280,7 +282,8 @@ export default function App() {
           
           <div className="flex flex-col gap-2">
             <div className="h-px w-full bg-border my-2"></div>
-            <Tab idx={10} icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+            <Tab idx={10} icon={<Blocks className="w-4 h-4" />} label="Extensions" isActive={activeTab === 'extensions'} onClick={() => setActiveTab('extensions')} />
+            <Tab idx={11} icon={<Settings className="w-4 h-4" />} label="Settings" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
           </div>
         </aside>
 
@@ -299,6 +302,7 @@ export default function App() {
               {activeTab === 'snippets' && <SnippetsView />}
               {activeTab === 'clipboard' && <ClipboardView />}
               {activeTab === 'settings' && <SettingsView />}
+              {activeTab === 'extensions' && <ExtensionsView />}
               {activeTab === 'power' && <PowerOSView />}
             </Suspense>
           </div>

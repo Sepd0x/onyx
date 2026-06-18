@@ -1,0 +1,12 @@
+{
+  "id": "onyx.hello",
+  "name": "Hello World",
+  "version": "1.0.0",
+  "description": "Reference plugin showing the Onyx plugin format end-to-end.",
+  "author": { "handle": "onyx", "url": "https://github.com/Sepd0x/onyx" },
+  "official": true,
+  "engines": { "onyx": "*" },
+  "permissions": ["notify"],
+  "channels": ["greet"],
+  "main": "backend.js"
+}

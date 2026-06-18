@@ -24,6 +24,9 @@ const INVOKE_CHANNELS = [
   'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:downloadUpdate', 'app:installUpdate', 'app:getConflicts', 'app:log',
   // Telemetry (opt-in, anonymous, off by default)
   'telemetry:track', 'telemetry:getPreview', 'telemetry:resetId',
+  // Plugins (Fase 2) — signed/curated extensions. plugin:invoke is the ONLY way the
+  // renderer reaches plugin code, gated by install + signature + enabled + declared method.
+  'plugin:list', 'plugin:install', 'plugin:setEnabled', 'plugin:invoke', 'plugin:uninstall',
   // Window
   'window:close', 'window:minimize', 'window:openExternal',
   // Environment
