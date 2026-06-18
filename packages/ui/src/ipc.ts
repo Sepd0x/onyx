@@ -14,6 +14,14 @@ export const CH = {
   cursorGetConfig: 'cursor:getConfig',
   cursorSetConfig: 'cursor:setConfig',
   cursorToggle: 'cursor:toggle',
+  // Focus-Mode app blocker
+  blockerGet: 'blocker:get',
+  blockerSet: 'blocker:set',
+  blockerToggle: 'blocker:toggle',
+  // Desktop overlay
+  overlayGet: 'overlay:get',
+  overlaySet: 'overlay:set',
+  overlayToggle: 'overlay:toggle',
   // Git
   gitGetRepos: 'git:getRepos',
   gitAddRepo: 'git:addRepo',
@@ -105,6 +113,7 @@ export const EV = {
   cleanerScanProgress: 'cleaner:scanProgress',
   configChanged: 'config:changed',
   aiStreamDelta: 'ai:streamDelta',
+  blockerBlocked: 'blocker:blocked',
 } as const;
 
 export type Channel = typeof CH[keyof typeof CH];

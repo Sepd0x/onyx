@@ -4,6 +4,21 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Desktop overlay** (#8) — an always-on-top, draggable widget that floats above
+  your windows with live CPU / RAM / listening-ports / clock tiles. Toggle it from
+  the tray menu or Settings → Desktop overlay; pick which tiles show, set its
+  opacity, and its position is remembered. Its own frameless, transparent window.
+- **App blocker in Focus Mode** (#9) — list distraction apps (e.g. `Discord.exe`,
+  `Steam.exe`) and, while the blocker is active, Onyx force-closes them in the
+  background so you stay in flow, with a per-session "closed" count. Opt-in and
+  explicit: OS-critical processes and Onyx itself can never be blocked.
+- **Window size & position are remembered** (#9) — Onyx reopens where you left it
+  instead of the default 980×680 every launch. Bounds are validated and clamped to a
+  connected display, so a window saved on an unplugged monitor can't open off-screen.
+
 ## [1.2.0] - 2026-06-18
 
 "New pillars & polish".

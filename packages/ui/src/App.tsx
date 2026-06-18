@@ -15,6 +15,7 @@ const LaunchersView = lazy(() => import('./views/LaunchersView'));
 const TrayView = lazy(() => import('./views/TrayView'));
 const AIAuditorView = lazy(() => import('./views/AIAuditorView'));
 const PowerOSView = lazy(() => import('./views/PowerOSView'));
+const OverlayView = lazy(() => import('./views/OverlayView'));
 
 import Logo from './components/Logo';
 import CommandPalette, { type Command as PaletteCommand } from './components/CommandPalette';
@@ -27,6 +28,9 @@ import { TOOLS, isToolEnabled } from './lib/tools';
 export default function App() {
   const [activeTab, setActiveTab] = useState('watcher');
   const [isTrayMode, setIsTrayMode] = useState(false);
+  // The desktop overlay renders its own minimal widget (own frameless window via
+  // the #overlay hash) — detected synchronously so the full shell never flashes.
+  const isOverlayMode = typeof window !== 'undefined' && window.location.hash === '#overlay';
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [onboardDone, setOnboardDone] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -172,6 +176,10 @@ export default function App() {
 
   const closeWindow = () => window.api?.invoke(CH.windowClose);
   const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
+
+  if (isOverlayMode) {
+    return <Suspense fallback={null}><OverlayView /></Suspense>;
+  }
 
   if (isTrayMode) {
     return <Suspense fallback={null}><TrayView /></Suspense>;

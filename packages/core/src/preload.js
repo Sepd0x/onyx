@@ -7,6 +7,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 const INVOKE_CHANNELS = [
   'ports:get', 'ports:kill',
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
+  'blocker:get', 'blocker:set', 'blocker:toggle',
+  'overlay:get', 'overlay:set', 'overlay:toggle',
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
   'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot', 'git:linkRepo', 'git:unlinkRepo', 'git:aiRepoAction',
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
@@ -22,7 +24,7 @@ const INVOKE_CHANNELS = [
   'power:get', 'power:setProfile', 'power:setAI', 'power:setConfig', 'power:getBatteryHealth',
   'ai:getStatus', 'ai:setKey', 'ai:setProvider', 'ai:setModel', 'ai:test', 'ai:insights', 'ai:explainPower', 'ai:analyzeLogs', 'ai:briefing', 'ai:stream',
 ];
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-none', 'app:update-progress', 'app:update-downloaded', 'app:update-error', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-none', 'app:update-progress', 'app:update-downloaded', 'app:update-error', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta', 'blocker:blocked'];
 
 contextBridge.exposeInMainWorld('api', {
   invoke: (channel, ...args) => {

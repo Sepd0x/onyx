@@ -11,6 +11,10 @@ const INVOKE_CHANNELS = [
   'ports:get', 'ports:kill',
   // Cursor / focus
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
+  // Focus-Mode app blocker (closes user-listed distraction apps while active)
+  'blocker:get', 'blocker:set', 'blocker:toggle',
+  // Desktop overlay (always-on-top widget)
+  'overlay:get', 'overlay:set', 'overlay:toggle',
   // Git
   'git:getRepos', 'git:addRepo', 'git:removeRepo', 'git:autoScan', 'git:generateCommit', 'git:addGithubRepo',
   'git:getScanRoots', 'git:addScanRoot', 'git:removeScanRoot', 'git:linkRepo', 'git:unlinkRepo', 'git:aiRepoAction',
@@ -41,6 +45,6 @@ const INVOKE_CHANNELS = [
 ];
 
 // Main -> renderer push events (used with window.api.on).
-const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-none', 'app:update-progress', 'app:update-downloaded', 'app:update-error', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta'];
+const EVENT_CHANNELS = ['refresh-data', 'dev:notification', 'app:update-available', 'app:update-none', 'app:update-progress', 'app:update-downloaded', 'app:update-error', 'git:scanProgress', 'cleaner:scanProgress', 'config:changed', 'ai:streamDelta', 'blocker:blocked'];
 
 module.exports = { INVOKE_CHANNELS, EVENT_CHANNELS };

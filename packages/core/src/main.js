@@ -7,6 +7,9 @@ const setupSecurity = require('./security');
 const initAppSettings = require('./app-settings');
 const initPortMapper = require('../../tools/portmapper/index');
 const initCursorAutoHide = require('../../tools/cursor-autohide/index');
+const initBlocker = require('../../tools/blocker/index');
+const initOverlay = require('../../tools/overlay/index');
+const initWindowState = require('../../tools/window-state/index');
 const initGitPulse = require('../../tools/gitpulse/index');
 const initDevWatcher = require('../../tools/dev-watcher/index');
 const initCleaner = require('../../tools/cleaner/index');
@@ -38,6 +41,8 @@ let win = null;
 let tray = null;
 let trayWindow = null;
 let appConfig = {};
+let windowState = null;
+let overlayCtl = null;
 
 const iconPath = path.join(__dirname, '../../../assets/icon.png');
 const trayIconPath = path.join(__dirname, '../../../assets/tray.png');
@@ -151,6 +156,12 @@ function createTray() {
   tray.on('right-click', () => {
     tray.popUpContextMenu(Menu.buildFromTemplate([
       { label: 'Open Workspace', click: showWindow },
+      {
+        label: 'Desktop overlay',
+        type: 'checkbox',
+        checked: !!(overlayCtl && overlayCtl.isVisible()),
+        click: () => { if (overlayCtl) overlayCtl.toggle(); },
+      },
       { type: 'separator' },
       { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } }
     ]));
@@ -158,9 +169,14 @@ function createTray() {
 }
 
 function createWindow() {
+  // Restore the last size/position (clamped to a connected display) so Onyx
+  // reopens where the user left it instead of the default 980×680 every time.
+  const { bounds, maximized } = windowState.getBounds('main', { width: 980, height: 680 });
   win = new BrowserWindow({
-    width: 980,
-    height: 680,
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
     minWidth: 800,
     minHeight: 500,
     show: false,
@@ -179,6 +195,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  // Persist size/position as the user resizes/moves; re-apply the maximized state.
+  windowState.track(win, 'main');
+  if (maximized) win.maximize();
 
   if (process.env.NODE_ENV === 'development') {
     win.loadURL('http://localhost:3000');
@@ -375,8 +395,15 @@ if (!gotTheLock) {
     logger.info('Onyx application starting up...');
     setupSecurity();
     appConfig = initAppSettings();
+    windowState = initWindowState();
     initPortMapper();
     initCursorAutoHide();
+    initBlocker();
+    overlayCtl = initOverlay({
+      preload: path.join(__dirname, 'preload.js'),
+      isDev: process.env.NODE_ENV === 'development',
+      indexHtml: path.join(__dirname, '../../ui/dist/index.html'),
+    });
     const gitPulse = initGitPulse();
     initDevWatcher();
     initCleaner();

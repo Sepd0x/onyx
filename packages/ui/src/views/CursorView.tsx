@@ -1,9 +1,109 @@
-import { useEffect, useState } from 'react';
-import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown, ShieldBan, Plus, X, ShieldAlert } from 'lucide-react';
 import Switch from '../components/Switch';
 import ViewHeader from '../components/ViewHeader';
 import PomodoroTimer from '../components/PomodoroTimer';
-import { CH } from '../ipc';
+import { CH, EV } from '../ipc';
+
+// Focus-Mode app blocker: while active, listed distraction apps (Discord, Steam, …)
+// are force-closed in the background. Opt-in, explicit list only; the backend keeps a
+// hardcoded denylist so OS-critical processes can never be added.
+function AppBlocker() {
+  const [state, setState] = useState<{ enabled: boolean; apps: string[]; blockedCount: number }>({ enabled: false, apps: [], blockedCount: 0 });
+  const [draft, setDraft] = useState('');
+  const [justBlocked, setJustBlocked] = useState<string | null>(null);
+  const timer = useRef<any>(null);
+
+  useEffect(() => {
+    window.api?.invoke(CH.blockerGet).then((s: any) => s && setState(s));
+    // Live feedback when the backend closes something.
+    const unsub = window.api?.on(EV.blockerBlocked, (data: any) => {
+      setState((s) => ({ ...s, blockedCount: data?.count ?? s.blockedCount + 1 }));
+      setJustBlocked(data?.name || 'app');
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setJustBlocked(null), 2600);
+    });
+    return () => { unsub?.(); clearTimeout(timer.current); };
+  }, []);
+
+  const toggle = async () => {
+    const res = await window.api?.invoke(CH.blockerToggle, !state.enabled);
+    if (res) setState(res);
+  };
+  const addApp = async () => {
+    const v = draft.trim();
+    if (!v) return;
+    const apps = Array.from(new Set([...state.apps, v]));
+    const res = await window.api?.invoke(CH.blockerSet, { apps });
+    if (res) setState((s) => ({ ...s, ...res }));
+    setDraft('');
+  };
+  const removeApp = async (app: string) => {
+    const res = await window.api?.invoke(CH.blockerSet, { apps: state.apps.filter((a) => a !== app) });
+    if (res) setState((s) => ({ ...s, ...res }));
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <h3 className="text-sm font-semibold text-text tracking-tight flex items-center gap-2"><ShieldBan className="w-4 h-4 text-primary" /> App Blocker</h3>
+
+      <div className="p-6 border border-border rounded-xl bg-surface/40 shadow-sm flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <div className="pr-6">
+            <h4 className="font-medium text-[13px] text-text">Block distraction apps</h4>
+            <p className="text-[10px] text-muted/80 leading-relaxed mt-1 max-w-[280px]">While active, the apps below are force-closed in the background so you stay in flow.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {state.blockedCount > 0 && (
+              <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 rounded-full px-2.5 py-1">{state.blockedCount} closed</span>
+            )}
+            <Switch active={state.enabled} activeColor="bg-danger" label="Enable app blocker" onClick={toggle} />
+          </div>
+        </div>
+
+        {justBlocked && (
+          <div className="text-[11px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            Closed <span className="font-mono font-semibold">{justBlocked}</span> — stay focused.
+          </div>
+        )}
+
+        <div className="flex items-stretch gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addApp(); }}
+            placeholder="e.g. Discord.exe"
+            aria-label="App to block"
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-[12px] font-mono text-text placeholder:text-muted/60 outline-none focus:border-primary/50 transition-colors"
+          />
+          <button onClick={addApp} className="px-3 rounded-lg bg-surface3 hover:bg-border2 border border-border text-text flex items-center gap-1.5 text-[11px] font-semibold transition-colors active:scale-95">
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
+
+        {state.apps.length === 0 ? (
+          <p className="text-[11px] text-muted/70 text-center py-2">No apps blocked yet. Add one above.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {state.apps.map((app) => (
+              <span key={app} className="group inline-flex items-center gap-1.5 bg-surface3/70 border border-border rounded-full pl-3 pr-1.5 py-1 text-[11px] font-mono text-text">
+                {app}
+                <button onClick={() => removeApp(app)} aria-label={`Remove ${app}`} className="rounded-full p-0.5 text-muted hover:text-danger hover:bg-danger/10 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <p className="text-[10px] text-muted/60 leading-relaxed flex items-start gap-1.5">
+          <ShieldAlert className="w-3 h-3 mt-0.5 flex-shrink-0" />
+          OS-critical processes and Onyx itself can never be blocked. Apps are force-closed, so save your work first.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // Accessible stepper, hoisted to module scope so it isn't recreated each render
 // (the old inline version was readOnly and lost focus on every keystroke).
@@ -162,6 +262,10 @@ export default function CursorView() {
            </div>
         </div>
 
+      </div>
+
+      <div className="mt-8 pt-8 border-t border-border/60">
+        <AppBlocker />
       </div>
     </div>
   );

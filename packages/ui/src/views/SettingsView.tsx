@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload, PictureInPicture2 } from 'lucide-react';
 import Switch from '../components/Switch';
 import KeyCapture from '../components/KeyCapture';
 import ViewHeader from '../components/ViewHeader';
@@ -19,6 +19,8 @@ export default function SettingsView() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState('');
   const [backupMsg, setBackupMsg] = useState('');
+  // Desktop overlay state lives in its own backend (overlay:*), not appConfig.
+  const [overlay, setOverlay] = useState<{ enabled: boolean; opacity: number; tiles: Record<string, boolean> }>({ enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } });
   // Conflict surface: whether the global hotkey actually registered (another app
   // may have grabbed Ctrl+Alt+D first).
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
@@ -56,6 +58,7 @@ export default function SettingsView() {
         }
       });
       loadAiStatus();
+      window.api.invoke(CH.overlayGet).then((o: any) => o && setOverlay(o));
       window.api.on(EV.appUpdateAvailable, (version: string) => {
         setUpdatePhase('available');
         setUpdateStatus(`Update ${version} available.`);
@@ -200,6 +203,23 @@ export default function SettingsView() {
     if (window.api) {
       await window.api.invoke(CH.appSetConfig, newConfig);
     }
+  };
+
+  // Desktop overlay controls (separate backend, not appConfig).
+  const toggleOverlay = async () => {
+    const en = await window.api?.invoke(CH.overlayToggle, !overlay.enabled);
+    setOverlay((o) => ({ ...o, enabled: !!en }));
+  };
+  const setOverlayOpacity = async (opacity: number) => {
+    setOverlay((o) => ({ ...o, opacity })); // instant feedback
+    const r: any = await window.api?.invoke(CH.overlaySet, { opacity });
+    if (r) setOverlay((o) => ({ ...o, ...r }));
+  };
+  const toggleOverlayTile = async (key: string) => {
+    const tiles = { ...overlay.tiles, [key]: !overlay.tiles[key] };
+    setOverlay((o) => ({ ...o, tiles }));
+    const r: any = await window.api?.invoke(CH.overlaySet, { tiles });
+    if (r) setOverlay((o) => ({ ...o, ...r }));
   };
 
   const DEFAULT_HOTKEY = 'CommandOrControl+Alt+D';
@@ -375,6 +395,55 @@ export default function SettingsView() {
             </div>
            </div>
            <p className="text-[10px] text-muted/70 -mt-1">Tray layout updates the next time you open the popup.</p>
+        </div>
+
+        <div className="flex flex-col gap-4">
+           <h3 className="text-sm font-semibold flex items-center gap-2"><PictureInPicture2 className="w-4 h-4 text-accent"/> Desktop overlay <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Always on top</span></h3>
+           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
+              <div>
+                <h3 className="font-medium text-[13px] text-text">Show desktop overlay</h3>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">A small, draggable widget that floats above your windows with live system stats.</p>
+              </div>
+              <Switch active={overlay.enabled} onClick={toggleOverlay} />
+            </div>
+            <div className={`transition-opacity ${overlay.enabled ? '' : 'opacity-50 pointer-events-none'}`}>
+              <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 gap-6">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Opacity</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">How transparent the widget sits over your desktop.</p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <input
+                    type="range" min={0.3} max={1} step={0.02}
+                    value={overlay.opacity}
+                    onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
+                    aria-label="Overlay opacity"
+                    className="w-32 accent-primary"
+                  />
+                  <span className="text-[10px] font-mono text-muted2 w-8 text-right">{Math.round(overlay.opacity * 100)}%</span>
+                </div>
+              </div>
+              <div className="px-6 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Tiles</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">Choose which readouts the overlay shows.</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                  {([['cpu', 'CPU'], ['ram', 'RAM'], ['ports', 'Ports'], ['clock', 'Clock']] as [string, string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => toggleOverlayTile(key)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${overlay.tiles[key] ? 'bg-surface2 text-text border-border2' : 'text-muted2 border-border hover:bg-surface2 hover:text-text'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+           </div>
+           <p className="text-[10px] text-muted/70 -mt-1">Drag the widget anywhere; its position is remembered. Also toggleable from the tray menu.</p>
         </div>
 
         <div className="flex flex-col gap-4">

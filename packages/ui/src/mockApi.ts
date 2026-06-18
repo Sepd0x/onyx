@@ -81,6 +81,8 @@ const AI_FEATURE_CHANNEL: Record<string, string> = {
 class MockApi {
   private config: any = { launchOnStartup: false, startMinimized: false, autoHideCursorOnStart: false, autoScanGit: true, enableAIFeatures: true, enableTrayDashboard: true, enableGlobalHotkey: true, enableNotifications: true, enableAnimations: true, onboarded: true, appVersion: 'dev' };
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
+  private blocker: any = { enabled: false, apps: [], blockedCount: 0 };
+  private overlay: any = { enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } };
   private repos: any[] = [
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null, lastCommitMeta: { hash: '4c8d0b2', author: 'Sepd0x', relative: 'yesterday', subject: 'feat: pomodoro timer' }, dirtyFiles: [], branches: ['main', 'dev'], lastFetched: Date.now() - 3600000 }
@@ -175,6 +177,34 @@ class MockApi {
         this.cursorConfig.active = !this.cursorConfig.active;
         this.save();
         return this.cursorConfig.active;
+
+      case 'blocker:get':
+        return { enabled: this.blocker.enabled, apps: this.blocker.apps, blockedCount: this.blocker.blockedCount };
+      case 'blocker:set':
+        if (args[0] && Array.isArray(args[0].apps)) {
+          // Mirror sanitizeBlocklist loosely: normalise to lower-case .exe names.
+          this.blocker.apps = Array.from(new Set(args[0].apps
+            .map((a: string) => String(a).trim().toLowerCase().split(/[\\/]/).pop())
+            .filter(Boolean)
+            .map((a: string) => (a.endsWith('.exe') ? a : a + '.exe'))));
+        }
+        return { enabled: this.blocker.enabled, apps: this.blocker.apps, blockedCount: this.blocker.blockedCount };
+      case 'blocker:toggle':
+        this.blocker.enabled = typeof args[0] === 'boolean' ? args[0] : !this.blocker.enabled;
+        if (this.blocker.enabled) this.blocker.blockedCount = 0;
+        return { enabled: this.blocker.enabled, apps: this.blocker.apps, blockedCount: this.blocker.blockedCount };
+
+      case 'overlay:get':
+        return { enabled: this.overlay.enabled, opacity: this.overlay.opacity, tiles: this.overlay.tiles };
+      case 'overlay:set':
+        if (args[0] && typeof args[0] === 'object') {
+          if (typeof args[0].opacity === 'number') this.overlay.opacity = Math.max(0.3, Math.min(1, args[0].opacity));
+          if (args[0].tiles && typeof args[0].tiles === 'object') this.overlay.tiles = { ...this.overlay.tiles, ...args[0].tiles };
+        }
+        return { enabled: this.overlay.enabled, opacity: this.overlay.opacity, tiles: this.overlay.tiles };
+      case 'overlay:toggle':
+        this.overlay.enabled = typeof args[0] === 'boolean' ? args[0] : !this.overlay.enabled;
+        return this.overlay.enabled;
         
       case 'git:getRepos': return this.demo ? [DEMO_UNIFIED, ...this.repos] : this.repos;
       case 'git:linkRepo':
