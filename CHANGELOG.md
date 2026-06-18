@@ -6,6 +6,11 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-18
+
+"Extensions & lifecycle". Headline: a signed, capability-scoped **plugin system** with
+install-time consent, plus a round of update/uninstall robustness.
+
 ### Added
 - **Desktop overlay** (#8) — an always-on-top, draggable widget that floats above
   your windows with live CPU / RAM / listening-ports / clock tiles. Toggle it from
@@ -66,6 +71,9 @@ All notable changes to Onyx are documented here. The format follows
   migrated on launch: a file written by an older version gets any new options filled in
   with safe defaults (and your existing choices are never changed), so an update can't
   leave you with half-applied or missing settings.
+- **First-run onboarding hardened** (#28, #30) — the wizard's data loads are isolated and
+  the AI step tolerates a malformed/failed provider list, so a hiccup degrades gracefully
+  instead of crashing the first run.
 
 ## [1.2.0] - 2026-06-18
 
