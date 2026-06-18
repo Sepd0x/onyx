@@ -21,9 +21,16 @@ All notable changes to Onyx are documented here. The format follows
   instead of the default 980×680 every launch. Bounds are validated and clamped to a
   connected display, so a window saved on an unplugged monitor can't open off-screen.
 
+- **Pick your tools, from the start** (#28) — a new "Your tools" step in onboarding
+  lets you enable only the tools you want; the rest stay hidden from the sidebar and
+  command palette (re-enable any of them later). The same tool catalog — cards with
+  an icon, description and an "Official · by Onyx" credit — now powers Settings →
+  Tools, ready for community-contributed tools to be credited the same way.
+
 ### Changed
 - **Settings are organised into categories** — General, Appearance, Surfaces, Tools,
   AI, Data and About — shown one at a time instead of one ever-growing scroll.
+- **Tools in Settings** are shown as a richer catalog (shared with onboarding).
 
 ## [1.2.0] - 2026-06-18
 
