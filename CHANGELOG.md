@@ -42,8 +42,10 @@ All notable changes to Onyx are documented here. The format follows
   registry ([`Sepd0x/onyx-plugins`](https://github.com/Sepd0x/onyx-plugins)).
   **Install with consent** — picking a plugin folder verifies its signature *before*
   anything runs, then shows a consent dialog spelling out every capability it's asking
-  for (sorted by risk); only on your approval is the verified bundle copied in, granted
-  no more than what it declared. Nothing untrusted ever touches disk.
+  for (sorted by risk), each with its own toggle: leave them all on for a one-tap install,
+  or withhold any you'd rather not grant and install with just the rest. Only the allowed
+  set is granted — never more than the plugin declared — and nothing untrusted ever touches
+  disk.
 
 ### Changed
 - **Settings are organised into categories** — General, Appearance, Surfaces, Tools,
