@@ -1,0 +1,8 @@
+name = "onyx-telemetry"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# Aggregate-only storage. No database of per-event rows, no IP logging.
+[[analytics_engine_datasets]]
+binding = "ONYX_TELEMETRY"
+dataset = "onyx_telemetry"

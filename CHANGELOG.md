@@ -4,6 +4,41 @@ All notable changes to Onyx are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project aims at
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Desktop overlay** (#8) — an always-on-top, draggable widget that floats above
+  your windows with live CPU / RAM / listening-ports / clock tiles. Toggle it from
+  the tray menu or Settings → Desktop overlay; pick which tiles show, set its
+  opacity, and its position is remembered. Its own frameless, transparent window.
+  **Click to expand** into a richer panel — recent clipboard with one-click re-copy
+  plus a quick "Open Onyx" action — and collapse back to the compact strip.
+- **App blocker in Focus Mode** (#9) — list distraction apps (e.g. `Discord.exe`,
+  `Steam.exe`) and, while the blocker is active, Onyx force-closes them in the
+  background so you stay in flow, with a per-session "closed" count. Opt-in and
+  explicit: OS-critical processes and Onyx itself can never be blocked.
+- **Window size & position are remembered** (#9) — Onyx reopens where you left it
+  instead of the default 980×680 every launch. Bounds are validated and clamped to a
+  connected display, so a window saved on an unplugged monitor can't open off-screen.
+
+- **Opt-in anonymous telemetry** (#27) — **off by default**. If you turn it on (in
+  onboarding or Settings → Data) Onyx shares only your app version, OS, language,
+  theme and which tools you open (daily aggregates) under a random, resettable id —
+  never your code, files, repos, ports, clipboard, AI prompts or any personal data,
+  and your IP is dropped at the edge. You can preview the exact payload before
+  enabling. Full policy in `PRIVACY.md`; the collector is a self-owned Cloudflare
+  Worker (`infra/telemetry-worker/`).
+- **Pick your tools, from the start** (#28) — a new "Your tools" step in onboarding
+  lets you enable only the tools you want; the rest stay hidden from the sidebar and
+  command palette (re-enable any of them later). The same tool catalog — cards with
+  an icon, description and an "Official · by Onyx" credit — now powers Settings →
+  Tools, ready for community-contributed tools to be credited the same way.
+
+### Changed
+- **Settings are organised into categories** — General, Appearance, Surfaces, Tools,
+  AI, Data and About — shown one at a time instead of one ever-growing scroll.
+- **Tools in Settings** are shown as a richer catalog (shared with onboarding).
+
 ## [1.2.0] - 2026-06-18
 
 "New pillars & polish".

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload, PictureInPicture2, BarChart3, RotateCcw } from 'lucide-react';
 import Switch from '../components/Switch';
 import KeyCapture from '../components/KeyCapture';
 import ViewHeader from '../components/ViewHeader';
-import { TOOLS } from '../lib/tools';
+import ToolCatalog from '../components/ToolCatalog';
 import { CH, EV } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import { ACCENTS, applyAccent } from '../lib/accents';
@@ -19,6 +19,15 @@ export default function SettingsView() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState('');
   const [backupMsg, setBackupMsg] = useState('');
+  // Desktop overlay state lives in its own backend (overlay:*), not appConfig.
+  const [overlay, setOverlay] = useState<{ enabled: boolean; opacity: number; tiles: Record<string, boolean> }>({ enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } });
+  // Settings are grouped into categories (the page grew too long as one scroll).
+  // One category shows at a time; sections keep their place in the tree and are
+  // hidden via a class when their category isn't active (no remount, no churn).
+  const [cat, setCat] = useState('general');
+  // Opt-in telemetry (#27): preview + id come from the telemetry backend.
+  const [telemetry, setTelemetry] = useState<any>({ enabled: false, analyticsId: '', sample: null, packaged: false, endpointConfigured: false });
+  const [showSample, setShowSample] = useState(false);
   // Conflict surface: whether the global hotkey actually registered (another app
   // may have grabbed Ctrl+Alt+D first).
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
@@ -56,6 +65,8 @@ export default function SettingsView() {
         }
       });
       loadAiStatus();
+      window.api.invoke(CH.overlayGet).then((o: any) => o && setOverlay(o));
+      window.api.invoke(CH.telemetryGetPreview).then((t: any) => t && setTelemetry(t));
       window.api.on(EV.appUpdateAvailable, (version: string) => {
         setUpdatePhase('available');
         setUpdateStatus(`Update ${version} available.`);
@@ -202,6 +213,40 @@ export default function SettingsView() {
     }
   };
 
+  // Desktop overlay controls (separate backend, not appConfig).
+  const toggleOverlay = async () => {
+    const en = await window.api?.invoke(CH.overlayToggle, !overlay.enabled);
+    setOverlay((o) => ({ ...o, enabled: !!en }));
+  };
+  const setOverlayOpacity = async (opacity: number) => {
+    setOverlay((o) => ({ ...o, opacity })); // instant feedback
+    const r: any = await window.api?.invoke(CH.overlaySet, { opacity });
+    if (r) setOverlay((o) => ({ ...o, ...r }));
+  };
+  const toggleOverlayTile = async (key: string) => {
+    const tiles = { ...overlay.tiles, [key]: !overlay.tiles[key] };
+    setOverlay((o) => ({ ...o, tiles }));
+    const r: any = await window.api?.invoke(CH.overlaySet, { tiles });
+    if (r) setOverlay((o) => ({ ...o, ...r }));
+  };
+
+  // Telemetry consent (#27). Off by default; toggling persists telemetryEnabled and
+  // refreshes the preview so the "what we send" sample reflects the new state.
+  const toggleTelemetry = async () => {
+    const next = !(config.telemetryEnabled === true);
+    setConfig((c: any) => ({ ...c, telemetryEnabled: next }));
+    setTelemetry((t: any) => ({ ...t, enabled: next }));
+    if (window.api) {
+      await window.api.invoke(CH.appSetConfig, { ...config, telemetryEnabled: next });
+      const p: any = await window.api.invoke(CH.telemetryGetPreview);
+      if (p) setTelemetry(p);
+    }
+  };
+  const resetTelemetryId = async () => {
+    const id: any = await window.api?.invoke(CH.telemetryResetId);
+    if (id) setTelemetry((t: any) => ({ ...t, analyticsId: id }));
+  };
+
   const DEFAULT_HOTKEY = 'CommandOrControl+Alt+D';
   const setGlobalHotkey = async (accel: string) => {
     const newConfig = { ...config, globalHotkey: accel };
@@ -211,7 +256,6 @@ export default function SettingsView() {
 
   // Tool enable/disable (#28 MVP): a disabled tool is hidden from the sidebar +
   // command palette. Stored as an exclusion list so new tools default to enabled.
-  const toolEnabled = (id: string) => !(Array.isArray(config.disabledTools) ? config.disabledTools : []).includes(id);
   const toggleTool = async (id: string) => {
     const disabled: string[] = Array.isArray(config.disabledTools) ? config.disabledTools : [];
     const next = disabled.includes(id) ? disabled.filter((d) => d !== id) : [...disabled, id];
@@ -240,6 +284,19 @@ export default function SettingsView() {
   const providers: any[] = aiStatus.providers || [];
   const activeMeta: any = providers.find((p) => p.key === aiStatus.provider) || { label: 'AI provider', placeholder: 'API key', keyUrl: '' };
 
+  // Category nav. A section's wrapper uses sectionCls(id) so only the active
+  // category renders; everything else collapses to `hidden`.
+  const CATS: { id: string; label: string; icon: any }[] = [
+    { id: 'general', label: 'General', icon: Power },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'surfaces', label: 'Surfaces', icon: LayoutGrid },
+    { id: 'tools', label: 'Tools', icon: LayoutGrid },
+    { id: 'ai', label: 'AI', icon: BrainCircuit },
+    { id: 'data', label: 'Data', icon: Download },
+    { id: 'about', label: 'About', icon: ShieldCheck },
+  ];
+  const sectionCls = (c: string) => (cat === c ? 'flex flex-col gap-4' : 'hidden');
+
   return (
     <div className="h-full flex flex-col bg-transparent relative">
       <div className="flex-shrink-0 px-10 pt-10 pb-6 border-b border-border/60 z-20 bg-background/50 backdrop-blur-sm">
@@ -248,8 +305,24 @@ export default function SettingsView() {
 
       <div className="flex-1 overflow-y-auto p-10 pt-8 no-scrollbar pb-24">
         <div className="max-w-2xl mx-auto flex flex-col gap-8">
-        
-        <div className="flex flex-col gap-4">
+
+        {/* Category nav — one settings group at a time, instead of one long scroll. */}
+        <div className="flex flex-wrap gap-1.5 -mb-2">
+          {CATS.map((c) => {
+            const Icon = c.icon;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setCat(c.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${cat === c.id ? 'bg-surface2 text-text border-border2' : 'text-muted2 border-border hover:bg-surface2 hover:text-text'}`}
+              >
+                <Icon className="w-3.5 h-3.5" /> {c.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={sectionCls('general')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Power className="w-4 h-4 text-accent"/> Core run state</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -269,7 +342,7 @@ export default function SettingsView() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('general')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-accent"/> Module automation</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -342,7 +415,7 @@ export default function SettingsView() {
           </div>
         </div>
         
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('surfaces')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tray dashboard</h3>
            <div className={`bg-surface border border-border rounded-xl overflow-hidden shadow-sm transition-opacity ${(config.enableTrayDashboard ?? true) ? '' : 'opacity-50 pointer-events-none'}`}>
             <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
@@ -377,29 +450,62 @@ export default function SettingsView() {
            <p className="text-[10px] text-muted/70 -mt-1">Tray layout updates the next time you open the popup.</p>
         </div>
 
-        <div className="flex flex-col gap-4">
-           <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tools <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Pick what you use</span></h3>
+        <div className={sectionCls('surfaces')}>
+           <h3 className="text-sm font-semibold flex items-center gap-2"><PictureInPicture2 className="w-4 h-4 text-accent"/> Desktop overlay <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Always on top</span></h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-            {TOOLS.map((t, i) => {
-              const Icon = t.icon;
-              return (
-                <div key={t.id} className={`px-6 py-4 flex items-center justify-between hover:bg-surface2 transition-colors ${i < TOOLS.length - 1 ? 'border-b border-border/50' : ''}`}>
-                  <div className="flex items-start gap-3 min-w-0">
-                    <span className="p-1.5 rounded-lg bg-surface2 border border-border text-accent shrink-0 mt-0.5"><Icon className="w-4 h-4" /></span>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-[13px] text-text">{t.label}</h3>
-                      <p className="text-[11px] text-muted mt-0.5 leading-relaxed">{t.description}{t.requiresAI ? ' Also needs the AI assistant on.' : ''}</p>
-                    </div>
-                  </div>
-                  <Switch active={toolEnabled(t.id)} onClick={() => toggleTool(t.id)} />
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors">
+              <div>
+                <h3 className="font-medium text-[13px] text-text">Show desktop overlay</h3>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">A small, draggable widget that floats above your windows with live system stats.</p>
+              </div>
+              <Switch active={overlay.enabled} onClick={toggleOverlay} />
+            </div>
+            <div className={`transition-opacity ${overlay.enabled ? '' : 'opacity-50 pointer-events-none'}`}>
+              <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 gap-6">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Opacity</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">How transparent the widget sits over your desktop.</p>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <input
+                    type="range" min={0.3} max={1} step={0.02}
+                    value={overlay.opacity}
+                    onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
+                    aria-label="Overlay opacity"
+                    className="w-32 accent-primary"
+                  />
+                  <span className="text-[10px] font-mono text-muted2 w-8 text-right">{Math.round(overlay.opacity * 100)}%</span>
+                </div>
+              </div>
+              <div className="px-6 py-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h3 className="font-medium text-[13px] text-text">Tiles</h3>
+                  <p className="text-[11px] text-muted mt-1 leading-relaxed">Choose which readouts the overlay shows.</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                  {([['cpu', 'CPU'], ['ram', 'RAM'], ['ports', 'Ports'], ['clock', 'Clock']] as [string, string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => toggleOverlayTile(key)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${overlay.tiles[key] ? 'bg-surface2 text-text border-border2' : 'text-muted2 border-border hover:bg-surface2 hover:text-text'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
            </div>
+           <p className="text-[10px] text-muted/70 -mt-1">Drag the widget anywhere; its position is remembered. Also toggleable from the tray menu.</p>
+        </div>
+
+        <div className={sectionCls('tools')}>
+           <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tools <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Pick what you use</span></h3>
+           <ToolCatalog config={config} onToggle={toggleTool} />
            <p className="text-[10px] text-muted/70 -mt-1">Disabled tools are hidden from the sidebar and command palette — turn them back on any time.</p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('ai')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><BrainCircuit className="w-4 h-4 text-accent"/> AI assistant <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Opt-in</span></h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm p-6 flex flex-col gap-4">
              {/* Provider picker — Anthropic / OpenAI / Google. Each keeps its own key. */}
@@ -514,7 +620,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('appearance')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Palette className="w-4 h-4 text-accent"/> Visual identity</h3>
            <div className="bg-surface border border-border rounded-xl overflow-hidden grid grid-cols-3 gap-[1px] bg-border p-[1px]">
              <button onClick={() => setTheme('midnight')} className={`p-4 flex flex-col items-center justify-center gap-2 transition-colors ${config.theme === 'midnight' || !config.theme ? 'bg-surface2 text-text' : 'bg-surface text-muted hover:bg-surface2/50'}`}>
@@ -558,7 +664,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className={sectionCls('data')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><Download className="w-4 h-4 text-accent"/> Backup &amp; restore</h3>
            <div className="bg-surface border border-border rounded-xl shadow-sm p-6 flex flex-col gap-4">
              <p className="text-[11px] text-muted leading-relaxed">
@@ -576,7 +682,40 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center">
+        <div className={sectionCls('data')}>
+           <h3 className="text-sm font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-accent"/> Privacy &amp; telemetry <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Off by default</span></h3>
+           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors gap-4">
+              <div className="min-w-0">
+                <h3 className="font-medium text-[13px] text-text">Share anonymous usage</h3>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">Help improve Onyx by sharing your app version, OS and which tools you open — as daily aggregates. <span className="text-text2">Never</span> your code, files, repos, ports, clipboard, AI prompts or any personal data; your IP is dropped at the edge. Off until you turn it on.</p>
+              </div>
+              <Switch active={config.telemetryEnabled === true} onClick={toggleTelemetry} label="Share anonymous usage" />
+            </div>
+            <div className="px-6 py-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <button onClick={() => setShowSample((s) => !s)} className="text-[11px] font-medium px-3 py-1.5 bg-surface2 hover:bg-surface3 border border-border text-text2 rounded-lg transition-colors">
+                  {showSample ? 'Hide' : 'See'} exactly what we send
+                </button>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-muted">
+                  <span>id&nbsp;{telemetry.analyticsId ? String(telemetry.analyticsId).slice(0, 8) : '—'}</span>
+                  <button onClick={resetTelemetryId} className="flex items-center gap-1 px-2 py-1 rounded-md border border-border hover:bg-surface2 hover:text-text transition-colors">
+                    <RotateCcw className="w-3 h-3" /> Reset id
+                  </button>
+                </div>
+              </div>
+              {showSample && (
+                <pre className="text-[10px] font-mono text-text2/90 bg-background border border-border rounded-lg p-3 overflow-x-auto no-scrollbar leading-relaxed">{JSON.stringify(telemetry.sample, null, 2)}</pre>
+              )}
+              {!telemetry.endpointConfigured && (
+                <p className="text-[10px] text-muted/60 leading-relaxed">No collector is configured in this build yet, so nothing is transmitted even when enabled — the toggle is here so it's ready.</p>
+              )}
+            </div>
+           </div>
+           <p className="text-[10px] text-muted/70 -mt-1">The full policy lives in <span className="font-mono">PRIVACY.md</span> in the repo.</p>
+        </div>
+
+        <div className={`mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center ${cat === 'about' ? '' : 'hidden'}`}>
            <div>
              <h4 className="text-sm font-medium text-text tracking-tight flex items-center gap-2">
               Onyx <span className="px-2 py-0.5 text-[9px] font-mono bg-surface2 text-muted2 border border-border rounded-md">v{config.appVersion || '—'}</span>
@@ -623,7 +762,7 @@ export default function SettingsView() {
            </div>
         </div>
 
-        <div className="p-5 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-4">
+        <div className={`p-5 bg-primary/5 border border-primary/20 rounded-xl flex items-start gap-4 ${cat === 'about' ? '' : 'hidden'}`}>
            <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0" />
            <div>
              <h4 className="text-sm font-medium text-primary tracking-tight">Secure Context Enforced</h4>

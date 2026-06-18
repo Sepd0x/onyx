@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, KeyRound, Sparkles, Command as CommandIcon, LayoutDashboard, Rocket } from 'lucide-react';
+import { ArrowRight, Check, KeyRound, Sparkles, Command as CommandIcon, LayoutDashboard, Rocket, BarChart3 } from 'lucide-react';
 import { CH } from '../ipc';
 import { invalidate } from '../lib/ipcCache';
 import { ACCENTS, applyAccent } from '../lib/accents';
 import Logo from './Logo';
+import ToolCatalog from './ToolCatalog';
+import Switch from './Switch';
 
-const STEP_NAMES = ['Welcome', 'Appearance', 'AI assistant', 'All set'];
+const STEP_NAMES = ['Welcome', 'Appearance', 'Your tools', 'AI assistant', 'All set'];
 // Best-effort breadcrumb into the main log, so a first-run crash report can be
 // traced to the exact step the user reached (see issue #30). Never throws.
 const logStep = (message: string) => { try { window.api?.invoke(CH.appLog, { level: 'info', message: `onboarding: ${message}` }); } catch {} };
@@ -17,6 +19,10 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
   const [step, setStep] = useState(0);
   const [theme, setThemeState] = useState('midnight');
   const [accent, setAccentState] = useState('purple');
+  // Held so the "Your tools" step can read/write config.disabledTools.
+  const [config, setConfig] = useState<any>({});
+  // Telemetry consent (opt-in, off by default) — confirmed on the last step.
+  const [telemetryOn, setTelemetryOn] = useState(false);
 
   // AI step state
   const [providers, setProviders] = useState<any[]>([]);
@@ -32,8 +38,10 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
       if (!window.api) return;
       try {
         const cfg: any = await window.api.invoke(CH.appGetConfig);
+        if (cfg) setConfig(cfg);
         if (cfg?.theme) setThemeState(cfg.theme);
         if (cfg?.accent) setAccentState(cfg.accent);
+        setTelemetryOn(cfg?.telemetryEnabled === true);
         const s: any = await window.api.invoke(CH.aiGetStatus);
         if (s?.providers) { setProviders(s.providers); setProvider(s.provider || 'anthropic'); }
       } catch (e: any) {
@@ -54,6 +62,21 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
     setAccentState(a);
     applyAccent(a);
     window.api?.invoke(CH.appSetConfig, { accent: a });
+  };
+
+  // Pick-your-tools: persist the exclusion list as the user toggles. Safe + sync
+  // (no async provider load), so it doesn't add to the onboarding crash surface (#30).
+  const toggleTool = (id: string) => {
+    const disabled: string[] = Array.isArray(config.disabledTools) ? config.disabledTools : [];
+    const next = disabled.includes(id) ? disabled.filter((d) => d !== id) : [...disabled, id];
+    setConfig((c: any) => ({ ...c, disabledTools: next }));
+    window.api?.invoke(CH.appSetConfig, { disabledTools: next });
+  };
+
+  const toggleTelemetry = () => {
+    const next = !telemetryOn;
+    setTelemetryOn(next);
+    window.api?.invoke(CH.appSetConfig, { telemetryEnabled: next });
   };
 
   const selectProvider = async (p: string) => {
@@ -148,6 +171,18 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
           )}
 
           {step === 2 && (
+            <div className="flex-1 flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-text">Your tools</h2>
+                <p className="text-[12px] text-muted mt-1 leading-relaxed">Onyx ships with everything below. Turn off what you don't need — it's hidden from the sidebar and command palette, and you can re-enable any tool later in Settings.</p>
+              </div>
+              <div className="overflow-y-auto no-scrollbar -mx-1 px-1 max-h-[300px]">
+                <ToolCatalog config={config} onToggle={toggleTool} columns={2} />
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
             <div className="flex-1 flex flex-col gap-5">
               <div>
                 <h2 className="text-lg font-semibold text-text flex items-center gap-2">AI assistant <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Optional</span></h2>
@@ -186,13 +221,25 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="flex-1 flex flex-col gap-5">
               <div className="flex flex-col items-center text-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-success/15 border border-success/30 flex items-center justify-center">
                   <Check className="w-6 h-6 text-success" />
                 </div>
                 <h2 className="text-lg font-semibold text-text">You're all set</h2>
+              </div>
+
+              {/* Opt-in telemetry — off by default, honest + one tap. */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border">
+                <span className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-accent shrink-0"><BarChart3 className="w-4 h-4" /></span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[13px] font-medium text-text">Share anonymous usage <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Optional</span></div>
+                    <Switch active={telemetryOn} onClick={toggleTelemetry} label="Share anonymous usage" />
+                  </div>
+                  <div className="text-[11px] text-muted leading-relaxed mt-1">App version, OS and which tools you open — daily aggregates, never your code or any personal data. Change it any time in Settings → Data.</div>
+                </div>
               </div>
               <div className="flex flex-col gap-2.5">
                 {[
