@@ -1,11 +1,18 @@
 const { ipcMain, app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { migrateConfig } = require('./settings-migrate');
 
 module.exports = function initAppSettings() {
   const file = path.join(app.getPath('userData'), 'onyx-settings.json');
-  let config = { launchOnStartup: false, startMinimized: false };
-  try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch(e) {}
+  // Load whatever is on disk, then bring it up to the current schema (fills any keys a
+  // pre-update file is missing, with behaviour-preserving defaults). Persist back only if
+  // the migration actually changed something, so we don't rewrite an up-to-date file.
+  let raw = {};
+  try { raw = JSON.parse(fs.readFileSync(file, 'utf8')); } catch(e) {}
+  const { config: migrated, changed } = migrateConfig(raw);
+  let config = migrated;
+  if (changed) { try { fs.writeFileSync(file, JSON.stringify(config)); } catch(e) {} }
 
   // Ensure login item setting is sync'd
   if (app.setLoginItemSettings) {
