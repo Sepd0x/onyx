@@ -34,19 +34,29 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
 
   useEffect(() => {
     logStep('opened (first-run wizard mounted)');
+    if (!window.api) return;
+    // Two independent best-effort loads. Isolating them means a failure in one — or an
+    // AI status that comes back malformed — can never throw up through onboarding. A
+    // crash on a fresh first run is exactly what #30 is about, so nothing here may throw.
     (async () => {
-      if (!window.api) return;
       try {
-        const cfg: any = await window.api.invoke(CH.appGetConfig);
+        const cfg: any = await window.api!.invoke(CH.appGetConfig);
         if (cfg) setConfig(cfg);
         if (cfg?.theme) setThemeState(cfg.theme);
         if (cfg?.accent) setAccentState(cfg.accent);
         setTelemetryOn(cfg?.telemetryEnabled === true);
-        const s: any = await window.api.invoke(CH.aiGetStatus);
-        if (s?.providers) { setProviders(s.providers); setProvider(s.provider || 'anthropic'); }
-      } catch (e: any) {
-        logStep(`init failed: ${String(e?.message || e)}`);
-      }
+      } catch (e: any) { logStep(`config load failed: ${String(e?.message || e)}`); }
+    })();
+    (async () => {
+      try {
+        const s: any = await window.api!.invoke(CH.aiGetStatus);
+        // Only trust a well-formed provider array — a bad shape must not reach render
+        // (the AI step maps over it), where it would crash instead of degrade.
+        if (Array.isArray(s?.providers)) {
+          setProviders(s.providers);
+          if (s.provider) setProvider(s.provider);
+        }
+      } catch (e: any) { logStep(`AI status load failed: ${String(e?.message || e)}`); }
     })();
   }, []);
 
@@ -83,7 +93,7 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
     setProvider(p);
     setAiKey('');
     setAiMsg('');
-    await window.api?.invoke(CH.aiSetProvider, p);
+    try { await window.api?.invoke(CH.aiSetProvider, p); } catch (e: any) { logStep(`provider switch failed: ${String(e?.message || e)}`); }
   };
 
   const saveAndTest = async () => {
@@ -98,6 +108,11 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
       const t: any = await window.api.invoke(CH.aiTest);
       setAiMsg(t?.ok ? 'Saved and working ✓' : (t?.detail || `Saved, but the test failed: ${t?.error || 'unknown'}`));
       invalidate('ai:');
+    } catch (e: any) {
+      // A rejected save/test must surface as a message, not an unhandled rejection that
+      // leaves the step stuck on "Saving…". The user can still skip past the AI step.
+      logStep(`AI save/test failed: ${String(e?.message || e)}`);
+      setAiMsg(`Couldn't save the key: ${String(e?.message || e)}`);
     } finally {
       setAiBusy(false);
     }
@@ -191,7 +206,7 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
               <div className="grid grid-cols-3 gap-1.5 bg-background border border-border rounded-lg p-1">
                 {providers.map((p) => (
                   <button key={p.key} onClick={() => selectProvider(p.key)} className={`relative px-2 py-2 rounded-md text-[11px] font-medium transition-colors ${provider === p.key ? 'bg-surface2 text-text border border-border2' : 'text-muted2 hover:text-text hover:bg-surface2/60 border border-transparent'}`}>
-                    {p.label.split(' ')[0]}
+                    {String(p.label || p.key || '').split(' ')[0] || p.key}
                     {p.configured && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-success" />}
                   </button>
                 ))}
