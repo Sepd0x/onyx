@@ -66,4 +66,12 @@ function canInvoke(plugin, method, enabled) {
   return !!plugin && enabled !== false && plugin.channels.includes(method);
 }
 
-module.exports = { loadBundle, canInvoke, satisfiesEngine, SIG_NAME };
+// What the user actually grants at install time. The consent UI can only ever NARROW the
+// declared set — a requested permission that the manifest didn't declare is dropped. This
+// is the install-side half of "a plugin can never get more than it openly asked for".
+function narrowGrant(declared, requested) {
+  const want = new Set(Array.isArray(requested) ? requested : declared || []);
+  return (declared || []).filter((p) => want.has(p));
+}
+
+module.exports = { loadBundle, canInvoke, satisfiesEngine, narrowGrant, SIG_NAME };

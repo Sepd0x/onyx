@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadBundle, canInvoke, satisfiesEngine } from './registry.js';
+import { loadBundle, canInvoke, satisfiesEngine, narrowGrant } from './registry.js';
 import { canonicalDigest, generateKeyPair, sign } from '../../core/src/plugins/verify.js';
 
 const KEYS = generateKeyPair();
@@ -80,5 +80,20 @@ describe('plugin registry — guards', () => {
     expect(satisfiesEngine('2.0.0', '>=1.5.0')).toBe(true);
     expect(satisfiesEngine('2.0.0', '>=3.0.0')).toBe(false);
     expect(satisfiesEngine('2.0.0', 'garbage')).toBe(false);
+  });
+
+  it('narrowGrant can only narrow the declared permission set, never widen it', () => {
+    const declared = ['notify', 'net:fetch'];
+    // A subset request is honoured.
+    expect(narrowGrant(declared, ['notify'])).toEqual(['notify']);
+    // A request for something NOT declared is dropped (no privilege escalation).
+    expect(narrowGrant(declared, ['notify', 'fs:read'])).toEqual(['notify']);
+    // An empty request grants nothing.
+    expect(narrowGrant(declared, [])).toEqual([]);
+    // No/invalid request falls back to exactly what was declared.
+    expect(narrowGrant(declared, undefined)).toEqual(declared);
+    expect(narrowGrant(declared, null)).toEqual(declared);
+    // Result order follows the declared manifest order.
+    expect(narrowGrant(declared, ['net:fetch', 'notify'])).toEqual(['notify', 'net:fetch']);
   });
 });
