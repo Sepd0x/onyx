@@ -57,6 +57,7 @@ export const CH = {
   telemetryResetId: 'telemetry:resetId',
   // Plugins (Fase 2)
   pluginList: 'plugin:list',
+  pluginPickBundle: 'plugin:pickBundle',
   pluginInstall: 'plugin:install',
   pluginSetEnabled: 'plugin:setEnabled',
   pluginInvoke: 'plugin:invoke',

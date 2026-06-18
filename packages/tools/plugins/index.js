@@ -1,8 +1,8 @@
-const { app, ipcMain, Notification, shell, clipboard } = require('electron');
+const { app, ipcMain, dialog, BrowserWindow, Notification, shell, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../../core/src/logger');
-const { loadBundle, canInvoke, SIG_NAME } = require('./registry');
+const { loadBundle, canInvoke, narrowGrant, SIG_NAME } = require('./registry');
 const { buildHost } = require('./host');
 const { ONYX_PLUGIN_PUBLIC_KEY } = require('../../core/src/plugins/public-key');
 
@@ -27,6 +27,11 @@ module.exports = function initPlugins(opts) {
   const saveState = () => { try { fs.writeFileSync(stateFile, JSON.stringify(state)); } catch {} };
 
   const loaded = new Map(); // id -> { plugin, dir, backend?, handlers?, error? }
+
+  // A bundle the user picked + we verified, awaiting their permission consent. Held in main
+  // (never handed to the renderer as a path) so the renderer can't drive an arbitrary copy:
+  // it approves an id, and only this pre-verified source for that id is ever installed.
+  let pendingInstall = null; // { dir, plugin } | null
 
   // Read a plugin folder into the shape registry.loadBundle expects (everything but the
   // signature file, plus the signature string itself).
@@ -112,23 +117,64 @@ module.exports = function initPlugins(opts) {
   // Installed plugins + their manifests, enabled state, and granted permissions.
   ipcMain.handle('plugin:list', () => Array.from(loaded.values()).map(publicView));
 
-  // Verify + install a bundle from a local folder (the Extensions UI picks it). Never
-  // copies anything that fails verification — the disk only ever holds trusted plugins.
-  ipcMain.handle('plugin:install', (_e, data) => {
-    const sourceDir = data && data.sourceDir;
-    if (!sourceDir || !fs.existsSync(sourceDir)) return { ok: false, error: 'source not found' };
+  // Step 1 of install — pick a plugin folder and VERIFY it (no copy, no code run). The
+  // signature/manifest gate runs here so an unsigned or tampered bundle never even reaches
+  // the consent dialog. On success we stash the verified source in `pendingInstall` and hand
+  // the renderer only the manifest preview (the permissions it must consent to).
+  ipcMain.handle('plugin:pickBundle', async (_e) => {
+    const win = BrowserWindow.getFocusedWindow();
+    let pick;
+    try {
+      pick = await dialog.showOpenDialog(win || undefined, {
+        title: 'Select a signed Onyx plugin folder',
+        properties: ['openDirectory'],
+      });
+    } catch (e) { logger.error('Plugin pick dialog failed:', e); return { ok: false, error: 'could not open picker' }; }
+    if (!pick || pick.canceled || !pick.filePaths || !pick.filePaths[0]) return { ok: false, canceled: true };
+
+    const sourceDir = pick.filePaths[0];
     let res;
     try { const { files, signature } = readBundle(sourceDir); res = loadBundle({ files, signature, publicKey, appVersion }); }
     catch (e) { return { ok: false, error: 'could not read bundle' }; }
     if (!res.ok) return { ok: false, error: res.error };
-    const dest = path.join(baseDir, res.plugin.id);
+
+    pendingInstall = { dir: sourceDir, plugin: res.plugin };
+    const p = res.plugin;
+    return {
+      ok: true,
+      preview: {
+        id: p.id, name: p.name, version: p.version, description: p.description,
+        author: p.author, official: p.official, permissions: p.permissions, channels: p.channels,
+        alreadyInstalled: loaded.has(p.id),
+      },
+    };
+  });
+
+  // Step 2 of install — the user consented. Commit ONLY the pending pre-verified source for
+  // this exact id, granting at most the permissions it declared (never more). Copying a
+  // verified bundle is the only way trusted code reaches userData/plugins.
+  ipcMain.handle('plugin:install', (_e, data) => {
+    const id = data && data.id;
+    if (!pendingInstall || !id || pendingInstall.plugin.id !== id) return { ok: false, error: 'nothing to install' };
+    const { dir: sourceDir, plugin } = pendingInstall;
+    if (!fs.existsSync(sourceDir)) { pendingInstall = null; return { ok: false, error: 'source no longer available' }; }
+
+    // The renderer can only narrow, never widen: granted ⊆ declared permissions.
+    const granted = narrowGrant(plugin.permissions, data && data.granted);
+
+    const dest = path.join(baseDir, plugin.id);
     try {
       fs.mkdirSync(baseDir, { recursive: true });
       fs.rmSync(dest, { recursive: true, force: true });
       fs.cpSync(sourceDir, dest, { recursive: true });
     } catch (e) { logger.error('Plugin install copy failed:', e); return { ok: false, error: 'install failed' }; }
+
+    // Seed state with exactly what the user approved BEFORE loadAll, so the auto-grant path
+    // (first-seen → grant-all) never overrides the user's choice.
+    state[plugin.id] = { enabled: true, granted };
+    pendingInstall = null;
     loadAll();
-    return { ok: true, id: res.plugin.id };
+    return { ok: true, id: plugin.id };
   });
 
   ipcMain.handle('plugin:setEnabled', (_e, data) => {

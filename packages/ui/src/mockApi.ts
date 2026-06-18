@@ -95,6 +95,8 @@ class MockApi {
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null, lastCommitMeta: { hash: '4c8d0b2', author: 'Sepd0x', relative: 'yesterday', subject: 'feat: pomodoro timer' }, dirtyFiles: [], branches: ['main', 'dev'], lastFetched: Date.now() - 3600000 }
   ];
+  // A picked-but-not-yet-consented bundle (mirrors the main process's pendingInstall).
+  private pendingPlugin: any = null;
   private demo = false;
   private listeners: Record<string, Function[]> = {};
   private watchedProcesses: any[] = [];
@@ -524,9 +526,29 @@ class MockApi {
         }
         return { ok: true, result: null };
       }
-      case 'plugin:install':
-        // No signed-bundle picker in the browser preview.
-        return { ok: false, error: 'Install is available in the desktop app.' };
+      case 'plugin:pickBundle': {
+        // No OS folder picker in the browser preview — simulate a verified pick so the
+        // consent modal can be exercised. Returns a community plugin asking for two caps.
+        this.pendingPlugin = {
+          id: 'acme.clipsync', name: 'Clip Sync', version: '0.2.0',
+          description: 'Syncs your clipboard history to a private endpoint you control.',
+          author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' },
+          official: false, permissions: ['clipboard:read', 'net:fetch'], channels: ['sync'],
+        };
+        if (this.plugins.some((x) => x.id === this.pendingPlugin.id)) {
+          return { ok: false, error: 'Clip Sync is already installed.' };
+        }
+        return { ok: true, preview: { ...this.pendingPlugin, alreadyInstalled: false } };
+      }
+      case 'plugin:install': {
+        const pend = this.pendingPlugin;
+        if (!pend || pend.id !== args[0]?.id) return { ok: false, error: 'nothing to install' };
+        const requested: string[] = Array.isArray(args[0]?.granted) ? args[0].granted : pend.permissions;
+        const granted = pend.permissions.filter((p: string) => requested.includes(p));
+        this.plugins = [...this.plugins, { ...pend, granted, enabled: true, error: null }];
+        this.pendingPlugin = null;
+        return { ok: true, id: pend.id };
+      }
 
       case 'app:log':
         return true;

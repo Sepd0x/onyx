@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Blocks, BadgeCheck, ShieldCheck, Trash2, ExternalLink, AlertTriangle, Users } from 'lucide-react';
+import { Blocks, BadgeCheck, ShieldCheck, Trash2, ExternalLink, AlertTriangle, Users, FolderOpen } from 'lucide-react';
 import ViewHeader from '../components/ViewHeader';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
 import Switch from '../components/Switch';
+import PluginConsentModal, { type PluginPreview } from '../components/PluginConsentModal';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import { describePermission, RISK_CLASS } from '../lib/pluginPermissions';
@@ -35,10 +36,38 @@ export default function ExtensionsView() {
   const plugins = data ?? [];
   const loading = ts === 0;
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [preview, setPreview] = useState<PluginPreview | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
 
   const setEnabled = async (id: string, enabled: boolean) => {
     await window.api?.invoke(CH.pluginSetEnabled, { id, enabled });
     invalidate('plugin:');
+  };
+
+  // Step 1 — pick a folder; the main process verifies the signature before returning a
+  // preview. A cancel is silent; a verification failure surfaces as an inline error.
+  const pickBundle = async () => {
+    setPickError(null);
+    const res = await window.api?.invoke<{ ok: boolean; canceled?: boolean; error?: string; preview?: PluginPreview }>(
+      CH.pluginPickBundle,
+    );
+    if (!res || res.canceled) return;
+    if (!res.ok || !res.preview) { setPickError(res?.error || 'That folder is not a valid signed plugin.'); return; }
+    setPreview(res.preview);
+  };
+
+  // Step 2 — the user consented in the modal; commit the install with the granted set.
+  const confirmInstall = async (granted: string[]) => {
+    if (!preview) return;
+    setInstalling(true);
+    const res = await window.api?.invoke<{ ok: boolean; error?: string }>(CH.pluginInstall, { id: preview.id, granted });
+    setInstalling(false);
+    if (!res?.ok) { setPickError(res?.error || 'Install failed.'); setPreview(null); return; }
+    const name = preview.name;
+    setPreview(null);
+    invalidate('plugin:');
+    await window.api?.invoke(CH.appNotify, { title: 'Extension installed', body: `${name} is ready.` });
   };
 
   const uninstall = async (id: string) => {
@@ -61,14 +90,30 @@ export default function ExtensionsView() {
           </span>
         }
         actions={
-          <button
-            onClick={openRegistry}
-            className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" /> Browse registry
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openRegistry}
+              className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Browse registry
+            </button>
+            <button
+              onClick={pickBundle}
+              className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/20 text-accent hover:bg-primary/30 transition-colors"
+            >
+              <FolderOpen className="w-3.5 h-3.5" /> Install plugin
+            </button>
+          </div>
         }
       />
+
+      {pickError && (
+        <div className="flex items-start gap-2.5 p-3 rounded-lg border border-danger/30 bg-danger/10 text-[12px] text-danger animate-in fade-in slide-in-from-top-1 duration-200">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="leading-relaxed">{pickError}</span>
+          <button onClick={() => setPickError(null)} className="ml-auto text-[11px] font-mono text-danger/70 hover:text-danger shrink-0">DISMISS</button>
+        </div>
+      )}
 
       {/* Trust note — the brand promise, stated plainly. */}
       <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface/40">
@@ -91,9 +136,14 @@ export default function ExtensionsView() {
           title="No extensions installed"
           description="Browse the curated registry to add signed plugins. Every one is reviewed and credited to its author."
         >
-          <button onClick={openRegistry} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg bg-primary/20 text-accent border border-primary/30 hover:bg-primary/30 transition-colors">
-            <ExternalLink className="w-4 h-4" /> Browse registry
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={openRegistry} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors">
+              <ExternalLink className="w-4 h-4" /> Browse registry
+            </button>
+            <button onClick={pickBundle} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg bg-primary/20 text-accent border border-primary/30 hover:bg-primary/30 transition-colors">
+              <FolderOpen className="w-4 h-4" /> Install plugin
+            </button>
+          </div>
         </EmptyState>
       ) : (
         <div className="space-y-3">
@@ -181,6 +231,15 @@ export default function ExtensionsView() {
             </div>
           ))}
         </div>
+      )}
+
+      {preview && (
+        <PluginConsentModal
+          preview={preview}
+          busy={installing}
+          onCancel={() => setPreview(null)}
+          onConfirm={confirmInstall}
+        />
       )}
     </div>
   );
