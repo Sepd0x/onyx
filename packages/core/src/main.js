@@ -172,15 +172,17 @@ function createTray() {
 
 function createWindow() {
   // Restore the last size/position (clamped to a connected display) so Onyx
-  // reopens where the user left it instead of the default 980×680 every time.
-  const { bounds, maximized } = windowState.getBounds('main', { width: 980, height: 680 });
+  // reopens where the user left it instead of the default every time. The default
+  // (and the floor below) are sized for the current Settings content — the old
+  // 980×680 / minHeight 500 clipped it, forcing a scroll on first run.
+  const { bounds, maximized } = windowState.getBounds('main', { width: 1040, height: 720 });
   win = new BrowserWindow({
     width: bounds.width,
     height: bounds.height,
     x: bounds.x,
     y: bounds.y,
-    minWidth: 800,
-    minHeight: 500,
+    minWidth: 860,
+    minHeight: 620,
     show: false,
     frame: false,
     icon: iconPath,
@@ -374,6 +376,14 @@ function createWindow() {
       win.show();
     }
   });
+
+  // Failsafe: if 'ready-to-show' never fires on some machine (the reported "no window
+  // opened after first launch"), still surface the window — unless the user opted into
+  // starting minimized to the tray. Cheap insurance against a window that's created but
+  // never shown.
+  setTimeout(() => {
+    if (win && !win.isDestroyed() && !win.isVisible() && !appConfig.startMinimized) win.show();
+  }, 3500);
 }
 
 function showWindow() {

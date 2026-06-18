@@ -74,6 +74,12 @@ install-time consent, plus a round of update/uninstall robustness.
 - **First-run onboarding hardened** (#28, #30) — the wizard's data loads are isolated and
   the AI step tolerates a malformed/failed provider list, so a hiccup degrades gracefully
   instead of crashing the first run.
+- **"Update available" now actually offers the update** — the Download button is driven
+  straight from the check result instead of an event that doesn't re-fire on a cached
+  check, so a found update is always actionable (no more "available, but no button").
+- **The window opens big enough, and always opens** — larger default and minimum size so
+  Settings isn't clipped into a scroll on first run, plus a failsafe that surfaces the
+  window if the usual ready-to-show path doesn't (the reported "no window after launch").
 
 ## [1.2.0] - 2026-06-18
 
