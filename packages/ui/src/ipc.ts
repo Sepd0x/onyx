@@ -55,6 +55,12 @@ export const CH = {
   telemetryTrack: 'telemetry:track',
   telemetryGetPreview: 'telemetry:getPreview',
   telemetryResetId: 'telemetry:resetId',
+  // Plugins (Fase 2)
+  pluginList: 'plugin:list',
+  pluginInstall: 'plugin:install',
+  pluginSetEnabled: 'plugin:setEnabled',
+  pluginInvoke: 'plugin:invoke',
+  pluginUninstall: 'plugin:uninstall',
   // Window
   windowClose: 'window:close',
   windowMinimize: 'window:minimize',

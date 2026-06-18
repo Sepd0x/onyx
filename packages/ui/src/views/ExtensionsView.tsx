@@ -1,0 +1,187 @@
+import { useState } from 'react';
+import { Blocks, BadgeCheck, ShieldCheck, Trash2, ExternalLink, AlertTriangle, Users } from 'lucide-react';
+import ViewHeader from '../components/ViewHeader';
+import EmptyState from '../components/EmptyState';
+import Skeleton from '../components/Skeleton';
+import Switch from '../components/Switch';
+import { CH } from '../ipc';
+import { useIpc, invalidate } from '../lib/ipcCache';
+import { describePermission, RISK_CLASS } from '../lib/pluginPermissions';
+
+// Extensions — the catalog for the Fase 2 plugin system. Every plugin shown here has
+// already passed signature verification in the main process (an unsigned/tampered bundle
+// never reaches this list), so the story we tell the user is "installed = verified". Each
+// card credits its author, declares exactly which capabilities it was granted, and can be
+// toggled or removed. The renderer never reaches plugin code except through plugin:invoke.
+
+interface Plugin {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: { handle: string; url: string };
+  official: boolean;
+  permissions: string[];
+  channels: string[];
+  granted: string[];
+  enabled: boolean;
+  error: string | null;
+}
+
+const REGISTRY_URL = 'https://github.com/Sepd0x/onyx-plugins';
+
+export default function ExtensionsView() {
+  const { data, ts } = useIpc<Plugin[]>(CH.pluginList, [], { pollMs: 0 });
+  const plugins = data ?? [];
+  const loading = ts === 0;
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  const setEnabled = async (id: string, enabled: boolean) => {
+    await window.api?.invoke(CH.pluginSetEnabled, { id, enabled });
+    invalidate('plugin:');
+  };
+
+  const uninstall = async (id: string) => {
+    await window.api?.invoke(CH.pluginUninstall, { id });
+    setConfirming(null);
+    invalidate('plugin:');
+  };
+
+  const openRegistry = () => window.api?.invoke(CH.windowOpenExternal, REGISTRY_URL);
+
+  return (
+    <div className="p-8 max-w-5xl mx-auto space-y-6">
+      <ViewHeader
+        icon={Blocks}
+        title="Extensions"
+        subtitle="Signed · curated · capability-scoped"
+        badge={
+          <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold tracking-wide text-success bg-success/10 border border-success/25 rounded px-1.5 py-0.5">
+            <ShieldCheck className="w-3 h-3" /> VERIFIED
+          </span>
+        }
+        actions={
+          <button
+            onClick={openRegistry}
+            className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> Browse registry
+          </button>
+        }
+      />
+
+      {/* Trust note — the brand promise, stated plainly. */}
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-surface/40">
+        <ShieldCheck className="w-4 h-4 text-success shrink-0 mt-0.5" />
+        <p className="text-[12px] text-muted leading-relaxed">
+          Onyx only loads plugins <span className="text-text">signed by the Onyx key</span>. An unsigned or
+          tampered plugin is rejected before any of its code runs. Each plugin can use only the capabilities
+          you see listed on its card — nothing more.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+        </div>
+      ) : plugins.length === 0 ? (
+        <EmptyState
+          icon={Blocks}
+          title="No extensions installed"
+          description="Browse the curated registry to add signed plugins. Every one is reviewed and credited to its author."
+        >
+          <button onClick={openRegistry} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg bg-primary/20 text-accent border border-primary/30 hover:bg-primary/30 transition-colors">
+            <ExternalLink className="w-4 h-4" /> Browse registry
+          </button>
+        </EmptyState>
+      ) : (
+        <div className="space-y-3">
+          {plugins.map((p, idx) => (
+            <div
+              key={p.id}
+              style={{ animationDelay: `${idx * 40}ms` }}
+              className="rounded-xl border border-border bg-surface/40 p-4 card-lift animate-in fade-in slide-in-from-bottom-2 fill-mode-backwards"
+            >
+              <div className="flex items-start gap-4">
+                <span className="p-2 rounded-lg border border-primary/20 bg-primary/10 text-accent shrink-0">
+                  <Blocks className="w-5 h-5" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-[15px] font-semibold text-text">{p.name}</h3>
+                    <span className="text-[10px] font-mono text-muted2">v{p.version}</span>
+                    {p.official ? (
+                      <span className="inline-flex items-center gap-0.5 text-[8px] font-mono font-bold tracking-wide text-accent bg-primary/10 border border-primary/20 rounded px-1 py-0.5">
+                        <BadgeCheck className="w-2.5 h-2.5" /> OFFICIAL
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 text-[8px] font-mono font-bold tracking-wide text-muted2 bg-surface3/60 border border-border rounded px-1 py-0.5">
+                        <Users className="w-2.5 h-2.5" /> COMMUNITY
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-[12px] text-muted mt-1 leading-relaxed">{p.description}</p>
+
+                  {/* Author credit — real recognition, links out to the author. */}
+                  <button
+                    onClick={() => window.api?.invoke(CH.windowOpenExternal, p.author.url)}
+                    className="inline-flex items-center gap-1 text-[10px] font-mono text-muted/70 hover:text-accent transition-colors mt-1.5"
+                  >
+                    by {p.author.handle} <ExternalLink className="w-2.5 h-2.5" />
+                  </button>
+
+                  {p.error && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-danger mt-2">
+                      <AlertTriangle className="w-3 h-3" /> Failed to activate — disabled.
+                    </div>
+                  )}
+
+                  {/* Granted capabilities — exactly what this plugin can touch. */}
+                  {p.granted.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                      <span className="micro-label !text-[9px] mr-0.5">Can</span>
+                      {p.granted.map((perm) => {
+                        const { label, risk } = describePermission(perm);
+                        return (
+                          <span key={perm} className={`text-[10px] rounded-md border px-1.5 py-0.5 ${RISK_CLASS[risk]}`} title={`Risk: ${risk}`}>
+                            {label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Controls */}
+                <div className="flex flex-col items-end gap-3 shrink-0">
+                  <Switch active={p.enabled} onClick={() => setEnabled(p.id, !p.enabled)} label={`Toggle ${p.name}`} />
+                  {confirming === p.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => uninstall(p.id)} className="text-[10px] font-medium px-2 py-1 rounded-md bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25 transition-colors">
+                        Confirm
+                      </button>
+                      <button onClick={() => setConfirming(null)} className="text-[10px] font-medium px-2 py-1 rounded-md border border-border text-muted hover:text-text transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirming(p.id)}
+                      aria-label={`Uninstall ${p.name}`}
+                      className="flex items-center gap-1 text-[11px] text-muted hover:text-danger transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
