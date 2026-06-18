@@ -10,6 +10,7 @@ const initCursorAutoHide = require('../../tools/cursor-autohide/index');
 const initBlocker = require('../../tools/blocker/index');
 const initOverlay = require('../../tools/overlay/index');
 const initWindowState = require('../../tools/window-state/index');
+const initTelemetry = require('../../tools/telemetry/index');
 const initGitPulse = require('../../tools/gitpulse/index');
 const initDevWatcher = require('../../tools/dev-watcher/index');
 const initCleaner = require('../../tools/cleaner/index');
@@ -414,6 +415,8 @@ if (!gotTheLock) {
     initAI();
     initConflicts(() => globalShortcut.isRegistered('CommandOrControl+Alt+D'));
     initPortability();
+    // Opt-in, anonymous telemetry — reads the live config for consent; off by default.
+    initTelemetry({ getConfig: () => appConfig, appVersion: app.getVersion() });
 
     createWindow();
     if (appConfig.enableTrayDashboard !== false) {

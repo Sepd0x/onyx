@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload, PictureInPicture2 } from 'lucide-react';
+import { Settings, ShieldCheck, Zap, Power, Palette, KeyRound, BrainCircuit, LayoutGrid, AlertTriangle, Download, Upload, PictureInPicture2, BarChart3, RotateCcw } from 'lucide-react';
 import Switch from '../components/Switch';
 import KeyCapture from '../components/KeyCapture';
 import ViewHeader from '../components/ViewHeader';
@@ -25,6 +25,9 @@ export default function SettingsView() {
   // One category shows at a time; sections keep their place in the tree and are
   // hidden via a class when their category isn't active (no remount, no churn).
   const [cat, setCat] = useState('general');
+  // Opt-in telemetry (#27): preview + id come from the telemetry backend.
+  const [telemetry, setTelemetry] = useState<any>({ enabled: false, analyticsId: '', sample: null, packaged: false, endpointConfigured: false });
+  const [showSample, setShowSample] = useState(false);
   // Conflict surface: whether the global hotkey actually registered (another app
   // may have grabbed Ctrl+Alt+D first).
   const conflicts = useIpc(CH.appGetConflicts, [], { pollMs: 0 }).data as any;
@@ -63,6 +66,7 @@ export default function SettingsView() {
       });
       loadAiStatus();
       window.api.invoke(CH.overlayGet).then((o: any) => o && setOverlay(o));
+      window.api.invoke(CH.telemetryGetPreview).then((t: any) => t && setTelemetry(t));
       window.api.on(EV.appUpdateAvailable, (version: string) => {
         setUpdatePhase('available');
         setUpdateStatus(`Update ${version} available.`);
@@ -224,6 +228,23 @@ export default function SettingsView() {
     setOverlay((o) => ({ ...o, tiles }));
     const r: any = await window.api?.invoke(CH.overlaySet, { tiles });
     if (r) setOverlay((o) => ({ ...o, ...r }));
+  };
+
+  // Telemetry consent (#27). Off by default; toggling persists telemetryEnabled and
+  // refreshes the preview so the "what we send" sample reflects the new state.
+  const toggleTelemetry = async () => {
+    const next = !(config.telemetryEnabled === true);
+    setConfig((c: any) => ({ ...c, telemetryEnabled: next }));
+    setTelemetry((t: any) => ({ ...t, enabled: next }));
+    if (window.api) {
+      await window.api.invoke(CH.appSetConfig, { ...config, telemetryEnabled: next });
+      const p: any = await window.api.invoke(CH.telemetryGetPreview);
+      if (p) setTelemetry(p);
+    }
+  };
+  const resetTelemetryId = async () => {
+    const id: any = await window.api?.invoke(CH.telemetryResetId);
+    if (id) setTelemetry((t: any) => ({ ...t, analyticsId: id }));
   };
 
   const DEFAULT_HOTKEY = 'CommandOrControl+Alt+D';
@@ -659,6 +680,39 @@ export default function SettingsView() {
                {backupMsg && <span className="text-[11px] font-mono text-accent/90">{backupMsg}</span>}
              </div>
            </div>
+        </div>
+
+        <div className={sectionCls('data')}>
+           <h3 className="text-sm font-semibold flex items-center gap-2"><BarChart3 className="w-4 h-4 text-accent"/> Privacy &amp; telemetry <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Off by default</span></h3>
+           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border/50 hover:bg-surface2 transition-colors gap-4">
+              <div className="min-w-0">
+                <h3 className="font-medium text-[13px] text-text">Share anonymous usage</h3>
+                <p className="text-[11px] text-muted mt-1 leading-relaxed">Help improve Onyx by sharing your app version, OS and which tools you open — as daily aggregates. <span className="text-text2">Never</span> your code, files, repos, ports, clipboard, AI prompts or any personal data; your IP is dropped at the edge. Off until you turn it on.</p>
+              </div>
+              <Switch active={config.telemetryEnabled === true} onClick={toggleTelemetry} label="Share anonymous usage" />
+            </div>
+            <div className="px-6 py-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <button onClick={() => setShowSample((s) => !s)} className="text-[11px] font-medium px-3 py-1.5 bg-surface2 hover:bg-surface3 border border-border text-text2 rounded-lg transition-colors">
+                  {showSample ? 'Hide' : 'See'} exactly what we send
+                </button>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-muted">
+                  <span>id&nbsp;{telemetry.analyticsId ? String(telemetry.analyticsId).slice(0, 8) : '—'}</span>
+                  <button onClick={resetTelemetryId} className="flex items-center gap-1 px-2 py-1 rounded-md border border-border hover:bg-surface2 hover:text-text transition-colors">
+                    <RotateCcw className="w-3 h-3" /> Reset id
+                  </button>
+                </div>
+              </div>
+              {showSample && (
+                <pre className="text-[10px] font-mono text-text2/90 bg-background border border-border rounded-lg p-3 overflow-x-auto no-scrollbar leading-relaxed">{JSON.stringify(telemetry.sample, null, 2)}</pre>
+              )}
+              {!telemetry.endpointConfigured && (
+                <p className="text-[10px] text-muted/60 leading-relaxed">No collector is configured in this build yet, so nothing is transmitted even when enabled — the toggle is here so it's ready.</p>
+              )}
+            </div>
+           </div>
+           <p className="text-[10px] text-muted/70 -mt-1">The full policy lives in <span className="font-mono">PRIVACY.md</span> in the repo.</p>
         </div>
 
         <div className={`mt-2 p-5 bg-background border border-border rounded-xl grid grid-cols-2 gap-4 items-center ${cat === 'about' ? '' : 'hidden'}`}>

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, KeyRound, Sparkles, Command as CommandIcon, LayoutDashboard, Rocket } from 'lucide-react';
+import { ArrowRight, Check, KeyRound, Sparkles, Command as CommandIcon, LayoutDashboard, Rocket, BarChart3 } from 'lucide-react';
 import { CH } from '../ipc';
 import { invalidate } from '../lib/ipcCache';
 import { ACCENTS, applyAccent } from '../lib/accents';
 import Logo from './Logo';
 import ToolCatalog from './ToolCatalog';
+import Switch from './Switch';
 
 const STEP_NAMES = ['Welcome', 'Appearance', 'Your tools', 'AI assistant', 'All set'];
 // Best-effort breadcrumb into the main log, so a first-run crash report can be
@@ -20,6 +21,8 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
   const [accent, setAccentState] = useState('purple');
   // Held so the "Your tools" step can read/write config.disabledTools.
   const [config, setConfig] = useState<any>({});
+  // Telemetry consent (opt-in, off by default) — confirmed on the last step.
+  const [telemetryOn, setTelemetryOn] = useState(false);
 
   // AI step state
   const [providers, setProviders] = useState<any[]>([]);
@@ -38,6 +41,7 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
         if (cfg) setConfig(cfg);
         if (cfg?.theme) setThemeState(cfg.theme);
         if (cfg?.accent) setAccentState(cfg.accent);
+        setTelemetryOn(cfg?.telemetryEnabled === true);
         const s: any = await window.api.invoke(CH.aiGetStatus);
         if (s?.providers) { setProviders(s.providers); setProvider(s.provider || 'anthropic'); }
       } catch (e: any) {
@@ -67,6 +71,12 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
     const next = disabled.includes(id) ? disabled.filter((d) => d !== id) : [...disabled, id];
     setConfig((c: any) => ({ ...c, disabledTools: next }));
     window.api?.invoke(CH.appSetConfig, { disabledTools: next });
+  };
+
+  const toggleTelemetry = () => {
+    const next = !telemetryOn;
+    setTelemetryOn(next);
+    window.api?.invoke(CH.appSetConfig, { telemetryEnabled: next });
   };
 
   const selectProvider = async (p: string) => {
@@ -218,6 +228,18 @@ export default function Onboarding({ onFinish }: { onFinish: () => void }) {
                   <Check className="w-6 h-6 text-success" />
                 </div>
                 <h2 className="text-lg font-semibold text-text">You're all set</h2>
+              </div>
+
+              {/* Opt-in telemetry — off by default, honest + one tap. */}
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border">
+                <span className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-accent shrink-0"><BarChart3 className="w-4 h-4" /></span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[13px] font-medium text-text">Share anonymous usage <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Optional</span></div>
+                    <Switch active={telemetryOn} onClick={toggleTelemetry} label="Share anonymous usage" />
+                  </div>
+                  <div className="text-[11px] text-muted leading-relaxed mt-1">App version, OS and which tools you open — daily aggregates, never your code or any personal data. Change it any time in Settings → Data.</div>
+                </div>
               </div>
               <div className="flex flex-col gap-2.5">
                 {[

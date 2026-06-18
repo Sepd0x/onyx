@@ -83,6 +83,7 @@ class MockApi {
   private cursorConfig: any = { seconds: 5, deadzone: 4, active: false, dim: false, dnd: false };
   private blocker: any = { enabled: false, apps: [], blockedCount: 0 };
   private overlay: any = { enabled: false, opacity: 0.92, tiles: { cpu: true, ram: true, ports: true, clock: true } };
+  private telemetryId = 'mock-1a2b3c4d';
   private repos: any[] = [
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },
     { name: 'Focus-Tools', branch: 'dev', dirty: 0, pull: 2, push: 0, path: 'C:/dev/focus', activity: [0,0,1,0,0,0,0,0,2,0,0,1,0,0], risk: [], ready: true, commitWarning: null, lastCommitMeta: { hash: '4c8d0b2', author: 'Sepd0x', relative: 'yesterday', subject: 'feat: pomodoro timer' }, dirtyFiles: [], branches: ['main', 'dev'], lastFetched: Date.now() - 3600000 }
@@ -498,6 +499,24 @@ class MockApi {
 
       case 'app:log':
         return true;
+
+      case 'telemetry:track':
+        return this.config.telemetryEnabled === true;
+      case 'telemetry:getPreview':
+        return {
+          enabled: this.config.telemetryEnabled === true,
+          packaged: false,
+          analyticsId: this.telemetryId,
+          endpointConfigured: false,
+          sample: {
+            v: 1, id: this.telemetryId, app: this.config.appVersion || 'dev', os: 'Windows 11', arch: 'x64',
+            lang: (navigator.language || 'en').toLowerCase().split('-')[0], theme: this.config.theme || 'midnight',
+            events: [{ e: 'app_launched' }, { e: 'tool_opened', tool: 'git', count: 3 }, { e: 'tool_opened', tool: 'ports', count: 1 }],
+          },
+        };
+      case 'telemetry:resetId':
+        this.telemetryId = 'mock-' + Math.random().toString(16).slice(2, 10);
+        return this.telemetryId;
 
       case 'app:notify':
         if (this.config.enableNotifications !== false) {

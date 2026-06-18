@@ -51,6 +51,10 @@ export const CH = {
   appInstallUpdate: 'app:installUpdate',
   appGetConflicts: 'app:getConflicts',
   appLog: 'app:log',
+  // Telemetry (opt-in, anonymous)
+  telemetryTrack: 'telemetry:track',
+  telemetryGetPreview: 'telemetry:getPreview',
+  telemetryResetId: 'telemetry:resetId',
   // Window
   windowClose: 'window:close',
   windowMinimize: 'window:minimize',

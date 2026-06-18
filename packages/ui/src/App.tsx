@@ -174,6 +174,12 @@ export default function App() {
     }
   }, [activeTab, appConfig.disabledTools, appConfig.enableAIFeatures]);
 
+  // Anonymous tool-open count (opt-in telemetry #27). No-op in main unless the user
+  // turned telemetry on; only the tool id is sent, never any content.
+  useEffect(() => {
+    if (activeTab && activeTab !== 'settings') window.api?.invoke(CH.telemetryTrack, { tool: activeTab });
+  }, [activeTab]);
+
   const closeWindow = () => window.api?.invoke(CH.windowClose);
   const minimizeWindow = () => window.api?.invoke(CH.windowMinimize);
 

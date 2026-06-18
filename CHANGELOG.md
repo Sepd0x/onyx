@@ -21,6 +21,13 @@ All notable changes to Onyx are documented here. The format follows
   instead of the default 980×680 every launch. Bounds are validated and clamped to a
   connected display, so a window saved on an unplugged monitor can't open off-screen.
 
+- **Opt-in anonymous telemetry** (#27) — **off by default**. If you turn it on (in
+  onboarding or Settings → Data) Onyx shares only your app version, OS, language,
+  theme and which tools you open (daily aggregates) under a random, resettable id —
+  never your code, files, repos, ports, clipboard, AI prompts or any personal data,
+  and your IP is dropped at the edge. You can preview the exact payload before
+  enabling. Full policy in `PRIVACY.md`; the collector is a self-owned Cloudflare
+  Worker (`infra/telemetry-worker/`).
 - **Pick your tools, from the start** (#28) — a new "Your tools" step in onboarding
   lets you enable only the tools you want; the rest stay hidden from the sidebar and
   command palette (re-enable any of them later). The same tool catalog — cards with

@@ -22,6 +22,8 @@ const INVOKE_CHANNELS = [
   'dev:startWatch', 'dev:stopWatch', 'dev:status', 'dev:getDevProcesses',
   // App / settings / updates
   'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:downloadUpdate', 'app:installUpdate', 'app:getConflicts', 'app:log',
+  // Telemetry (opt-in, anonymous, off by default)
+  'telemetry:track', 'telemetry:getPreview', 'telemetry:resetId',
   // Window
   'window:close', 'window:minimize', 'window:openExternal',
   // Environment
