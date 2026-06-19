@@ -243,15 +243,18 @@ function createWindow() {
     }
   });
 
+  // "Focus window": maximise Onyx and pin it above other windows. Deliberately honest —
+  // it does NOT toggle Windows Focus Assist / Do-Not-Disturb (there's no reliable API for
+  // that), so the copy + notifications say exactly what it does and nothing more.
   ipcMain.handle('env:focusMode', (_, state) => {
     if (state) {
       win.setAlwaysOnTop(true, 'screen-saver');
       win.maximize();
-      new Notification({ title: 'Focus Center', body: 'DND OS rules activated on workspace.' }).show();
+      new Notification({ title: 'Focus Mode', body: 'Onyx maximised and kept on top.' }).show();
     } else {
       win.setAlwaysOnTop(false);
       win.unmaximize();
-      new Notification({ title: 'Focus Center', body: 'DND OS rules deactivated.' }).show();
+      new Notification({ title: 'Focus Mode', body: 'Focus window off.' }).show();
     }
   });
 

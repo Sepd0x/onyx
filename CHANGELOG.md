@@ -12,6 +12,10 @@ All notable changes to Onyx are documented here. The format follows
   window title + `.exe`); one click adds it to the blocklist. Manual entry still works.
 
 ### Fixed
+- **Honest "Focus window"** — the Focus-Mode toggle that claimed to "trigger Do-Not-Disturb
+  and overlay the workspace universally" actually just maximises Onyx and keeps it on top
+  (there's no reliable API for OS Focus Assist). Renamed and re-described to say exactly
+  that, and the notifications no longer claim "DND OS rules" were applied.
 - **Input focus looks intentional everywhere** — text fields no longer draw a sharp,
   offset outline that floated misaligned inside their rounded border. The field itself
   lights up with a clean, rounded focus ring instead (app-wide, including the onboarding

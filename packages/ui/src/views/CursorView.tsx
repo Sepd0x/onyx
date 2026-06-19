@@ -300,14 +300,14 @@ export default function CursorView() {
                 <div className="flex items-center gap-4">
                   <div className="bg-background border border-border p-2 rounded-lg text-muted group-hover:text-danger group-hover:border-danger/30 transition-all"><BellOff className="w-4 h-4"/></div>
                   <div>
-                    <h4 className="font-medium text-[13px] text-text">Deep Focus OS Rules</h4>
-                    <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[230px]">Triggers Do-Not-Disturb and overlays workspace universally.</p>
+                    <h4 className="font-medium text-[13px] text-text">Focus window</h4>
+                    <p className="text-[10px] text-muted mt-1 leading-relaxed max-w-[230px]">Maximises Onyx and keeps it above your other windows while you focus.</p>
                   </div>
                 </div>
                 <Switch
                   active={!!config.focusMode}
                   activeColor="bg-danger"
-                  label="Deep focus OS rules"
+                  label="Focus window"
                   onClick={async () => {
                      const ns = !config.focusMode;
                      setConfig({...config, focusMode: ns});
