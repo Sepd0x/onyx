@@ -166,15 +166,35 @@
   }
 }
 
-/* Visible keyboard-focus indicator on every interactive element. */
+/* Visible keyboard-focus indicator for interactive elements (buttons, links, …). */
 *:focus-visible {
   outline: 2px solid rgb(var(--primary)) !important;
   outline-offset: 2px;
 }
 
-/* The command palette IS the focus context — its always-focused search field
-   shouldn't also carry the global 2px outline (it read as a harsh purple box
-   with square corners). Higher specificity + !important beats the rule above. */
+/* Text inputs live inside their own bordered field. A 2px *offset* outline floats as a
+   sharp, square rectangle inside that rounded border — misaligned and cheap-looking. Drop
+   the raw outline on inputs and let the FIELD show focus with a clean, rounded ring. */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  border-color: rgb(var(--primary) / 0.6); /* shows on inputs that carry their own border */
+}
+
+/* Light up the wrapper that holds the focused input — works anywhere, no per-input class.
+   Uses :focus (not :focus-visible) so the field highlights on mouse click too, which is
+   what you want for a text field. */
+:where(div, label, form, fieldset):has(> input:focus),
+:where(div, label, form, fieldset):has(> textarea:focus) {
+  border-color: rgb(var(--primary) / 0.6) !important;
+  box-shadow: 0 0 0 3px rgb(var(--primary) / 0.16);
+}
+
+/* The command palette IS the focus context — keep its always-focused field clean. */
 .cmdk-field:focus-visible {
   outline: none !important;
 }

@@ -88,7 +88,7 @@ export default function DevWatcherView({ isAIEnabled = true }: { isAIEnabled?: b
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-text flex items-center gap-2">
                           {p.name}
-                          {p.confidence && <span className="text-[9px] font-mono text-accent bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">AI {p.confidence}</span>}
+                          {p.confidence && <span title={`How likely this is a real dev task worth guarding — an on-device estimate (${p.confidence} confidence)`} className="text-[9px] font-mono text-accent bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded cursor-help">{p.confidence} task</span>}
                         </span>
                         <span className="text-[10px] font-mono text-muted mt-0.5">PID {p.pid}</span>
                       </div>

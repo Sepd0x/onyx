@@ -76,9 +76,12 @@ export default function PomodoroTimer() {
   const color = `rgb(var(--${PHASE_VAR[state.phase]}))`;
   const C = 2 * Math.PI * 52; // ring circumference (r=52)
 
-  const onStartPause = () => setState((s) => (s.running ? pause(s, Date.now()) : start(s, Date.now(), config)));
-  const onReset = () => setState(reset(config));
-  const onSkip = () => setState((s) => skip(s, Date.now(), config));
+  // Every action syncs `now` to the click instant. Without this the display recomputes
+  // against a stale `now` (the interval only ticks while running), so pressing Start at
+  // 25:00 briefly showed 25:0X — the time elapsed since mount leaked into the first frame.
+  const onStartPause = () => { const t = Date.now(); setNow(t); setState((s) => (s.running ? pause(s, t) : start(s, t, config))); };
+  const onReset = () => { setNow(Date.now()); setState(reset(config)); };
+  const onSkip = () => { const t = Date.now(); setNow(t); setState((s) => skip(s, t, config)); };
 
   // Editing a duration while paused re-syncs the remaining time for the live phase.
   const setDuration = (key: keyof PomodoroConfig, v: number) => {
