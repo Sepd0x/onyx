@@ -6,6 +6,11 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-19
+
+"Polish & honesty." A round of feedback-driven UI fixes, a friendlier app blocker, and
+honest copy where a feature promised more than it did.
+
 ### Added
 - **App blocker — pick from running apps** — instead of typing an exact image name, open
   "Pick from a running app" to choose from the apps you currently have open (shown by
