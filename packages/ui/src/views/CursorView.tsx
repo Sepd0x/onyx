@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown, ShieldBan, Plus, X, ShieldAlert } from 'lucide-react';
+import { Power, EyeOff, Moon, Settings2, BellOff, ChevronUp, ChevronDown, ShieldBan, Plus, X, ShieldAlert, AppWindow, Loader2 } from 'lucide-react';
 import Switch from '../components/Switch';
 import ViewHeader from '../components/ViewHeader';
 import PomodoroTimer from '../components/PomodoroTimer';
@@ -12,6 +12,9 @@ function AppBlocker() {
   const [state, setState] = useState<{ enabled: boolean; apps: string[]; blockedCount: number }>({ enabled: false, apps: [], blockedCount: 0 });
   const [draft, setDraft] = useState('');
   const [justBlocked, setJustBlocked] = useState<string | null>(null);
+  // Running-apps picker — so you can click a visible app instead of guessing its .exe.
+  const [running, setRunning] = useState<{ name: string; title: string }[] | null>(null);
+  const [loadingRunning, setLoadingRunning] = useState(false);
   const timer = useRef<any>(null);
 
   useEffect(() => {
@@ -41,6 +44,20 @@ function AppBlocker() {
   const removeApp = async (app: string) => {
     const res = await window.api?.invoke(CH.blockerSet, { apps: state.apps.filter((a) => a !== app) });
     if (res) setState((s) => ({ ...s, ...res }));
+  };
+  // Add by exact image name (from the running-apps picker).
+  const addNamed = async (name: string) => {
+    const apps = Array.from(new Set([...state.apps, name]));
+    const res = await window.api?.invoke(CH.blockerSet, { apps });
+    if (res) setState((s) => ({ ...s, ...res }));
+  };
+  // Toggle the picker; fetch the live list of windowed apps when opening.
+  const toggleRunning = async () => {
+    if (running) { setRunning(null); return; }
+    setLoadingRunning(true);
+    const r = await window.api?.invoke<{ name: string; title: string }[]>(CH.blockerListRunning);
+    setRunning(Array.isArray(r) ? r : []);
+    setLoadingRunning(false);
   };
 
   return (
@@ -79,6 +96,46 @@ function AppBlocker() {
           <button onClick={addApp} className="px-3 rounded-lg bg-surface3 hover:bg-border2 border border-border text-text flex items-center gap-1.5 text-[11px] font-semibold transition-colors active:scale-95">
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
+        </div>
+
+        {/* Pick from running apps — no need to know the exact .exe name. */}
+        <div>
+          <button
+            onClick={toggleRunning}
+            className="flex items-center gap-1.5 text-[11px] font-medium text-muted2 hover:text-text transition-colors"
+          >
+            {loadingRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AppWindow className="w-3.5 h-3.5" />}
+            {running ? 'Hide running apps' : 'Pick from a running app'}
+            {running ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {running && (
+            <div className="mt-2 rounded-lg border border-border bg-background/50 p-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              {(() => {
+                const pickable = running.filter((r) => !state.apps.includes(r.name));
+                if (running.length === 0) return <p className="text-[11px] text-muted/70 text-center py-2">No open apps detected — try opening one and reopening this list.</p>;
+                if (pickable.length === 0) return <p className="text-[11px] text-muted/70 text-center py-2">Every open app is already on your list.</p>;
+                return (
+                  <div className="flex flex-col gap-0.5 max-h-[180px] overflow-y-auto no-scrollbar">
+                    {pickable.map((r) => (
+                      <button
+                        key={r.name}
+                        onClick={() => addNamed(r.name)}
+                        className="group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-surface2 transition-colors"
+                      >
+                        <AppWindow className="w-3.5 h-3.5 text-muted shrink-0" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12px] text-text truncate">{r.title || r.name}</span>
+                          <span className="block text-[10px] font-mono text-muted/70 truncate">{r.name}</span>
+                        </span>
+                        <Plus className="w-3.5 h-3.5 text-muted2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
 
         {state.apps.length === 0 ? (

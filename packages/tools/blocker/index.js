@@ -2,7 +2,7 @@ const { app, ipcMain, BrowserWindow, Notification } = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const { sanitizeBlocklist, pidsToKill } = require('./match');
+const { sanitizeBlocklist, pidsToKill, normalizeAppName, CRITICAL_DENYLIST } = require('./match');
 
 // Absolute path: don't resolve powershell.exe via PATH (binary-planting hardening).
 const POWERSHELL = path.join(
@@ -49,6 +49,32 @@ module.exports = function initBlocker() {
     });
   });
 
+  // User-facing apps currently running — those with a visible main window (Discord,
+  // Steam, a browser…), so the UI can offer a pick-list instead of asking the user to
+  // know the exact image name. System/background processes and the critical denylist are
+  // filtered out; de-duped by normalised image name.
+  const listRunningApps = () => new Promise((resolve) => {
+    if (process.platform !== 'win32') return resolve([]);
+    const psCmd =
+      '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ' +
+      'ConvertTo-Json -Compress -InputObject @(Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object Name, MainWindowTitle)';
+    execFile(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', psCmd], { windowsHide: true, maxBuffer: 1024 * 1024 * 5, timeout: 10000 }, (err, stdout) => {
+      if (err || !stdout) return resolve([]);
+      let arr;
+      try { arr = JSON.parse(stdout); } catch { return resolve([]); }
+      const seen = new Set();
+      const out = [];
+      for (const p of (Array.isArray(arr) ? arr : [arr])) {
+        const name = normalizeAppName(p && p.Name); // lower-case + `.exe`, matches the blocklist form
+        if (!name || CRITICAL_DENYLIST.includes(name) || seen.has(name)) continue;
+        seen.add(name);
+        out.push({ name, title: String((p && p.MainWindowTitle) || '').slice(0, 80) });
+      }
+      out.sort((a, b) => a.name.localeCompare(b.name));
+      resolve(out);
+    });
+  });
+
   const killPid = (pid) => new Promise((resolve) => {
     if (!/^[0-9]+$/.test(String(pid))) return resolve(false); // numeric PID, argv array, no shell
     execFile('taskkill', ['/F', '/PID', String(pid)], { windowsHide: true }, (err) => resolve(!err));
@@ -91,6 +117,7 @@ module.exports = function initBlocker() {
   const state = () => ({ enabled: config.enabled, apps: config.apps, blockedCount });
 
   ipcMain.handle('blocker:get', () => state());
+  ipcMain.handle('blocker:listRunning', () => listRunningApps());
   ipcMain.handle('blocker:set', (_, data) => {
     if (data && Array.isArray(data.apps)) config.apps = sanitizeBlocklist(data.apps);
     if (data && typeof data.notify === 'boolean') config.notify = data.notify;

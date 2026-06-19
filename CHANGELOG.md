@@ -6,6 +6,11 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **App blocker — pick from running apps** — instead of typing an exact image name, open
+  "Pick from a running app" to choose from the apps you currently have open (shown by
+  window title + `.exe`); one click adds it to the blocklist. Manual entry still works.
+
 ### Fixed
 - **Input focus looks intentional everywhere** — text fields no longer draw a sharp,
   offset outline that floated misaligned inside their rounded border. The field itself

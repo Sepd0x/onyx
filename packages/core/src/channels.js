@@ -12,7 +12,7 @@ const INVOKE_CHANNELS = [
   // Cursor / focus
   'cursor:getConfig', 'cursor:setConfig', 'cursor:toggle',
   // Focus-Mode app blocker (closes user-listed distraction apps while active)
-  'blocker:get', 'blocker:set', 'blocker:toggle',
+  'blocker:get', 'blocker:set', 'blocker:toggle', 'blocker:listRunning',
   // Desktop overlay (always-on-top widget)
   'overlay:get', 'overlay:set', 'overlay:toggle', 'overlay:resize',
   // Git

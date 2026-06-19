@@ -18,6 +18,7 @@ export const CH = {
   blockerGet: 'blocker:get',
   blockerSet: 'blocker:set',
   blockerToggle: 'blocker:toggle',
+  blockerListRunning: 'blocker:listRunning',
   // Desktop overlay
   overlayGet: 'overlay:get',
   overlaySet: 'overlay:set',
