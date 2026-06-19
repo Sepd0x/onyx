@@ -190,6 +190,15 @@ class MockApi {
 
       case 'blocker:get':
         return { enabled: this.blocker.enabled, apps: this.blocker.apps, blockedCount: this.blocker.blockedCount };
+      case 'blocker:listRunning':
+        // A realistic set of "windowed" apps so the picker can be exercised in preview.
+        return [
+          { name: 'discord.exe', title: 'Discord' },
+          { name: 'steam.exe', title: 'Steam' },
+          { name: 'chrome.exe', title: 'YouTube — Google Chrome' },
+          { name: 'spotify.exe', title: 'Spotify' },
+          { name: 'slack.exe', title: 'Slack' },
+        ];
       case 'blocker:set':
         if (args[0] && Array.isArray(args[0].apps)) {
           // Mirror sanitizeBlocklist loosely: normalise to lower-case .exe names.
