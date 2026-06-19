@@ -99,7 +99,7 @@ export default function OverlayView() {
       className="h-screen w-screen p-1.5 overflow-hidden select-none"
       style={{ WebkitAppRegion: 'drag', opacity } as any}
     >
-      <div ref={cardRef} className="rounded-2xl border border-border2/80 bg-surface/80 backdrop-blur-xl shadow-2xl flex flex-col ring-1 ring-black/40 overflow-hidden">
+      <div ref={cardRef} className="rounded-2xl border border-border2/80 bg-surface backdrop-blur-xl shadow-2xl flex flex-col ring-1 ring-black/40 overflow-hidden">
         {/* Header / drag handle */}
         <div className="flex items-center justify-between px-3 pt-2 pb-1.5">
           <div className="flex items-center gap-1.5 text-muted">

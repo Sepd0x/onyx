@@ -6,6 +6,20 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Input focus looks intentional everywhere** — text fields no longer draw a sharp,
+  offset outline that floated misaligned inside their rounded border. The field itself
+  lights up with a clean, rounded focus ring instead (app-wide, including the onboarding
+  API-key step).
+- **Pomodoro no longer flashes the wrong time on Start** — pressing play at 25:00 briefly
+  showed 25:0X because the display recomputed against a stale clock; the timer now syncs
+  the moment you start/pause/skip/reset.
+- **Desktop overlay at 100% opacity is actually solid** — the card had a baked-in 80%
+  translucency, so the slider could never reach fully opaque. 100% now means 100%.
+- **Clearer auto-detected tasks** — the cryptic "AI 50%" badge is now "50% task" with a
+  tooltip explaining it's an on-device estimate of how likely the process is a dev task
+  worth guarding.
+
 ## [1.3.0] - 2026-06-18
 
 "Extensions & lifecycle". Headline: a signed, capability-scoped **plugin system** with
