@@ -26,6 +26,22 @@ module.exports = function initPlugins(opts) {
   try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) || {}; } catch {}
   const saveState = () => { try { fs.writeFileSync(stateFile, JSON.stringify(state)); } catch {} };
 
+  // The curated registry — a hardcoded, trusted repo. Never user-supplied (no SSRF). Used
+  // for in-app install AND the revocation kill-switch below.
+  const REGISTRY_RAW = o.registryRaw || 'https://raw.githubusercontent.com/Sepd0x/onyx-plugins/main';
+  const httpText = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); };
+  const httpBuf = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return Buffer.from(await r.arrayBuffer()); };
+
+  // Kill-switch: a list of plugin ids the owner has revoked (a signed plugin later found
+  // to be malicious/broken). Revocations are STICKY — once an id is revoked we keep it
+  // revoked even offline (we only ever ADD to the cached set, never remove), so a network
+  // outage can't resurrect a killed plugin. A revoked plugin is never activated.
+  const revokedFile = o.revokedFile || path.join(app.getPath('userData'), 'plugins-revoked.json');
+  let revoked = new Set();
+  try { const c = JSON.parse(fs.readFileSync(revokedFile, 'utf8')); if (Array.isArray(c)) revoked = new Set(c.filter((x) => typeof x === 'string')); } catch {}
+  const saveRevoked = () => { try { fs.writeFileSync(revokedFile, JSON.stringify([...revoked])); } catch {} };
+  const isRevoked = (id) => revoked.has(id);
+
   const loaded = new Map(); // id -> { plugin, dir, backend?, handlers?, error? }
 
   // A bundle the user picked + we verified, awaiting their permission consent. Held in main
@@ -94,12 +110,13 @@ module.exports = function initPlugins(opts) {
         const { files, signature } = readBundle(dir);
         const res = loadBundle({ files, signature, publicKey, appVersion });
         if (!res.ok) { logger.warn(`Plugin in "${name}" rejected: ${res.error}`); continue; }
-        const rec = { plugin: res.plugin, dir };
+        const rec = { plugin: res.plugin, dir, revoked: isRevoked(res.plugin.id) };
         loaded.set(res.plugin.id, rec);
         // First time we see a plugin, default to enabled with exactly the permissions it
         // declared (the install-consent UI is where the user trims/approves these).
         if (state[res.plugin.id] == null) state[res.plugin.id] = { enabled: true, granted: res.plugin.permissions };
-        if (state[res.plugin.id].enabled !== false) activate(rec);
+        // A revoked plugin is NEVER activated, regardless of the user's enabled flag.
+        if (!rec.revoked && state[res.plugin.id].enabled !== false) activate(rec);
       } catch (e) { logger.warn(`Plugin in "${name}" failed to load:`, (e && e.message) || e); }
     }
     saveState();
@@ -107,11 +124,28 @@ module.exports = function initPlugins(opts) {
 
   loadAll();
 
+  // Refresh the revocation list from the registry (best-effort, sticky-merge). If anything
+  // new got revoked, reload so the now-revoked plugins are deactivated immediately.
+  const refreshRevocations = async () => {
+    if (typeof fetch !== 'function') return;
+    try {
+      const data = JSON.parse(await httpText(`${REGISTRY_RAW}/revoked.json`));
+      const ids = (Array.isArray(data && data.revoked) ? data.revoked : [])
+        .map((r) => (typeof r === 'string' ? r : r && r.id))
+        .filter((x) => typeof x === 'string');
+      let changed = false;
+      for (const id of ids) if (!revoked.has(id)) { revoked.add(id); changed = true; }
+      if (changed) { saveRevoked(); loadAll(); }
+    } catch { /* offline or no list yet — keep the sticky cache, never un-revoke */ }
+  };
+  refreshRevocations();
+
   const publicView = (rec) => ({
     ...rec.plugin,
     enabled: !(state[rec.plugin.id] && state[rec.plugin.id].enabled === false),
     granted: grantedFor(rec.plugin.id),
     error: rec.error || null,
+    revoked: !!rec.revoked,
   });
 
   // Installed plugins + their manifests, enabled state, and granted permissions.
@@ -188,24 +222,20 @@ module.exports = function initPlugins(opts) {
     return { ok: true, id: plugin.id };
   });
 
-  // The curated registry — a hardcoded, trusted repo. Never user-supplied (no SSRF), and
-  // every download is signature-verified before it touches disk, so even a compromised
-  // mirror can't install anything we didn't sign.
-  const REGISTRY_RAW = 'https://raw.githubusercontent.com/Sepd0x/onyx-plugins/main';
-  const httpText = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); };
-  const httpBuf = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return Buffer.from(await r.arrayBuffer()); };
-
-  // Read-only browse: the list of available plugins + whether each is already installed.
-  // Nothing is downloaded or run here.
+  // Read-only browse: the list of available plugins + whether each is already installed or
+  // revoked. Nothing is downloaded or run here. (REGISTRY_RAW + http* are defined up top,
+  // shared with the revocation kill-switch.)
   ipcMain.handle('plugin:registryList', async () => {
     if (typeof fetch !== 'function') return { ok: false, error: 'network unavailable' };
     try {
       const idx = JSON.parse(await httpText(`${REGISTRY_RAW}/registry.json`));
-      const plugins = (Array.isArray(idx.plugins) ? idx.plugins : []).map((p) => ({
-        id: p.id, name: p.name, version: p.version, description: p.description, author: p.author,
-        official: !!p.official, permissions: Array.isArray(p.permissions) ? p.permissions : [],
-        installed: loaded.has(p.id),
-      }));
+      const plugins = (Array.isArray(idx.plugins) ? idx.plugins : [])
+        .filter((p) => p && !isRevoked(p.id)) // never offer a revoked plugin
+        .map((p) => ({
+          id: p.id, name: p.name, version: p.version, description: p.description, author: p.author,
+          official: !!p.official, permissions: Array.isArray(p.permissions) ? p.permissions : [],
+          installed: loaded.has(p.id),
+        }));
       return { ok: true, plugins };
     } catch (e) { logger.warn('Registry list failed:', (e && e.message) || e); return { ok: false, error: 'could not reach the registry' }; }
   });
@@ -216,6 +246,7 @@ module.exports = function initPlugins(opts) {
   ipcMain.handle('plugin:registryPreview', async (_e, data) => {
     const id = data && data.id;
     if (typeof fetch !== 'function') return { ok: false, error: 'network unavailable' };
+    if (isRevoked(id)) return { ok: false, error: 'this plugin has been revoked' };
     let entry;
     try {
       const idx = JSON.parse(await httpText(`${REGISTRY_RAW}/registry.json`));
@@ -263,9 +294,10 @@ module.exports = function initPlugins(opts) {
     const enabled = !!(data && data.enabled);
     const rec = loaded.get(id);
     if (!rec) return false;
+    if (rec.revoked && enabled) return false; // a revoked plugin can't be re-enabled
     state[id] = { granted: grantedFor(id).length ? grantedFor(id) : rec.plugin.permissions, enabled };
     saveState();
-    if (enabled && !rec.backend) activate(rec);
+    if (enabled && !rec.revoked && !rec.backend) activate(rec);
     return true;
   });
 
@@ -275,6 +307,7 @@ module.exports = function initPlugins(opts) {
     const id = data && data.id;
     const method = data && data.method;
     const rec = loaded.get(id);
+    if (rec && rec.revoked) return { ok: false, error: 'revoked' }; // defence in depth (it has no handlers anyway)
     const enabled = !(state[id] && state[id].enabled === false);
     if (!canInvoke(rec && rec.plugin, method, enabled)) return { ok: false, error: 'not allowed' };
     if (!rec.handlers || typeof rec.handlers[method] !== 'function') return { ok: false, error: 'no handler' };
