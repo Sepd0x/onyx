@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Blocks, BadgeCheck, ShieldCheck, Trash2, ExternalLink, AlertTriangle, Users, FolderOpen } from 'lucide-react';
+import { Blocks, BadgeCheck, ShieldCheck, Trash2, ExternalLink, AlertTriangle, Users, FolderOpen, ShieldAlert } from 'lucide-react';
 import ViewHeader from '../components/ViewHeader';
 import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
@@ -28,6 +28,7 @@ interface Plugin {
   granted: string[];
   enabled: boolean;
   error: string | null;
+  revoked?: boolean;
 }
 
 export default function ExtensionsView() {
@@ -206,7 +207,12 @@ export default function ExtensionsView() {
                     by {p.author.handle} <ExternalLink className="w-2.5 h-2.5" />
                   </button>
 
-                  {p.error && (
+                  {p.revoked ? (
+                    <div className="flex items-start gap-1.5 text-[11px] text-danger mt-2 bg-danger/10 border border-danger/25 rounded-md px-2 py-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-px" />
+                      <span><span className="font-semibold">Revoked</span> — Onyx disabled this plugin for your safety. Remove it below.</span>
+                    </div>
+                  ) : p.error && (
                     <div className="flex items-center gap-1.5 text-[11px] text-danger mt-2">
                       <AlertTriangle className="w-3 h-3" /> Failed to activate — disabled.
                     </div>
@@ -230,7 +236,11 @@ export default function ExtensionsView() {
 
                 {/* Controls */}
                 <div className="flex flex-col items-end gap-3 shrink-0">
-                  <Switch active={p.enabled} onClick={() => setEnabled(p.id, !p.enabled)} label={`Toggle ${p.name}`} />
+                  {p.revoked ? (
+                    <span className="text-[9px] font-mono font-bold tracking-wide text-danger bg-danger/10 border border-danger/25 rounded px-1.5 py-1">REVOKED</span>
+                  ) : (
+                    <Switch active={p.enabled} onClick={() => setEnabled(p.id, !p.enabled)} label={`Toggle ${p.name}`} />
+                  )}
                   {confirming === p.id ? (
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => uninstall(p.id)} className="text-[10px] font-medium px-2 py-1 rounded-md bg-danger/15 text-danger border border-danger/30 hover:bg-danger/25 transition-colors">

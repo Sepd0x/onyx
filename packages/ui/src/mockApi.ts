@@ -89,7 +89,7 @@ class MockApi {
   // Extensions view shows a realistic populated state in the browser preview.
   private plugins: any[] = [
     { id: 'onyx.hello', name: 'Hello World', version: '1.0.0', description: 'Reference plugin showing the Onyx plugin format end-to-end.', author: { handle: 'onyx', url: 'https://github.com/Sepd0x/onyx' }, official: true, permissions: ['notify'], channels: ['greet'], granted: ['notify'], enabled: true, error: null },
-    { id: 'acme.netcheck', name: 'Net Check', version: '0.3.1', description: 'Pings your endpoints and notifies you the moment one goes down.', author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' }, official: false, permissions: ['net:fetch', 'notify'], channels: ['ping'], granted: ['net:fetch', 'notify'], enabled: false, error: null },
+    { id: 'acme.netcheck', name: 'Net Check', version: '0.3.1', description: 'Pings your endpoints and notifies you the moment one goes down.', author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' }, official: false, permissions: ['net:fetch', 'notify'], channels: ['ping'], granted: ['net:fetch', 'notify'], enabled: false, error: null, revoked: true },
   ];
   private repos: any[] = [
     { name: 'onyx-core', branch: 'main', dirty: 4, pull: 0, push: 2, path: 'C:/dev/onyx-core', activity: [0,1,0,3,5,0,2,1,0,4,2,0,1,3], risk: ['Contains .env'], ready: true, commitWarning: null, lastCommitMeta: { hash: '9f3e2a1', author: 'Sepd0x', relative: '5 hours ago', subject: 'refactor: extract shared config helper' }, dirtyFiles: [{ status: 'M', file: 'src/main.js' }, { status: '??', file: '.env' }, { status: 'M', file: 'package.json' }, { status: 'D', file: 'old.js' }], branches: ['main', 'dev'], lastFetched: Date.now() - 600000 },

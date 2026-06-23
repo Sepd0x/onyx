@@ -6,6 +6,13 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Plugin kill-switch (revocation list)** — if a signed plugin is later found to be
+  malicious or broken, Onyx can revoke it: a revoked plugin is never activated, can't be
+  re-enabled or re-installed, and is clearly marked "Revoked" in Extensions so you can
+  remove it. The revocation list is fetched from the curated registry and is **sticky** —
+  once something is revoked it stays revoked, even offline.
+
 ## [1.4.0] - 2026-06-23
 
 "Plugins, in the app." Install signed plugins straight from the curated registry without
