@@ -27,6 +27,7 @@ const INVOKE_CHANNELS = [
   // Plugins (Fase 2) — signed/curated extensions. plugin:invoke is the ONLY way the
   // renderer reaches plugin code, gated by install + signature + enabled + declared method.
   'plugin:list', 'plugin:pickBundle', 'plugin:install', 'plugin:setEnabled', 'plugin:invoke', 'plugin:uninstall',
+  'plugin:registryList', 'plugin:registryPreview',
   // Window
   'window:close', 'window:minimize', 'window:openExternal',
   // Environment

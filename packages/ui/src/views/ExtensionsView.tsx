@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState';
 import Skeleton from '../components/Skeleton';
 import Switch from '../components/Switch';
 import PluginConsentModal, { type PluginPreview } from '../components/PluginConsentModal';
+import PluginRegistryModal, { type RegistryPlugin } from '../components/PluginRegistryModal';
 import { CH } from '../ipc';
 import { useIpc, invalidate } from '../lib/ipcCache';
 import { describePermission, RISK_CLASS } from '../lib/pluginPermissions';
@@ -29,8 +30,6 @@ interface Plugin {
   error: string | null;
 }
 
-const REGISTRY_URL = 'https://github.com/Sepd0x/onyx-plugins';
-
 export default function ExtensionsView() {
   const { data, ts } = useIpc<Plugin[]>(CH.pluginList, [], { pollMs: 0 });
   const plugins = data ?? [];
@@ -39,6 +38,11 @@ export default function ExtensionsView() {
   const [preview, setPreview] = useState<PluginPreview | null>(null);
   const [installing, setInstalling] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+  // In-app registry browser.
+  const [registryOpen, setRegistryOpen] = useState(false);
+  const [registry, setRegistry] = useState<RegistryPlugin[] | null>(null);
+  const [registryError, setRegistryError] = useState<string | null>(null);
+  const [registryBusy, setRegistryBusy] = useState<string | null>(null);
 
   const setEnabled = async (id: string, enabled: boolean) => {
     await window.api?.invoke(CH.pluginSetEnabled, { id, enabled });
@@ -76,7 +80,25 @@ export default function ExtensionsView() {
     invalidate('plugin:');
   };
 
-  const openRegistry = () => window.api?.invoke(CH.windowOpenExternal, REGISTRY_URL);
+  // Open the in-app registry browser and (re)load the available plugins.
+  const fetchRegistry = async () => {
+    setRegistry(null);
+    setRegistryError(null);
+    const res = await window.api?.invoke<{ ok: boolean; error?: string; plugins?: RegistryPlugin[] }>(CH.pluginRegistryList);
+    if (!res?.ok) { setRegistryError(res?.error || "Couldn't reach the registry."); setRegistry([]); return; }
+    setRegistry(res.plugins ?? []);
+  };
+  const openRegistryBrowser = () => { setRegistryOpen(true); fetchRegistry(); };
+
+  // Add from the registry → download + verify in main → open the consent modal.
+  const addFromRegistry = async (id: string) => {
+    setRegistryBusy(id);
+    const res = await window.api?.invoke<{ ok: boolean; error?: string; preview?: PluginPreview }>(CH.pluginRegistryPreview, { id });
+    setRegistryBusy(null);
+    if (!res?.ok || !res.preview) { setRegistryError(res?.error || "Couldn't download that plugin."); return; }
+    setRegistryOpen(false);
+    setPreview(res.preview); // consent modal; confirmInstall commits via plugin:install
+  };
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
@@ -92,16 +114,16 @@ export default function ExtensionsView() {
         actions={
           <div className="flex items-center gap-2">
             <button
-              onClick={openRegistry}
+              onClick={pickBundle}
               className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors"
             >
-              <ExternalLink className="w-3.5 h-3.5" /> Browse registry
+              <FolderOpen className="w-3.5 h-3.5" /> Install from file
             </button>
             <button
-              onClick={pickBundle}
+              onClick={openRegistryBrowser}
               className="flex items-center gap-2 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/20 text-accent hover:bg-primary/30 transition-colors"
             >
-              <FolderOpen className="w-3.5 h-3.5" /> Install plugin
+              <Blocks className="w-3.5 h-3.5" /> Browse registry
             </button>
           </div>
         }
@@ -138,11 +160,11 @@ export default function ExtensionsView() {
           description="Browse the curated registry to add signed plugins. Every one is reviewed and credited to its author."
         >
           <div className="flex items-center gap-2">
-            <button onClick={openRegistry} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors">
-              <ExternalLink className="w-4 h-4" /> Browse registry
+            <button onClick={pickBundle} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg border border-border2 bg-surface2/40 text-text hover:bg-surface2 transition-colors">
+              <FolderOpen className="w-4 h-4" /> Install from file
             </button>
-            <button onClick={pickBundle} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg bg-primary/20 text-accent border border-primary/30 hover:bg-primary/30 transition-colors">
-              <FolderOpen className="w-4 h-4" /> Install plugin
+            <button onClick={openRegistryBrowser} className="flex items-center gap-2 text-[13px] font-medium px-4 py-2 rounded-lg bg-primary/20 text-accent border border-primary/30 hover:bg-primary/30 transition-colors">
+              <Blocks className="w-4 h-4" /> Browse registry
             </button>
           </div>
         </EmptyState>
@@ -232,6 +254,17 @@ export default function ExtensionsView() {
             </div>
           ))}
         </div>
+      )}
+
+      {registryOpen && (
+        <PluginRegistryModal
+          plugins={registry}
+          error={registryError}
+          busyId={registryBusy}
+          onAdd={addFromRegistry}
+          onClose={() => setRegistryOpen(false)}
+          onRetry={fetchRegistry}
+        />
       )}
 
       {preview && (

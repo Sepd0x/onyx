@@ -59,6 +59,8 @@ export const CH = {
   // Plugins (Fase 2)
   pluginList: 'plugin:list',
   pluginPickBundle: 'plugin:pickBundle',
+  pluginRegistryList: 'plugin:registryList',
+  pluginRegistryPreview: 'plugin:registryPreview',
   pluginInstall: 'plugin:install',
   pluginSetEnabled: 'plugin:setEnabled',
   pluginInvoke: 'plugin:invoke',

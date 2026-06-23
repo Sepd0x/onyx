@@ -6,6 +6,15 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Install plugins from inside the app** — a new "Browse registry" opens the curated
+  registry right in the Extensions view: see each available plugin (author, badge,
+  capabilities), click **Add**, and it downloads + signature-verifies the bundle in the
+  background before the usual consent dialog. No more cloning from GitHub by hand. The
+  download is from a hardcoded, trusted registry and is verified before anything touches
+  disk, so the security model is unchanged. ("Install from file" still picks a local
+  signed folder.)
+
 ## [1.3.1] - 2026-06-19
 
 "Polish & honesty." A round of feedback-driven UI fixes, a friendlier app blocker, and

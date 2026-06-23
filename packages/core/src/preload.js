@@ -15,6 +15,7 @@ const INVOKE_CHANNELS = [
   'app:getConfig', 'app:setConfig', 'app:getStats', 'app:notify', 'app:checkForUpdates', 'app:downloadUpdate', 'app:installUpdate', 'app:getConflicts', 'app:log',
   'telemetry:track', 'telemetry:getPreview', 'telemetry:resetId',
   'plugin:list', 'plugin:pickBundle', 'plugin:install', 'plugin:setEnabled', 'plugin:invoke', 'plugin:uninstall',
+  'plugin:registryList', 'plugin:registryPreview',
   'window:close', 'window:minimize', 'window:openExternal',
   'env:keepAwake', 'env:focusMode',
   'cleaner:scan', 'cleaner:delete',

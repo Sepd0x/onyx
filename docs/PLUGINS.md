@@ -132,7 +132,7 @@ method you didn't list in `channels`, or a disabled plugin, is unreachable.
    ```
    This writes `onyx.sig`. (Community authors don't hold the key — you submit the folder
    and the maintainer signs during review; see §5.)
-3. In the app: **Extensions → Install plugin**, pick the folder. The signature is verified
+3. In the app: **Extensions → Install from file**, pick the folder. The signature is verified
    *before* anything runs; then you consent to its capabilities and it installs.
 4. Invoke it from the renderer (or another plugin's UI) and check the result.
 
