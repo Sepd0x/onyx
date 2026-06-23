@@ -549,6 +549,27 @@ class MockApi {
         }
         return { ok: true, preview: { ...this.pendingPlugin, alreadyInstalled: false } };
       }
+      case 'plugin:registryList': {
+        // The curated registry, minus what's already installed-flagged.
+        const reg = [
+          { id: 'onyx.hello', name: 'Hello World', version: '1.0.0', description: 'Reference plugin showing the Onyx plugin format end-to-end.', author: { handle: 'onyx', url: 'https://github.com/Sepd0x/onyx' }, official: true, permissions: ['notify'] },
+          { id: 'acme.clipsync', name: 'Clip Sync', version: '0.2.0', description: 'Syncs your clipboard history to a private endpoint you control.', author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' }, official: false, permissions: ['clipboard:read', 'net:fetch'] },
+          { id: 'devkit.notes', name: 'Quick Notes', version: '1.1.0', description: 'A tiny scratchpad that lives in your tray, synced to a local file.', author: { handle: 'devkit', url: 'https://github.com/devkit' }, official: false, permissions: ['notify'] },
+        ];
+        return { ok: true, plugins: reg.map((p) => ({ ...p, installed: this.plugins.some((x) => x.id === p.id) })) };
+      }
+      case 'plugin:registryPreview': {
+        const reg: Record<string, any> = {
+          'onyx.hello': { id: 'onyx.hello', name: 'Hello World', version: '1.0.0', description: 'Reference plugin showing the Onyx plugin format end-to-end.', author: { handle: 'onyx', url: 'https://github.com/Sepd0x/onyx' }, official: true, permissions: ['notify'], channels: ['greet'] },
+          'acme.clipsync': { id: 'acme.clipsync', name: 'Clip Sync', version: '0.2.0', description: 'Syncs your clipboard history to a private endpoint you control.', author: { handle: 'acme-dev', url: 'https://github.com/acme-dev' }, official: false, permissions: ['clipboard:read', 'net:fetch'], channels: ['sync'] },
+          'devkit.notes': { id: 'devkit.notes', name: 'Quick Notes', version: '1.1.0', description: 'A tiny scratchpad that lives in your tray, synced to a local file.', author: { handle: 'devkit', url: 'https://github.com/devkit' }, official: false, permissions: ['notify'], channels: ['note'] },
+        };
+        const p = reg[args[0]?.id];
+        if (!p) return { ok: false, error: 'plugin not in registry' };
+        if (this.plugins.some((x) => x.id === p.id)) return { ok: false, error: `${p.name} is already installed.` };
+        this.pendingPlugin = p;
+        return { ok: true, preview: { ...p, alreadyInstalled: false } };
+      }
       case 'plugin:install': {
         const pend = this.pendingPlugin;
         if (!pend || pend.id !== args[0]?.id) return { ok: false, error: 'nothing to install' };

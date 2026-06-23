@@ -156,8 +156,7 @@ module.exports = function initPlugins(opts) {
   ipcMain.handle('plugin:install', (_e, data) => {
     const id = data && data.id;
     if (!pendingInstall || !id || pendingInstall.plugin.id !== id) return { ok: false, error: 'nothing to install' };
-    const { dir: sourceDir, plugin } = pendingInstall;
-    if (!fs.existsSync(sourceDir)) { pendingInstall = null; return { ok: false, error: 'source no longer available' }; }
+    const plugin = pendingInstall.plugin;
 
     // The renderer can only narrow, never widen: granted ⊆ declared permissions.
     const granted = narrowGrant(plugin.permissions, data && data.granted);
@@ -166,8 +165,20 @@ module.exports = function initPlugins(opts) {
     try {
       fs.mkdirSync(baseDir, { recursive: true });
       fs.rmSync(dest, { recursive: true, force: true });
-      fs.cpSync(sourceDir, dest, { recursive: true });
-    } catch (e) { logger.error('Plugin install copy failed:', e); return { ok: false, error: 'install failed' }; }
+      if (pendingInstall.dir) {
+        // From a local folder (pick-a-bundle): copy the verified source.
+        if (!fs.existsSync(pendingInstall.dir)) { pendingInstall = null; return { ok: false, error: 'source no longer available' }; }
+        fs.cpSync(pendingInstall.dir, dest, { recursive: true });
+      } else if (Array.isArray(pendingInstall.files)) {
+        // From the registry: write the pre-verified bytes we downloaded (files + signature).
+        // f.path was already validated as a plain filename by loadBundle, so no traversal.
+        fs.mkdirSync(dest, { recursive: true });
+        for (const f of pendingInstall.files) fs.writeFileSync(path.join(dest, path.basename(f.path)), f.data);
+        fs.writeFileSync(path.join(dest, SIG_NAME), pendingInstall.signature);
+      } else {
+        return { ok: false, error: 'nothing to install' };
+      }
+    } catch (e) { logger.error('Plugin install write failed:', e); return { ok: false, error: 'install failed' }; }
 
     // Seed state with exactly what the user approved BEFORE loadAll, so the auto-grant path
     // (first-seen → grant-all) never overrides the user's choice.
@@ -175,6 +186,76 @@ module.exports = function initPlugins(opts) {
     pendingInstall = null;
     loadAll();
     return { ok: true, id: plugin.id };
+  });
+
+  // The curated registry — a hardcoded, trusted repo. Never user-supplied (no SSRF), and
+  // every download is signature-verified before it touches disk, so even a compromised
+  // mirror can't install anything we didn't sign.
+  const REGISTRY_RAW = 'https://raw.githubusercontent.com/Sepd0x/onyx-plugins/main';
+  const httpText = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); };
+  const httpBuf = async (url) => { const r = await fetch(url, { redirect: 'follow' }); if (!r.ok) throw new Error('HTTP ' + r.status); return Buffer.from(await r.arrayBuffer()); };
+
+  // Read-only browse: the list of available plugins + whether each is already installed.
+  // Nothing is downloaded or run here.
+  ipcMain.handle('plugin:registryList', async () => {
+    if (typeof fetch !== 'function') return { ok: false, error: 'network unavailable' };
+    try {
+      const idx = JSON.parse(await httpText(`${REGISTRY_RAW}/registry.json`));
+      const plugins = (Array.isArray(idx.plugins) ? idx.plugins : []).map((p) => ({
+        id: p.id, name: p.name, version: p.version, description: p.description, author: p.author,
+        official: !!p.official, permissions: Array.isArray(p.permissions) ? p.permissions : [],
+        installed: loaded.has(p.id),
+      }));
+      return { ok: true, plugins };
+    } catch (e) { logger.warn('Registry list failed:', (e && e.message) || e); return { ok: false, error: 'could not reach the registry' }; }
+  });
+
+  // Download a registry plugin's bundle and VERIFY it (no install yet) — the same gate as
+  // the folder picker. On success, stash the verified bytes as pendingInstall and return the
+  // preview for the consent modal. A bad signature never reaches install.
+  ipcMain.handle('plugin:registryPreview', async (_e, data) => {
+    const id = data && data.id;
+    if (typeof fetch !== 'function') return { ok: false, error: 'network unavailable' };
+    let entry;
+    try {
+      const idx = JSON.parse(await httpText(`${REGISTRY_RAW}/registry.json`));
+      entry = (Array.isArray(idx.plugins) ? idx.plugins : []).find((p) => p && p.id === id);
+    } catch { return { ok: false, error: 'could not reach the registry' }; }
+    if (!entry || typeof entry.path !== 'string') return { ok: false, error: 'plugin not in registry' };
+    // Hard-bound the path to the registry's plugins/ tree — no traversal, no absolute URLs.
+    const base = entry.path.replace(/^\/+|\/+$/g, '');
+    if (!/^plugins\/[a-z0-9][a-z0-9._-]*$/i.test(base)) return { ok: false, error: 'bad registry path' };
+
+    let manifestText, signature;
+    try {
+      manifestText = await httpText(`${REGISTRY_RAW}/${base}/manifest.json`);
+      signature = (await httpText(`${REGISTRY_RAW}/${base}/${SIG_NAME}`)).trim();
+    } catch { return { ok: false, error: 'could not download the plugin' }; }
+
+    let manifest;
+    try { manifest = JSON.parse(manifestText); } catch { return { ok: false, error: 'invalid manifest in registry' }; }
+
+    const files = [{ path: 'manifest.json', data: Buffer.from(manifestText) }];
+    // Fetch exactly the files the manifest references (plain filenames only).
+    const refs = [manifest.main, manifest.ui].filter((f) => typeof f === 'string' && /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(f));
+    for (const fn of refs) {
+      try { files.push({ path: fn, data: await httpBuf(`${REGISTRY_RAW}/${base}/${fn}`) }); }
+      catch { return { ok: false, error: `could not download ${fn}` }; }
+    }
+
+    const res = loadBundle({ files, signature, publicKey, appVersion });
+    if (!res.ok) return { ok: false, error: res.error };
+
+    pendingInstall = { files, signature, plugin: res.plugin };
+    const p = res.plugin;
+    return {
+      ok: true,
+      preview: {
+        id: p.id, name: p.name, version: p.version, description: p.description,
+        author: p.author, official: p.official, permissions: p.permissions, channels: p.channels,
+        alreadyInstalled: loaded.has(p.id),
+      },
+    };
   });
 
   ipcMain.handle('plugin:setEnabled', (_e, data) => {
