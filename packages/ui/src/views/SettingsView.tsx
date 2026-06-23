@@ -505,8 +505,8 @@ export default function SettingsView() {
 
         <div className={sectionCls('tools')}>
            <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="w-4 h-4 text-accent"/> Tools <span className="text-[9px] font-mono text-muted bg-surface2 border border-border px-1.5 py-0.5 rounded">Pick what you use</span></h3>
-           <ToolCatalog config={config} onToggle={toggleTool} />
-           <p className="text-[10px] text-muted/70 -mt-1">Disabled tools are hidden from the sidebar and command palette — turn them back on any time.</p>
+           <ToolCatalog config={config} onToggle={toggleTool} searchable />
+           <p className="text-[10px] text-muted/70 -mt-1">Disabled tools are hidden from the sidebar and command palette — turn them back on any time. Want more? Add signed plugins from <span className="text-accent">Extensions</span>.</p>
         </div>
 
         <div className={sectionCls('ai')}>
