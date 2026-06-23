@@ -7,6 +7,9 @@ All notable changes to Onyx are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Search your tools in Settings** — Settings → Tools now has a filter and an
+  "on / total" count, so picking what you use stays scannable as the toolset grows
+  (and a pointer to add more via Extensions).
 - **Install plugins from inside the app** — a new "Browse registry" opens the curated
   registry right in the Extensions view: see each available plugin (author, badge,
   capabilities), click **Add**, and it downloads + signature-verifies the bundle in the

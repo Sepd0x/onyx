@@ -1,4 +1,5 @@
-import { BadgeCheck } from 'lucide-react';
+import { useState } from 'react';
+import { BadgeCheck, Search } from 'lucide-react';
 import Switch from './Switch';
 import { TOOLS } from '../lib/tools';
 
@@ -8,21 +9,52 @@ import { TOOLS } from '../lib/tools';
 // Settings → Tools, so the experience is identical in both places. Toggling writes
 // config.disabledTools via the caller's onToggle; future community plugins will add
 // their own cards here with the contributor credited in place of "Onyx".
+//
+// `searchable` (Settings) adds a filter + an enabled count so the list stays scannable
+// as the toolset grows — the "Settings is getting busy" fix.
 export default function ToolCatalog({
   config,
   onToggle,
   columns = 1,
+  searchable = false,
 }: {
   config: any;
   onToggle: (id: string) => void;
   columns?: 1 | 2;
+  searchable?: boolean;
 }) {
   const disabled: string[] = Array.isArray(config?.disabledTools) ? config.disabledTools : [];
   const enabled = (id: string) => !disabled.includes(id);
+  const [q, setQ] = useState('');
+  const query = q.trim().toLowerCase();
+  const shown = query
+    ? TOOLS.filter((t) => t.label.toLowerCase().includes(query) || t.description.toLowerCase().includes(query))
+    : TOOLS;
+  const enabledCount = TOOLS.filter((t) => enabled(t.id)).length;
 
   return (
-    <div className={`grid gap-2 ${columns === 2 ? 'sm:grid-cols-2' : ''}`}>
-      {TOOLS.map((t) => {
+    <div className="flex flex-col gap-2.5">
+      {searchable && (
+        <div className="flex items-center gap-3">
+          <div className="flex-1 flex items-center gap-2 bg-background border border-border rounded-lg px-3">
+            <Search className="w-3.5 h-3.5 text-muted shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search tools…"
+              aria-label="Search tools"
+              className="flex-1 bg-transparent py-2 text-[12px] text-text placeholder:text-muted/60 outline-none"
+            />
+          </div>
+          <span className="text-[10px] font-mono text-muted2 shrink-0 whitespace-nowrap">{enabledCount}/{TOOLS.length} on</span>
+        </div>
+      )}
+
+      {shown.length === 0 ? (
+        <p className="text-[11px] text-muted/70 text-center py-3">No tools match “{q}”.</p>
+      ) : (
+        <div className={`grid gap-2 ${columns === 2 ? 'sm:grid-cols-2' : ''}`}>
+      {shown.map((t) => {
         const Icon = t.icon;
         const on = enabled(t.id);
         return (
@@ -49,6 +81,8 @@ export default function ToolCatalog({
           </div>
         );
       })}
+        </div>
+      )}
     </div>
   );
 }
