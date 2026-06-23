@@ -6,6 +6,11 @@ All notable changes to Onyx are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-23
+
+"Plugins, in the app." Install signed plugins straight from the curated registry without
+leaving Onyx, and keep Settings scannable as the toolset grows.
+
 ### Added
 - **Search your tools in Settings** — Settings → Tools now has a filter and an
   "on / total" count, so picking what you use stays scannable as the toolset grows
